@@ -1,0 +1,1745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Team Lite</title>
+<link rel="icon" href="/ui/icon.png">
+<style>
+:root{--bg:#f4f5f7;--panel:#fff;--panel2:#fafbfc;--ink:#1b1f24;--mute:#68717d;--line:#e2e5e9;--accent:#3b5bdb;--accent-ink:#fff;--accent-soft:#e8edfd;
+--ok:#1a7f4b;--okbg:#e5f4ec;--warn:#9a5b00;--warnbg:#fff3d6;--bad:#b42318;--badbg:#fde8e6;--code:#f0f2f5;--fred:#f0f3fa;--shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08)}
+@media(prefers-color-scheme:dark){:root{--bg:#121418;--panel:#1a1d23;--panel2:#16191e;--ink:#e7e9ee;--mute:#99a1ad;--line:#2b3038;--accent:#6c8cff;--accent-ink:#0c1020;--accent-soft:#232a42;
+--ok:#5fd39a;--okbg:#12291c;--warn:#f2b44c;--warnbg:#33260c;--bad:#ff8a80;--badbg:#36161300;--code:#232831;--fred:#1f2430;--shadow:none}}
+[hidden]{display:none!important}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:14px/1.55 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 13px;border-radius:8px}
+button:hover:not(:disabled){border-color:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.ghost{border-color:transparent;background:transparent}button.ghost:hover{background:var(--panel2)}
+button.danger{color:var(--bad)}
+input[type=text],input[type=password],textarea,select{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{resize:vertical}a{color:var(--accent)}
+.hint{color:var(--mute);font-size:12.5px}.row{display:flex;gap:8px;align-items:center}.sp{flex:1}
+.pill{font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--code);color:var(--mute);white-space:nowrap}
+.pill.ok{background:var(--okbg);color:var(--ok)}.pill.warn{background:var(--warnbg);color:var(--warn)}.pill.bad{background:var(--badbg);color:var(--bad)}.pill.acc{background:var(--accent-soft);color:var(--accent)}
+#app{display:grid;grid-template-columns:240px minmax(420px,1fr) var(--sidew,40%);height:100%;position:relative}
+#app.noside{grid-template-columns:240px 1fr 0}#app.noside #side{display:none}
+#side{position:relative;min-width:0}
+#resizer{position:absolute;left:-4px;top:0;bottom:0;width:8px;cursor:col-resize;z-index:3}
+#resizer:hover,#resizer.drag{background:linear-gradient(90deg,transparent 3px,var(--accent) 3px,var(--accent) 5px,transparent 5px)}
+#sideToggle{position:absolute;top:50%;right:0;transform:translateY(-50%);z-index:4;width:22px;height:54px;padding:0;border-radius:8px 0 0 8px;
+  border-right:none;font-size:14px;line-height:1;color:var(--mute);background:var(--panel)}
+#sideToggle .dot{position:absolute;top:4px;left:4px;width:8px;height:8px;border-radius:50%;background:var(--warn)}
+@media(max-width:1180px){#app{grid-template-columns:220px 1fr}#side{display:none}
+  #app.sideover #side{display:flex;position:fixed;right:0;top:0;bottom:0;width:min(520px,92vw);z-index:8;box-shadow:-8px 0 24px #0005}}
+nav{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{display:flex;gap:10px;align-items:center;padding:16px 16px 10px}.brand img{width:30px;height:30px;border-radius:8px}.brand b{font-size:15px}
+#plist{list-style:none;margin:0;padding:6px 10px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:2px}
+#plist li{padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px}
+#plist li:hover{background:var(--panel2)}#plist li.sel{background:var(--accent-soft)}
+#plist .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.navfoot{border-top:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:4px}
+.navfoot button{text-align:left}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block}
+button.icon{padding:7px;border-radius:9px;color:var(--mute)}button.icon:hover:not(:disabled){color:var(--ink)}
+#micBtn.on{color:#fff;background:#d92d20;border-color:#d92d20;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(217,45,32,.45)}70%{box-shadow:0 0 0 9px rgba(217,45,32,0)}100%{box-shadow:0 0 0 0 rgba(217,45,32,0)}}
+#voiceBar{display:flex;gap:8px;align-items:center;padding:4px 8px 6px;font-size:12.5px;color:var(--mute)}
+#voiceBar b{color:#d92d20}
+.meter{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 2px 6px;font-size:12px;color:var(--mute);background:var(--panel2)}
+.meter:hover{border-color:var(--accent)}.bar{height:6px;border-radius:4px;background:var(--code);overflow:hidden;margin:3px 0 6px}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:4px}.bar>i.hi{background:var(--warn)}.bar>i.max{background:var(--bad)}
+.usage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.usage-grid div{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.usage-grid b{display:block;font-size:17px}.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mute)}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+table.mini{width:100%;border-collapse:collapse;font-size:12.5px}table.mini td,table.mini th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left}
+.risk{font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px}.risk.low{background:var(--okbg);color:var(--ok)}
+.risk.medium{background:var(--warnbg);color:var(--warn)}.risk.high{background:var(--badbg);color:var(--bad);border:1px solid var(--bad)}
+.says{border-left:3px solid var(--line);padding:2px 10px;margin:6px 0;color:var(--mute);font-size:13px}
+.what{margin:6px 0 2px}.what b{color:var(--ink)}
+.team-svg text{font-family:inherit}.tnode{cursor:pointer}.tnode:hover rect.box{stroke:var(--accent);stroke-width:2}
+@keyframes spinr{to{transform:rotate(360deg)}}.spinning{animation:spinr 1.6s linear infinite;transform-box:fill-box;transform-origin:center}
+.tlist .trow{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.tdot{width:12px;height:12px;border-radius:50%;flex:none;margin-top:4px}
+.qrow{display:grid;grid-template-columns:1.3fr .8fr 2fr .9fr 1.4fr;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.qrow.head{font-size:12px;color:var(--mute);padding:4px 0}
+.stabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 12px}.stab{border:none;background:none;padding:7px 12px;border-radius:8px 8px 0 0;color:var(--mute)}
+.stab.on{background:var(--panel2);color:var(--ink);font-weight:600}
+.brainrow{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.modellist{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:4px 0}
+.modellist:empty{display:none}
+.mitem{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--line)}
+.mitem:last-child{border-bottom:0}
+.mitem:hover{background:var(--panel)}
+.mitem.sel{background:var(--okbg);outline:1px solid var(--ok)}
+.mitem input{width:auto;margin-top:3px}
+.mitem .mt{flex:1}
+.mitem .mt b{font-size:13px}
+.mitem .mt .hint{display:block;margin-top:1px}
+.mitem.off{opacity:.6}
+.mitem.inst{background:color-mix(in srgb,var(--okbg) 55%,transparent)}
+.mgroup{padding:6px 10px;font-size:12px;font-weight:600;color:var(--mute);background:var(--panel);border-bottom:1px solid var(--line)}
+.modellist details>summary{cursor:pointer;padding:6px 10px;font-size:12.5px;color:var(--mute);border-bottom:1px solid var(--line)}
+.gwsteps{display:grid;gap:6px;margin:8px 0}
+.gwstep{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.gwstep .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--panel);flex:none}
+.gwstep.ok .n{background:var(--okbg);color:var(--ok)}
+.gwstep .t{flex:1}
+.trow-test{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:8px 0;background:var(--panel)}
+.trow-test img{max-width:100%;border-radius:6px;border:1px solid var(--line);margin-top:6px;cursor:zoom-in}
+.setgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:6px 0 4px}.setgrid label{font-size:12.5px;color:var(--mute)}
+main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}
+#cost:empty{display:none}
+.hacts{display:flex;gap:4px;align-items:center;flex:none;margin-left:auto}
+.team-svg{max-width:440px;display:block;margin:0 auto}
+header.top{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+header.top h2{margin:0;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:60px}
+header.top button,header.top .pill,#cost{white-space:nowrap;flex:none}header.top{flex-wrap:wrap;row-gap:6px}
+#cost{order:10;flex-basis:100%;font-size:12px}main{overflow:hidden}
+@media(max-width:1500px){#pauseBtn,#folderBtn{font-size:0;padding:7px 9px}#pauseBtn::first-letter,#folderBtn::first-letter{font-size:15px}}
+#msgs{flex:1;overflow:auto;padding:18px 18px 8px;display:flex;flex-direction:column;gap:12px}
+.m{max-width:760px;width:fit-content;padding:10px 14px;border-radius:12px}
+.m.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);white-space:pre-wrap;border-bottom-right-radius:4px}
+.m.fred{align-self:flex-start;background:var(--fred);border:1px solid var(--line);border-bottom-left-radius:4px}
+.who{font-size:12px;color:var(--mute);margin:0 0 2px 2px}
+.card{align-self:stretch;max-width:780px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px;font-size:14.5px;display:flex;gap:8px;align-items:center}
+.card.pending{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.card pre{background:var(--code);padding:10px;border-radius:8px;overflow:auto;max-height:220px;font:12px/1.5 Consolas,ui-monospace,monospace;white-space:pre-wrap;margin:8px 0}
+.card .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.act{align-self:flex-start;font-size:12.5px;color:var(--mute);max-width:780px}
+.act summary{cursor:pointer;list-style:none}.act summary::-webkit-details-marker{display:none}
+.act ul{margin:4px 0 0;padding-left:18px}
+.agent{align-self:flex-start;max-width:780px;border-left:3px solid var(--accent);padding:6px 12px;background:var(--panel);border-radius:0 10px 10px 0}
+.agent.done{border-left-color:var(--ok)}.agent.failed{border-left-color:var(--bad)}
+.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:s 0.8s linear infinite;vertical-align:-1px}
+@keyframes s{to{transform:rotate(360deg)}}
+.shot img{max-width:100%;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;display:block;margin-top:6px}
+.err{align-self:stretch;max-width:780px;background:var(--badbg);color:var(--bad);border:1px solid var(--bad);border-radius:10px;padding:10px 14px;white-space:pre-wrap}
+.notice{align-self:center;font-size:12.5px;color:var(--mute)}
+.typing{align-self:flex-start;color:var(--mute);font-size:13px}
+#composer{padding:10px 18px 16px;background:var(--bg)}
+.cbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:var(--shadow)}
+.cbox:focus-within{border-color:var(--accent)}
+#input{border:none;background:transparent;resize:none;min-height:44px;max-height:200px;padding:6px 8px;outline:none}
+#chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 6px}
+.chip{font-size:12px;background:var(--code);border-radius:6px;padding:2px 4px 2px 8px;display:inline-flex;align-items:center;gap:4px;color:var(--ink)}
+.chip .x{border:none;background:none;padding:0 4px;color:var(--mute);font-size:14px;line-height:1;border-radius:4px}.chip .x:hover{color:var(--bad);background:var(--badbg)}
+.chip.gone{text-decoration:line-through;color:var(--mute)}.chip .ico{width:13px;height:13px}
+.uwrap{align-self:flex-end;display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:760px}
+.uchips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.itcard{align-self:stretch;max-width:780px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:8px 12px;background:var(--panel)}
+.itcard.done{border-left-color:var(--ok)}.itcard code{background:var(--code);padding:1px 6px;border-radius:4px}
+.itlist{margin:0 0 14px}.itrow{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line)}
+.itnum{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;background:var(--code);flex:none}
+.itnum.done{background:var(--okbg);color:var(--ok)}.itnum.building{background:var(--accent);color:var(--accent-ink)}
+.meta{font-size:11.5px;color:var(--mute);margin:2px 4px 0}
+aside#side{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;gap:2px;padding:10px 8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{border:none;background:none;border-radius:8px 8px 0 0;color:var(--mute);padding:7px 8px;font-size:13px}
+.tab.on{background:var(--panel2);color:var(--ink);font-weight:600}
+.pane{flex:1;overflow:auto;padding:14px 16px;min-height:0;background:var(--panel2)}
+.doc h1{font-size:18px;margin:0 0 8px}.doc h2{font-size:15px;margin:18px 0 6px;border-bottom:1px solid var(--line);padding-bottom:3px}
+.doc h3{font-size:14px;margin:12px 0 4px}.doc ul,.doc ol{padding-left:20px;margin:4px 0}.doc p{margin:6px 0}
+.doc code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:12.5px}.doc pre{background:var(--code);padding:10px;border-radius:8px;overflow:auto}
+.doc table{border-collapse:collapse;margin:6px 0}.doc td,.doc th{border:1px solid var(--line);padding:4px 8px}
+.empty{color:var(--mute);text-align:center;margin-top:40px}
+.gallery img{width:100%;border-radius:8px;border:1px solid var(--line);margin-bottom:4px;cursor:zoom-in}
+.gallery figure{margin:0 0 14px}.gallery figcaption{font-size:12px;color:var(--mute)}
+.check{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.check .dot{width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;background:var(--code);color:var(--mute)}
+.check .dot.ok{background:var(--okbg);color:var(--ok)}
+/* onboarding */
+#onboard{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;overflow:auto;padding:24px;z-index:5}
+.ob{max-width:620px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 30px;box-shadow:var(--shadow)}
+.ob h1{margin:0 0 4px;font-size:22px}.choice{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0;background:var(--panel2)}.ob ol{padding-left:20px}.ob li{margin:6px 0}
+.lightbox{position:fixed;inset:0;background:#000c;display:grid;place-items:center;z-index:20;cursor:zoom-out}
+.lightbox img{max-width:95vw;max-height:92vh;border-radius:8px}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);min-width:380px;max-width:520px;padding:20px}
+#setDlg{max-width:none;width:min(720px,94vw)}#workDlg{max-width:none;width:min(980px,96vw)}
+dialog::backdrop{background:#0007}
+#useDlg{max-width:none;width:min(680px,92vw)}#useDlg svg{display:block;overflow:visible}
+.welcome{max-width:560px;margin:60px auto;text-align:center;color:var(--mute)}
+.autobox{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
+.mrow{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}
+.mrow .grow{flex:1;min-width:0}
+input.num{width:72px;padding:4px 6px}
+.pipe-proj{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--panel)}
+.pipe-it{display:grid;grid-template-columns:28px 1fr 170px 150px 110px;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+.pipe-it select{padding:4px 6px}
+.council .mem{display:inline-block;font-size:11.5px;background:var(--code);border-radius:6px;padding:1px 7px;margin:2px 4px 2px 0}
+.op{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;background:var(--panel2)}
+.op .who{font-weight:600;color:var(--ink)}.op .rank{font-size:11.5px;color:var(--mute)}
+.pa .item{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}
+.pa .close{font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px}
+.pa .same{background:var(--badbg);color:var(--bad)}.pa .similar{background:var(--warnbg);color:var(--warn)}.pa .different{background:var(--okbg);color:var(--ok)}
+.obj{margin:6px 0}.obj li{margin:3px 0}.obj b{color:var(--ink)}
+.banner{background:var(--warnbg);color:var(--warn);border:1px solid var(--warn);border-radius:12px;padding:12px 16px;margin:0 0 12px}
+.banner h3{margin:0 0 6px;font-size:15px}.banner .irow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--warn)}
+.env{display:grid;grid-template-columns:1fr auto auto;gap:6px 10px;align-items:center;margin:6px 0}
+.env .ok{color:var(--ok)}.env .no{color:var(--mute)}
+.langpick{display:flex;gap:8px;margin:6px 0}.langpick label{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;font-size:12.5px}
+.langpick label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}.langpick input{width:auto;margin-right:6px}
+:root{--mat:#eef8f6;--matline:#0c8599}
+@media(prefers-color-scheme:dark){:root{--mat:#162a2a;--matline:#3bc9db}}
+.m.mat{background:var(--mat);border-color:var(--matline)}.who.mat{color:var(--matline);font-weight:600}
+.handoff{align-self:stretch;max-width:780px;display:flex;gap:10px;align-items:center;border:1px dashed var(--matline);border-radius:10px;padding:8px 12px;background:var(--panel)}
+.handoff .av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex:none}
+.av.fred{background:#3b5bdb}.av.mat{background:#0c8599}
+.card.arch.pending{border-color:var(--matline);box-shadow:0 0 0 3px var(--mat)}
+table.dec{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}table.dec td,table.dec th{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:top}
+table.dec th{font-size:12px;color:var(--mute);font-weight:600}
+.state{font-size:11.5px;padding:2px 8px;border-radius:99px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;background:var(--code);color:var(--mute)}
+.state::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.state.working{background:var(--okbg);color:var(--ok)}.state.needs{background:var(--warnbg);color:var(--warn)}
+.state.paused,.state.limit{background:var(--badbg);color:var(--bad)}.state.waiting{background:var(--accent-soft);color:var(--accent)}
+.state.release{background:var(--warnbg);color:var(--warn)}
+#plist .sub{font-size:11.5px;color:var(--mute)}#plist .nmw{min-width:0;display:flex;flex-direction:column}
+#plist li.hid .nm{color:var(--mute);font-style:italic}
+#plist li.broken .nm{color:var(--bad)}
+/* Simple mode (item 75): expert controls are hidden, never removed - their values keep applying */
+.advbox{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:14px}
+.seg{display:flex;gap:6px;margin:6px 0 10px}.seg label{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;font-size:13px}
+.seg label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}.seg input{width:auto;margin-right:6px}
+.danger-zone{border:1px solid var(--bad);border-radius:10px;padding:10px 12px;margin-top:12px}
+.welcome h2{color:var(--ink)}
+</style>
+</head>
+<body>
+<div id="onboard" hidden>
+  <div class="ob">
+    <div class="row" style="gap:12px;margin-bottom:10px"><img src="/ui/icon.png" width="44" height="44" style="border-radius:10px" alt=""><div><h1>Hi, I'm Fred.</h1><div class="hint">Your AI team lead</div></div></div>
+    <p>I'll turn your ideas into working software: I ask questions until we both understand what you need, propose a plan for you to approve, then my team of AI agents builds and tests it, sends you screenshots, and starts the app for you to try.</p>
+    <p><b>To think, I need a connection to Claude</b> (the AI I run on, made by Anthropic). Pick one:</p>
+    <div class="choice" id="optSub">
+      <div class="row"><b>Use my Claude subscription</b><span class="pill acc">Pro / Max</span><span class="sp"></span><span class="pill">personal use</span></div>
+      <p class="hint" style="margin:6px 0">A window opens Anthropic's own sign-in page in your browser. AI Team Lite never sees your password or login.
+      Uses your plan's usage limits: a full build can hit Pro's limit and pause until it resets (Max has much more room).
+      Only for you on your own PC; if you share AI Team Lite with others, each person needs their own API key.</p>
+      <div class="row"><button class="primary" id="subBtn">Sign in with Claude</button><span id="subStatus" class="hint"></span></div>
+    </div>
+    <div class="choice" id="optKey">
+      <div class="row"><b>Use an Anthropic API key</b><span class="pill">pay per use</span></div>
+      <ol class="hint" style="margin:6px 0">
+        <li>Open <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com/settings/keys</a> and sign in or create an account.</li>
+        <li>Add a little credit under <b>Billing</b> (a typical project costs a few dollars). This is billed separately from a Pro subscription.</li>
+        <li>Click <b>Create Key</b>, name it "AI Team Lite", copy it and paste it here. It is stored in Windows Credential Manager and never shown to the AI.</li>
+      </ol>
+      <div class="row"><input type="password" id="keyIn" placeholder="sk-ant-…" autocomplete="off" spellcheck="false"><button class="primary" id="keyBtn">Save and continue</button></div>
+    </div>
+    <p id="keyErr" class="hint" style="color:var(--bad);min-height:18px"></p>
+  </div>
+</div>
+
+<div id="app">
+  <nav>
+    <div class="brand"><img src="/ui/icon.png" alt=""><div><b>AI Team Lite</b><div class="hint" id="whoami"></div></div></div>
+    <div style="padding:4px 12px 8px"><button class="primary" id="newBtn" style="width:100%">+ New project</button></div>
+    <ul id="plist"></ul>
+    <div style="padding:0 12px 6px"><button class="ghost" id="hiddenBtn" hidden style="font-size:12.5px;color:var(--mute);padding:4px 6px"></button></div>
+    <div class="navfoot">
+      <div class="meter" id="usageMeter" title="Open the usage tracker (refreshes every 2 minutes)" hidden></div>
+      <button class="ghost" id="workBtn">▤ Pipeline <span id="workCount" class="pill"></span></button>
+      <button class="ghost" id="featuresBtn">★ Requested features <span id="featCount" class="pill"></span></button>
+      <button class="ghost" id="feedbackBtn">✉ Send feedback</button>
+      <button class="ghost" id="settingsBtn">☰ Settings</button>
+    </div>
+  </nav>
+
+  <main>
+    <header class="top">
+      <h2 id="title">AI Team Lite</h2><span id="phase" class="pill" hidden></span><span id="stateP" class="state" hidden></span><span class="sp"></span>
+      <span id="cost" class="hint"></span>
+      <span class="hacts">
+      <button class="primary" id="launchBtn" hidden title="Start the finished app">▶ Launch the project</button>
+      <button class="ghost" id="pauseBtn" hidden title="Pause or resume this project's work">⏸ Pause</button>
+      <button class="ghost" id="folderBtn" hidden title="Open the project folder">📁 Folder</button>
+      <button class="ghost icon" id="menuBtn" hidden title="Project options: hide or delete" aria-label="Project options">⋯</button>
+      </span>
+    </header>
+    <div id="msgs"></div>
+    <div id="composer">
+      <div class="cbox">
+        <div id="voiceBar" hidden></div>
+        <div id="chips"></div>
+        <textarea id="input" rows="1" placeholder="Message Fred…  (Enter to send, Shift+Enter for a new line)"></textarea>
+        <div class="row">
+          <input type="file" id="fileIn" hidden multiple>
+          <button class="ghost icon" id="attachBtn" title="Attach a file (examples help Fred a lot)" aria-label="Attach a file"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+          <button class="ghost icon" id="micBtn" title="Talk to Fred (click again to stop)" aria-label="Talk"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3.5"/><path d="M8.5 21.5h7"/></svg></button>
+          <span id="status" class="hint"></span><span class="sp"></span>
+          <button class="danger" id="stopBtn" hidden>■ Stop</button>
+          <button class="primary" id="sendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <button id="sideToggle" type="button" title="Hide the side panel" aria-label="Hide or show the side panel">»</button>
+  <aside id="side">
+    <div id="resizer" title="Drag to resize"></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="pane" id="pane"></div>
+  </aside>
+</div>
+
+<dialog id="newDlg"><form method="dialog" id="newForm">
+  <h3 style="margin-top:0">New project</h3>
+  <div class="seg"><label><input type="radio" name="nkind" value="new" checked>Start something new</label><label><input type="radio" name="nkind" value="existing">Continue an existing folder</label></div>
+  <div id="newExisting" hidden>
+    <label class="hint" for="newFolder">The folder with your project (code, notes, documents). Fred scans it, read-only, and summarizes where it stands and what remains to be done. Nothing is moved or copied.</label>
+    <div class="row" style="margin:4px 0 10px"><input type="text" id="newFolder" placeholder="e.g. C:\Users\you\Documents\my-app"><button type="button" id="newBrowse" hidden>Browse…</button></div>
+  </div>
+  <label class="hint" for="newName" id="newNameLbl">Give it a short name (you can describe the idea to Fred next)</label>
+  <input type="text" id="newName" placeholder="e.g. Invoice tracker" maxlength="60" required style="margin-top:4px">
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button type="button" id="newCancel">Cancel</button><button class="primary" type="submit">Create</button></div>
+</form></dialog>
+
+<dialog id="launchDlg"><form method="dialog">
+  <h3 style="margin-top:0">How should the project start?</h3>
+  <p class="hint">This folder has several start files. Pick the one that opens the app; AI Team Lite remembers your choice (you can change it in the project menu ⋯).</p>
+  <div id="launchList" class="langpick"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:12px"><button type="submit">Cancel</button><button type="button" class="primary" id="launchGo">Start it</button></div>
+</form></dialog>
+
+<dialog id="graphDlg" style="width:94vw;max-width:none;height:90vh;padding:10px"><form method="dialog" style="display:flex;flex-direction:column;height:100%">
+  <div class="row"><h3 style="margin:0" id="graphTitle">Diagram</h3><span class="hint" id="graphHint"></span><span class="sp"></span><button type="submit">Close</button></div>
+  <iframe id="graphFrame" title="Diagram" style="flex:1;width:100%;border:1px solid var(--line);border-radius:10px;margin-top:8px;background:#fff"></iframe>
+</form></dialog>
+
+<dialog id="brokenDlg"><form method="dialog">
+  <div class="row"><h3 style="margin:0" id="brkTitle">Project can't be opened</h3><span class="sp"></span><button type="submit">Close</button></div>
+  <p class="hint" id="brkInfo"></p>
+  <div class="row" style="flex-wrap:wrap;gap:8px"><button type="button" class="primary" id="brkReload">🔄 Reload from this folder</button><button type="button" id="brkPick">📁 Choose its new folder…</button></div>
+  <div class="row" id="brkPathRow" hidden style="margin-top:8px"><input type="text" id="brkPath" placeholder="e.g. C:\Users\you\Documents\my-app"><button type="button" id="brkPathGo">Reload from here</button></div>
+  <div class="danger-zone" style="margin-top:12px"><button type="button" id="brkRemove">Remove from AI Team Lite</button><div class="hint">Only takes it off the list. Nothing on your disk is changed or deleted.</div></div>
+  <p id="brkMsg" class="hint" style="color:var(--bad);min-height:16px;margin:6px 0 0"></p>
+</form></dialog>
+
+<dialog id="projDlg"><form method="dialog">
+  <div class="row"><h3 style="margin:0" id="projDlgTitle">Project</h3><span class="sp"></span><button type="submit">Close</button></div>
+  <p class="hint" id="projDlgInfo"></p>
+  <div class="row" style="flex-wrap:wrap"><button type="button" id="hideBtn"></button><span class="hint" id="hideHint"></span></div>
+  <div class="row" id="startRow" style="flex-wrap:wrap;margin-top:8px" hidden><button type="button" id="startBtn">▶ Choose how it starts</button><span class="hint" id="startHint"></span></div>
+  <div class="row" style="flex-wrap:wrap;margin-top:8px"><button type="button" id="reloadBtn">🔄 Reload from its folder</button><span class="hint">Fred re-reads the folder (documents, code, history) and catches up. Nothing is deleted.</span></div>
+  <div class="danger-zone">
+    <b style="color:var(--bad)">Delete</b>
+    <div id="removeWrap" style="margin:8px 0"><button type="button" id="removeBtn">Remove from AI Team Lite, keep my files</button>
+      <div class="hint">Takes it off AI Team Lite's list. Your folder and everything in it stays as it is, including the chat, plan and usage history, so opening the folder again later brings the project back.</div></div>
+    <div style="margin-top:8px"><label class="hint" for="delConfirm" id="delLbl"></label>
+      <div class="row" style="margin-top:4px"><input type="text" id="delConfirm" autocomplete="off"><button type="button" class="danger" id="delBtn" disabled style="white-space:nowrap">Delete everything</button></div></div>
+    <p id="projMsg" class="hint" style="color:var(--bad);min-height:16px;margin:6px 0 0"></p>
+  </div>
+</form></dialog>
+
+
+<dialog id="fbDlg"><form method="dialog">
+  <h3 style="margin-top:0">Send feedback</h3>
+  <p class="hint">Tell the author what you'd like, or what went wrong. It goes straight to their list of requested features.</p>
+  <label class="hint">Short title</label><input type="text" id="fbTitle" maxlength="200" placeholder="e.g. Add a dark mode" style="margin:4px 0 8px">
+  <label class="hint">Details (optional)</label><textarea id="fbBody" rows="4" placeholder="What would make AI Team Lite better for you?"></textarea>
+  <div class="row" style="justify-content:flex-end;margin-top:10px"><button type="submit">Cancel</button><button type="button" class="primary" id="fbSend">Send</button></div>
+  <p id="fbMsg" class="hint" style="min-height:16px"></p>
+</form></dialog>
+
+<dialog id="featDlg"><form method="dialog">
+  <div class="row"><h3 style="margin:0">Requested features</h3><span class="sp"></span><button type="button" id="featImport" hidden>Import feedback</button><button type="submit">Close</button></div>
+  <p class="hint" id="featIntro"></p>
+  <div id="featBody"></div>
+</form></dialog>
+
+<dialog id="setDlg"><form method="dialog">
+  <div class="row"><h3 style="margin:0">Settings</h3><span class="sp"></span><button type="button" id="setCancel" title="Close without saving (Esc)">Cancel</button><button class="primary" type="submit" id="setSave">Save and close</button></div>
+  <div class="stabs"><button type="button" class="stab on" data-s="gen">General</button><button type="button" class="stab" data-s="brains">Council</button><button type="button" class="stab" data-s="setup">Setup &amp; connections</button></div>
+  <div data-sp="gen">
+    <label class="hint">When should Fred ask before doing things?</label>
+    <select id="setMode" style="margin:4px 0 4px"><option value="plan">Only for big steps: I approve the plan, then the team works inside the project</option><option value="strict">Always: ask me before every action</option></select>
+    <p class="hint">Risky actions (installing software, GitHub, anything outside the project folder) always ask.</p>
+    <label class="row" style="margin:8px 0"><input type="checkbox" id="setIterPause" style="width:auto"> Show me each finished part before the team continues with the next one</label>
+    <label class="row" style="margin:8px 0"><input type="checkbox" id="setTray" style="width:auto"> When I click ✕, keep AI Team Lite running in the tray (next to the clock) so the team can keep working; quit from the tray icon</label>
+    <label class="row" style="margin:8px 0"><input type="checkbox" id="setPipeAuto" style="width:auto"> Master plan: when a project stops or waits for me, continue the next approved iteration of another project</label>
+    <label class="hint">Projects allowed to work at the same time</label>
+    <select id="setPar" style="margin:4px 0 4px"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+    <p class="hint">Extra projects wait in the Pipeline, highest priority first.</p>
+    <p class="hint" style="margin:10px 0 0">Connections, sharing and updates are in the <b>Setup &amp; connections</b> tab.</p>
+  </div>
+  <div data-sp="brains" hidden>
+    <p class="hint" style="margin:0 0 8px">Fred and the team always work with Claude, which picks the right model for each step. For big decisions Fred can ask a <b>council</b>: extra AI brains give their own answer, review each other anonymously, and Fred decides as chairman. Add one or two free brains here to use it.</p>
+    <h4 style="margin:12px 0 2px">Council brains</h4>
+    <div id="brainList"></div>
+    <details id="brainAdd" style="margin:10px 0" open><summary style="cursor:pointer"><b>+ Add a brain</b></summary>
+      <div class="setgrid" style="margin-top:8px">
+        <label>Provider<select id="bProv"></select></label>
+        <label id="bKeyWrap">API key<input type="password" id="bKey" placeholder="paste the key" autocomplete="off"></label>
+      </div>
+      <ol id="bHow" class="hint" style="margin:6px 0;padding-left:18px"></ol>
+      <p id="bNote" class="hint"></p>
+      <div class="row" style="margin:2px 0"><button type="button" id="bLoad">Load the list of models</button><span id="bLoadMsg" class="hint"></span></div>
+      <input type="hidden" id="bModel">
+      <div id="bModelList" class="modellist"></div>
+      <div class="row" style="margin-top:8px"><button type="button" class="primary" id="bAddBtn">Add and test</button><span id="bMsg" class="hint"></span></div>
+    </details>
+    <p class="hint" style="margin-top:12px">Adding, switching off or removing a brain is saved immediately.</p>
+  </div>
+  <div data-sp="setup" hidden>
+    <p class="hint" style="margin-top:0">Everything AI Team Lite is connected to. You can reconnect or erase each link here. This is also where the first-time setup with Fred lives.</p>
+    <div id="connList"></div>
+    <div class="row" style="flex-wrap:wrap;margin:8px 0"><button type="button" id="setupFredBtn">Re-run setup with Fred</button><button type="button" id="replaceKey">Change how Fred connects to Claude</button><button type="button" id="subOut" class="danger">Sign out of Claude subscription</button><button type="button" class="danger" id="clearGh">Disconnect GitHub</button></div>
+    <div id="setInfo" class="hint" style="margin:8px 0"></div>
+    <h4 style="margin:16px 0 4px">Share with friends &amp; updates</h4>
+    <div id="shareBox"></div>
+  </div>
+</form></dialog>
+
+<dialog id="workDlg"><form method="dialog">
+  <div class="row"><h3 style="margin:0">Pipeline</h3><span id="workSum" class="hint"></span><span class="sp"></span><button type="submit">Close</button></div>
+  <div class="stabs" style="margin-top:8px"><button type="button" class="wtab on" data-w="pipe">Features in the pipeline</button><button type="button" class="wtab" data-w="run">Running work</button></div>
+  <div data-wp="pipe"><p class="hint" id="pipeHint"></p><div id="pipeBody"></div></div>
+  <div data-wp="run" hidden><p class="hint">Every project's current work. Pause, resume or restart it, and set its priority: when only a few projects can work at once, or after a usage limit resets, higher priority goes first.</p>
+  <div id="workBody"></div></div>
+</form></dialog>
+
+<dialog id="useDlg"><form method="dialog">
+  <div class="row"><h3 style="margin:0">Usage</h3><span class="hint" id="useChecked"></span><span class="sp"></span><button type="button" id="useRefresh" title="Refresh now (it also refreshes by itself every 2 minutes)">↻ Refresh</button><button type="submit">Close</button></div>
+  <div id="useBody"></div>
+</form></dialog>
+
+<dialog id="voiceDlg"><form method="dialog">
+  <h3 style="margin-top:0">Turn on talking</h3>
+  <p>To understand your voice, AI Team Lite needs a speech model (<span id="vSize">about 145 MB</span>). It is downloaded once and runs on your PC: nothing you say is sent anywhere.</p>
+  <p class="hint">If Fred does not hear you later: Windows Settings → Privacy &amp; security → Microphone → turn on "Let desktop apps access your microphone".</p>
+  <div class="row" style="justify-content:flex-end"><button type="submit">Not now</button><button type="button" class="primary" id="vDl">Download and start</button></div>
+</form></dialog>
+
+<script>
+const TOKEN = "__TOKEN__";
+const $ = id => document.getElementById(id);
+let S = null, cur = null, view = null, tab = 'team', attachments = [], es = null, lastSeq = 0;
+
+/* ------------------------------------------------------------------ api */
+async function api(path, body) {
+  const opts = {headers: {'X-Token': TOKEN, 'Content-Type': 'application/json'}};
+  if (body !== undefined) { opts.method = 'POST'; opts.body = JSON.stringify(body); }
+  const r = await fetch(path, opts); const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('Error ' + r.status));
+  return j;
+}
+
+/* ------------------------------------------------------------------ safe markdown */
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function inline(s) {
+  return esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[^*\w])\*([^*\n]+)\*/g, '$1<i>$2</i>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+}
+function md(src) {
+  src = String(src || '').replace(/^---\n[\s\S]*?\n---\n/, '');
+  const out = [], L = src.split('\n'); let i = 0; const st = [];
+  const close = (n = 0) => { while (st.length > n) out.push('</' + st.pop() + '>'); };
+  while (i < L.length) {
+    const line = L[i];
+    if (line.startsWith('```')) { close(); const b = []; i++; while (i < L.length && !L[i].startsWith('```')) b.push(L[i++]); out.push('<pre><code>' + esc(b.join('\n')) + '</code></pre>'); i++; continue; }
+    let m = line.match(/^(#{1,6})\s+(.*)$/);
+    if (m) { close(); const n = Math.min(m[1].length, 4); out.push(`<h${n}>${inline(m[2])}</h${n}>`); i++; continue; }
+    if (/^\s*\|.*\|\s*$/.test(line) && /^\s*\|[\s:|-]+\|\s*$/.test(L[i + 1] || '')) {
+      close(); const h = line.trim().slice(1, -1).split('|'); i += 2; const rows = [];
+      while (i < L.length && /^\s*\|.*\|\s*$/.test(L[i])) rows.push(L[i++].trim().slice(1, -1).split('|'));
+      out.push('<table><tr>' + h.map(c => `<th>${inline(c.trim())}</th>`).join('') + '</tr>' + rows.map(r => '<tr>' + r.map(c => `<td>${inline(c.trim())}</td>`).join('') + '</tr>').join('') + '</table>'); continue;
+    }
+    m = line.match(/^(\s*)([-*]|\d+\.)\s+(.*)$/);
+    if (m) {
+      const d = Math.floor(m[1].length / 2) + 1, tag = /\d/.test(m[2]) ? 'ol' : 'ul';
+      while (st.length > d) out.push('</' + st.pop() + '>');
+      while (st.length < d) { out.push('<' + tag + '>'); st.push(tag); }
+      let t = m[3]; const cb = t.match(/^\[( |x)\]\s+(.*)$/i); if (cb) t = (cb[1] === ' ' ? '☐ ' : '☑ ') + cb[2];
+      out.push('<li>' + inline(t) + '</li>'); i++; continue;
+    }
+    close(); if (line.trim()) out.push('<p>' + inline(line) + '</p>'); i++;
+  }
+  close(); return out.join('\n');
+}
+
+/* ------------------------------------------------------------------ state & navigation */
+// Claude reports plan usage only when its status changes (getting close, limit hit, back to normal), so when there
+// is no warning we say so instead of showing an old number (items 61, 62).
+function planPct(v) {
+  if (v.percent != null) return Math.round(v.percent) + '%';
+  if (v.status === 'rejected') return 'limit reached';
+  if (v.below_warning && !v.no_report && !v.stale) return 'below the warning level';
+  return 'not reported yet';
+}
+const resetOf = v => v.reset_text ? 'resets ' + v.reset_text : resetTxt(v.resets_at);
+let USE_AT = Date.now();
+async function loadState() {
+  S = await api('/api/state'); USE_AT = Date.now();
+  $('onboard').hidden = S.has_api_key;
+  $('whoami').textContent = S.settings.user_name ? 'with ' + S.settings.user_name : '';
+  const ul = $('plist'); ul.innerHTML = '';
+  if (!S.setup_complete) {
+    const li = document.createElement('li'); li.className = cur === 'setup' ? 'sel' : '';
+    li.innerHTML = '<span class="nm">⚙ First-time setup</span><span class="pill warn">to do</span>'; li.onclick = () => open('setup'); ul.appendChild(li);
+  }
+  const nHidden = S.projects.filter(p => p.hidden).length;
+  if (!nHidden) showHidden = false;
+  S.projects.filter(p => showHidden || !p.hidden || p.slug === cur).forEach(p => {
+    const li = document.createElement('li'); li.className = (p.slug === cur ? 'sel ' : '') + (p.hidden ? 'hid' : '');
+    const sub = p.phase === 'execute' && p.progress && p.progress.building ? 'Iteration ' + p.progress.current + '/' + p.progress.total : phaseLabel(p.phase);
+    li.innerHTML = `<span class="nmw"><span class="nm">${esc(p.name)}${p.hidden ? ' (hidden)' : ''}</span><span class="sub">${esc(sub)}</span></span>${stateHtml(p.state)}`;
+    li.title = p.existing ? 'Started from an existing folder' : '';
+    li.onclick = () => open(p.slug); ul.appendChild(li);
+  });
+  (S.broken || []).forEach(b => {
+    const li = document.createElement('li'); li.className = 'broken';
+    li.innerHTML = `<span class="nmw"><span class="nm">⚠ ${esc(b.name)}</span><span class="sub">can't be opened — click to fix</span></span>`;
+    li.title = b.reason; li.onclick = () => openBroken(b); ul.appendChild(li);
+  });
+  $('hiddenBtn').hidden = !nHidden; $('hiddenBtn').textContent = showHidden ? `Hide hidden projects` : `Show hidden projects (${nHidden})`;
+  renderMeter(); renderCost(view?.project); updateStateP();
+  const nb = S.projects.filter(p => p.busy).length; $('workCount').textContent = nb ? `${nb} working` : ''; $('workCount').className = 'pill ok'; $('workCount').hidden = !nb;
+  const fn = S.can_manage_features ? (S.features_new || 0) : 0; $('featCount').textContent = fn ? `${fn} new` : ''; $('featCount').className = 'pill warn'; $('featCount').hidden = !fn;
+  $('newBtn').disabled = !S.setup_complete;
+  $('newBtn').title = S.setup_complete ? '' : 'Finish the first-time setup with Fred first';
+  if (!lastSeq) lastSeq = S.seq;
+  return S;
+}
+let showHidden = false, lsTimer = null;
+const softState = () => { clearTimeout(lsTimer); lsTimer = setTimeout(loadState, 300); };
+function updateStateP() {
+  const p = view?.project, sp = $('stateP');
+  if (!p || p.slug === 'setup') { sp.hidden = true; return; }
+  const live = (S?.projects || []).find(x => x.slug === p.slug);
+  sp.outerHTML = stateHtml(live?.state || p.state || 'idle').replace('<span ', '<span id="stateP" ');
+}
+const STATE_LABEL = {working: 'Working', 'needs you': 'Needs you', paused: 'Paused', limit: 'Usage limit', waiting: 'Waiting', release: 'Waiting for release', idle: 'Idle'};
+const stateHtml = st => { st = st || 'idle'; return `<span class="state ${esc(st.split(' ')[0])}" title="${esc(st === 'idle' ? 'Nothing is in progress right now' : st === 'needs you' ? 'Waiting for your answer in the chat' : STATE_LABEL[st])}">${esc(STATE_LABEL[st] || st)}</span>`; };
+const leadName = () => view?.project?.phase === 'architecture' ? 'Mat' : 'Fred';
+const iterLabel = (pr, phase) => pr && pr.total ? (phase === 'execute' && pr.building ? ` · iteration ${pr.current} of ${pr.total}` : ` · ${pr.done}/${pr.total} iterations done`) : '';
+const phaseLabel = p => ({discover: 'Requirements', architecture: 'Architecture', plan: 'Planning', execute: 'Building', review: 'Your review', setup: 'Setup'})[p] || p;
+
+let early = [];  // events of the project being opened that arrive while its history is loading
+async function open(slug) {
+  cur = slug || null; attachments = []; renderChips();
+  view = null; early = [];
+  if (cur) { try { view = await api('/api/projects/' + cur); } catch (e) {
+    view = null;
+    if (cur !== 'setup') {  // never leave an empty chat that answers "Unknown project" (item 66)
+      cur = null; await loadState();
+      alertBox('This project could not be opened. If it shows in the list with ⚠, click it to reload it from its folder or remove it.');
+    }
+  } }
+  renderHeader(); renderAll();
+  // the history was read at one moment: add what arrived while it loaded (e.g. Fred's first greeting)
+  const have = new Set(items.map(x => x.seq)), late = early.filter(e => e.slug === cur && !have.has(e.seq)); early = [];
+  late.forEach(onEvent);
+  renderSide(); loadState();
+  $('input').focus();
+}
+function renderHeader() {
+  const p = view?.project;
+  $('title').textContent = p ? p.name : 'AI Team Lite';
+  const ph = $('phase'); ph.hidden = !p; if (p) { ph.textContent = phaseLabel(p.phase) + iterLabel(view.progress, p.phase); ph.className = 'pill ' + (p.phase === 'execute' ? 'acc' : p.phase === 'review' ? 'ok' : ''); }
+  renderCost(p);
+  $('folderBtn').hidden = !p || p.slug === 'setup';
+  $('pauseBtn').hidden = !p || p.slug === 'setup';
+  $('menuBtn').hidden = !p || p.slug === 'setup';
+  $('launchBtn').hidden = !p || !p.launch;
+  if (p && p.launch) $('launchBtn').title = `Start ${p.launch.version || 'the app'} (${p.launch.command}${p.launch.url ? ', ' + p.launch.url : ''})`;
+  updateStateP();
+  $('input').placeholder = `Message ${p ? leadName() : 'Fred'}…  (Enter to send, Shift+Enter for a new line)`;
+  if (p) { $('pauseBtn').textContent = p.paused ? '▶ Resume' : '⏸ Pause'; if (p.paused) { ph.textContent = 'Paused'; ph.className = 'pill warn'; } }
+  setBusy(view?.busy);
+}
+
+/* ------------------------------------------------------------------ chat rendering */
+let items = [];            // events of the current conversation
+/* ------------------------------------------------------------------ messages: times + attachments */
+const CLIP_SM = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
+let lastUserTs = null, answered = true, deletedFiles = new Set();
+function when(ts) {
+  const d = new Date(ts * 1000), now = new Date();
+  const time = d.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+  return d.toDateString() === now.toDateString() ? time : d.toLocaleDateString([], {month: 'short', day: 'numeric'}) + ', ' + time;
+}
+function took(s) { s = Math.max(0, Math.round(s)); return s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${Math.floor(s / 3600)} h ${Math.floor(s % 3600 / 60)} min`; }
+const ATT_RE = /^\[Attached file: (inputs\/[^\]]+)\]$/gm;
+function chipHtml(path, sent) {
+  const gone = deletedFiles.has(path);
+  return `<span class="chip ${gone ? 'gone' : ''}" data-path="${esc(path)}" title="${esc(path)}">${CLIP_SM}${esc(path.split('/').pop())}${gone ? ' <span class="hint">(deleted)</span>' : `<button type="button" class="x" title="Delete this file" aria-label="Delete ${esc(path.split('/').pop())}">×</button>`}</span>`;
+}
+function wireChips(node, sent) {
+  node.querySelectorAll('.chip .x').forEach(b => b.onclick = async () => {
+    const path = b.closest('.chip').dataset.path, name = path.split('/').pop();
+    if (sent && !confirm(`Delete ${name}?\n\nThe file is removed from the project and Fred is told not to use it anymore.`)) return;
+    try {
+      await api(`/api/projects/${cur}/delete-attachment`, {path, sent});
+      if (sent) { deletedFiles.add(path); refreshChips(path); }
+      else { attachments = attachments.filter(a => a !== path); renderChips(); }
+    } catch (e) { alertBox(e.message); }
+  });
+}
+function refreshChips(path) {
+  $('msgs').querySelectorAll(`.uchips .chip[data-path="${CSS.escape(path)}"]`).forEach(c => { const n = el(chipHtml(path, true)); c.replaceWith(n); });
+}
+function userMsg(ev) {
+  const files = [...String(ev.text).matchAll(ATT_RE)].map(m => m[1]);
+  const text = String(ev.text).replace(ATT_RE, '').trim();
+  lastUserTs = ev.ts; answered = false;
+  const n = el(`<div class="uwrap">${text ? '<div class="m user"></div>' : ''}${files.length ? `<div class="uchips">${files.map(f => chipHtml(f, true)).join('')}</div>` : ''}
+    <div class="meta">${ev.queued ? 'Queued · ' : ''}Sent ${esc(when(ev.ts))}</div></div>`);
+  if (text) n.querySelector('.m').textContent = text;
+  if (ev.queued) n.title = 'Delivered to Fred as soon as he finishes the current step';
+  wireChips(n, true);
+  return n;
+}
+function fredMsg(ev) {
+  const who = ev.speaker || 'Fred', mat = who === 'Mat';
+  const n = el(`<div><div class="who ${mat ? 'mat' : ''}">${mat ? 'Mat · lead architect' : esc(who)}</div><div class="m fred doc ${mat ? 'mat' : ''}"></div><div class="meta"></div></div>`);
+  n.querySelector('.m').innerHTML = md(ev.text);
+  let meta = when(ev.ts);
+  if (!answered && lastUserTs) { meta += ` · replied after ${took(ev.ts - lastUserTs)}`; answered = true; }
+  n.querySelector('.meta').textContent = meta;
+  return n;
+}
+
+function renderAll() {
+  items = view ? view.history.slice() : [];
+  lastUserTs = null; answered = true;
+  deletedFiles = new Set(items.filter(e => e.type === 'attachment_deleted').map(e => e.path));
+  const box = $('msgs'); box.innerHTML = '';
+  if (!cur) { box.innerHTML = welcomeHtml(); maybeInterrupted(); return; }
+  items.forEach(ev => box.appendChild(renderEvent(ev)));
+  groupActivities(); scrollDown(true);
+}
+function maybeInterrupted() {
+  const items = (S?.interrupted || []).filter(x => !dismissedInterrupt.has(x.slug));
+  if (!items.length) return;
+  const box = $('msgs');
+  const when = t => t ? new Date(t * 1000).toLocaleString() : '';
+  const b = el(`<div class="banner"><h3>⚠ Work was interrupted</h3>
+    <div class="hint">AI Team Lite did not close cleanly last time (closed during work, a crash, or a Windows update). Nothing committed was lost. Pick up where each project stopped:</div>
+    ${items.map(x => `<div class="irow" data-s="${esc(x.slug)}"><div style="flex:1"><b>${esc(x.name || x.slug)}</b>${x.iteration ? ` <span class="hint">· iteration ${x.iteration}${x.iteration_name ? ' (' + esc(x.iteration_name) + ')' : ''}${x.task ? ', ' + esc(x.task) : ''}</span>` : ''}
+      <div class="hint">stopped ${esc(when(x.time))}${(x.changes || []).length ? ` · ${x.changes.length} file(s) changed, not committed` : ''}</div></div>
+      <button class="primary" data-a="resume">Resume</button><button data-a="restart">Restart the step</button><button data-a="dismiss">Leave paused</button></div>`).join('')}
+    <label class="row" style="margin-top:8px"><input type="checkbox" id="autoResume" ${S?.settings.auto_resume ? 'checked' : ''} style="width:auto"> Resume interrupted work automatically next time</label></div>`);
+  box.prepend(b);
+  b.querySelector('#autoResume').onchange = e => api('/api/settings', {auto_resume: e.target.checked});
+  b.querySelectorAll('.irow').forEach(row => {
+    const slug = row.dataset.s;
+    row.querySelectorAll('[data-a]').forEach(btn => btn.onclick = async () => {
+      if (btn.dataset.a === 'restart' && !confirm('Restart the current step from the last commit? Unfinished changes are set aside (recoverable with Git), not deleted.')) return;
+      row.querySelectorAll('button').forEach(x => x.disabled = true);
+      try { await api(`/api/interrupted/${slug}/${btn.dataset.a}`, {}); } catch (e) { alertBox(e.message); }
+      dismissedInterrupt.add(slug); S.interrupted = (S.interrupted || []).filter(x => x.slug !== slug);
+      row.remove(); if (!b.querySelector('.irow')) b.remove();
+      if (btn.dataset.a !== 'dismiss') { await loadState(); open(slug); }
+    });
+  });
+}
+let dismissedInterrupt = new Set();
+function welcomeHtml() {
+  return `<div class="welcome"><h2>Welcome back${S?.settings.user_name ? ', ' + esc(S.settings.user_name) : ''}</h2>
+  <p>Pick a project on the left, or click <b>+ New project</b> and tell Fred your idea.</p></div>`;
+}
+function scrollDown(force) { const b = $('msgs'); if (force || b.scrollHeight - b.scrollTop - b.clientHeight < 240) b.scrollTop = b.scrollHeight; }
+
+function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
+function renderEvent(ev) {
+  let node;
+  switch (ev.type) {
+    case 'message': node = ev.role === 'user' ? userMsg(ev) : fredMsg(ev); break;
+    case 'attachment_deleted': deletedFiles.add(ev.path); refreshChips(ev.path); node = el(`<div class="notice">You deleted ${esc(ev.path.split('/').pop())}</div>`); break;
+    case 'activity':
+      node = el(`<div class="act" data-act="1"><span>${ev.who === 'Fred' ? '' : esc(ev.who) + ' · '}${esc(ev.text)}</span></div>`); break;
+    case 'agent': node = agentCard(ev); break;
+    case 'approval': node = approvalCard(ev); break;
+    case 'secret': node = secretCard(ev); break;
+    case 'folder': node = folderCard(ev); break;
+    case 'choice': node = choiceCard(ev); break;
+    case 'plan': node = planCard(ev); break;
+    case 'architecture': node = archCard(ev); break;
+    case 'change': node = changeCard(ev); break;
+    case 'council': node = councilCard(ev); break;
+    case 'prior_art': node = priorArtCard(ev); break;
+    case 'problem': node = el(`<div class="card"><h4>🎯 The problem we are solving</h4>${problemHtml(ev)}</div>`); break;
+    case 'challenge': node = challengeCard(ev); break;
+    case 'diagram': node = el(`<div class="itcard" style="border-left-color:var(--acc)"><b>🗺 New diagram: ${esc(ev.title)}</b>
+      <div class="hint">${esc(ev.question || '')}</div><div class="acts" style="margin-top:6px"><button class="primary" data-open>Open</button>${ev.compare ? '<button data-cmp>What changed</button>' : ''}</div></div>`);
+      node.querySelector('[data-open]').onclick = () => openDiagram(cur, ev.id, 'html', ev.title);
+      if (ev.compare) node.querySelector('[data-cmp]').onclick = () => openDiagram(cur, ev.id, 'compare', ev.title);
+      break;
+    case 'release_wait': node = el(`<div class="itcard" style="border-left-color:var(--warn)"><b>⏸ Iteration ${ev.n} is waiting for your release:</b> ${esc(ev.name)}
+      <div class="acts" style="margin-top:6px"><button class="primary" data-rel>Release iteration ${ev.n}</button><span class="hint">or later from the Pipeline screen</span></div></div>`);
+      node.querySelector('[data-rel]').onclick = async b => { try { await api(`/api/projects/${cur}/release`, {n: ev.n}); b.target.disabled = true; b.target.textContent = 'Released'; } catch (e) { alertBox(e.message); } }; break;
+    case 'handoff': node = el(`<div class="handoff"><span class="av ${ev.from === 'Mat' ? 'mat' : 'fred'}">${esc(ev.from[0])}</span>→<span class="av ${ev.to === 'Mat' ? 'mat' : 'fred'}">${esc(ev.to[0])}</span>
+      <div><b>${ev.to === 'Mat' ? 'Fred handed over to Mat, the lead architect' : 'Mat handed back to Fred'}</b><div class="hint">${ev.to === 'Mat' ? 'Mat asks how things should work (data, storage, security, where it runs) with his recommendations, then shows you the architecture to approve.' : esc(ev.summary || '')}</div></div></div>`); break;
+    case 'screenshot':
+      node = el(`<div class="card shot"><h4>📸 Screenshot</h4><div class="hint">${esc(ev.caption || '')}</div><img alt="" src="${fileUrl(ev.path)}"></div>`);
+      node.querySelector('img').onclick = () => lightbox(fileUrl(ev.path)); break;
+    case 'launched': node = el(`<div class="card"><h4>▶ Your app was started</h4><div class="hint">${esc(ev.command)}${ev.url ? ' · ' + esc(ev.url) : ''}. Try it, then tell Fred what you think.</div></div>`); break;
+    case 'setup_done': node = el(`<div class="card" style="border-color:var(--ok)"><h4>✅ Setup complete</h4><div class="doc">${md(ev.summary || '')}</div><div class="acts"><button class="primary">+ Start my first project</button></div></div>`);
+      node.querySelector('button').onclick = () => $('newBtn').click(); break;
+    case 'error': node = el(`<div class="err"></div>`); node.textContent = '⚠ ' + ev.text; break;
+    case 'notice': node = el(`<div class="notice">${esc(ev.text)}</div>`); break;
+    case 'limit': node = limitCard(ev); break;
+    case 'iteration': node = ev.status === 'done'
+      ? el(`<div class="itcard done"><b>✅ Iteration ${ev.n}${ev.total ? ' of ' + ev.total : ''} committed:</b> ${esc(ev.name)} <span class="hint">· tests passed · commit <code>${esc(ev.commit || '')}</code></span>${ev.summary ? `<div class="hint">${esc(ev.summary)}</div>` : ''}</div>`)
+      : el(`<div class="itcard"><b>▶ Iteration ${ev.n}${ev.total ? ' of ' + ev.total : ''} started:</b> ${esc(ev.name)}${(ev.requirements || []).length ? ` <span class="hint">· ${esc(ev.requirements.join(', '))}</span>` : ''}</div>`); break;
+    default: node = document.createComment(ev.type);
+  }
+  if (ev.id && node.dataset) node.dataset.id = ev.id;
+  return node;
+}
+const fileUrl = p => `/files/${cur}/${encodeURI(p)}?token=${TOKEN}`;
+function statusPill(s) {
+  const cls = {approved: 'ok', saved: 'ok', answered: 'ok', done: 'ok', declined: 'bad', failed: 'bad', cancelled: '', expired: '', 'changes requested': 'warn', pending: 'acc', working: 'acc'}[s] || '';
+  return `<span class="pill ${cls}">${esc(s === 'pending' ? 'waiting for you' : s)}</span>`;
+}
+function agentCard(ev) {
+  const st = ev.status || 'working';
+  const receipt = /Async agent launched/i.test(ev.summary || '');  // engine bookkeeping from 0.6.0, never a report
+  const n = el(`<div class="agent ${st}"><div class="row"><b>${esc(ev.name)}</b>${st === 'working' ? `<span class="spin"></span><span class="hint">working${ev.background ? ' (Fred is waiting for its report)' : ''}…</span>` : receipt ? '<span class="pill">started in the background</span>' : statusPill(st)}</div>
+    <div class="hint">${esc(ev.description || '')}</div>${ev.summary && !receipt ? `<details><summary class="hint" style="cursor:pointer">Report</summary><div class="doc">${md(ev.summary)}</div></details>` : ''}</div>`);
+  return n;
+}
+function approvalCard(ev) {
+  const pend = ev.status === 'pending';
+  const n = el(`<div class="card ${pend ? 'pending' : ''}"><h4>🔐 ${esc(ev.title)} ${statusPill(ev.status)} ${ev.risk ? `<span class="risk ${esc(ev.risk)}">${esc(ev.risk)} risk</span>` : ''}</h4>
+    <div><span class="hint">${esc(ev.who || 'Fred')} wants to do this${ev.reason ? ' · ' + esc(ev.reason) : ''}</span></div>
+    ${ev.what ? `<div class="what"><b>What this does:</b> ${esc(ev.what)}</div>` : ''}
+    ${ev.risk_reason ? `<div class="what"><b>Risk:</b> ${esc(ev.risk_reason)}</div>` : ''}
+    ${ev.says ? `<div class="says doc"><span class="hint">${esc(ev.who || 'Fred')} explained:</span> ${md(ev.says)}</div>` : (ev.explanation ? `<div class="says">${inline(ev.explanation)}</div>` : '')}
+    ${ev.details ? `<details ${pend ? 'open' : ''}><summary class="hint" style="cursor:pointer">Exact command / change</summary><pre></pre></details>` : ''}
+    ${pend ? `<div class="acts"><button class="primary" data-a="yes">Approve</button><button data-a="no">Decline</button><input type="text" placeholder="Optional note for Fred" style="flex:1;min-width:160px"></div>` : (ev.note ? `<div class="hint">Your note: ${esc(ev.note)}</div>` : '')}
+  </div>`);
+  if (ev.details) n.querySelector('pre').textContent = ev.details;
+  if (pend) n.querySelectorAll('button').forEach(b => b.onclick = () => respond(ev.id, {approved: b.dataset.a === 'yes', note: n.querySelector('input').value}, n));
+  return n;
+}
+let limitTimer = null;
+function limitCard(ev) {
+  const fmt = s => new Date(s * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  const waiting = ev.status === 'waiting';
+  const n = el(`<div class="card ${waiting ? 'pending' : ''}" style="${waiting ? 'border-color:var(--warn);box-shadow:0 0 0 3px var(--warnbg)' : ''}">
+    <h4>⏸ Work stopped: plan usage limit reached ${waiting ? '' : statusPill(ev.status)}</h4>
+    <div>Your Claude plan's ${esc((ev.label || 'usage').toLowerCase())} limit was reached, so Fred and the team stopped. ${ev.resets_at ? `It resets at <b>${fmt(ev.resets_at)}</b>.` : 'The reset time is not known.'}</div>
+    ${waiting && ev.auto && ev.continue_at ? `<div class="hint" data-cd style="margin-top:4px"></div>` : ''}
+    ${waiting ? `<div class="acts"><button class="primary" data-a="go">Continue now</button>${ev.auto ? '<button data-a="cancel">Cancel auto-continue</button>' : ''}</div>` : ''}
+    ${ev.note ? `<div class="hint">${esc(ev.note)}</div>` : ''}</div>`);
+  if (waiting) {
+    n.querySelector('[data-a=go]').onclick = () => api(`/api/projects/${cur}/limit-continue`, {});
+    const c = n.querySelector('[data-a=cancel]'); if (c) c.onclick = () => api(`/api/projects/${cur}/limit-cancel`, {});
+    const cd = n.querySelector('[data-cd]');
+    if (cd) { const tick = () => { const s = Math.max(0, Math.round(ev.continue_at - Date.now() / 1000)); cd.textContent = s > 0 ? `Continues automatically in ${Math.floor(s / 3600) ? Math.floor(s / 3600) + ' h ' : ''}${Math.floor(s % 3600 / 60)} min ${s % 60} s (about 10 seconds after the reset).` : 'Continuing…'; if (s > 0 && document.body.contains(cd)) setTimeout(tick, 1000); }; setTimeout(tick, 0); }
+  }
+  return n;
+}
+function secretCard(ev) {
+  const pend = ev.status === 'pending';
+  const n = el(`<div class="card ${pend ? 'pending' : ''}"><h4>🔑 ${esc(ev.title)} ${statusPill(ev.status)}</h4>
+    ${ev.explanation ? `<div class="doc">${md(ev.explanation)}</div>` : ''}
+    ${ev.help_url ? `<div><a href="${esc(ev.help_url)}" target="_blank" rel="noopener">Open the page in your browser ↗</a></div>` : ''}
+    ${pend ? `<div class="acts"><input type="password" placeholder="Paste here" autocomplete="off" style="flex:1"><button class="primary" data-a="save">Save securely</button><button data-a="skip">Skip</button></div><div class="hint">Saved in Windows Credential Manager. The AI never sees it.</div>` : ''}
+  </div>`);
+  if (pend) {
+    const inp = n.querySelector('input');
+    n.querySelector('[data-a=save]').onclick = () => { if (inp.value.trim()) respond(ev.id, {value: inp.value.trim()}, n); };
+    n.querySelector('[data-a=skip]').onclick = () => respond(ev.id, {cancelled: true}, n);
+    inp.onkeydown = e => { if (e.key === 'Enter') n.querySelector('[data-a=save]').click(); };
+  }
+  return n;
+}
+function folderCard(ev) {
+  const pend = ev.status === 'pending';
+  const n = el(`<div class="card ${pend ? 'pending' : ''}"><h4>📁 ${esc(ev.title)} ${statusPill(ev.status)}</h4>
+    ${ev.explanation ? `<div class="doc">${md(ev.explanation)}</div>` : ''}
+    ${pend ? `<div class="acts"><input type="text" style="flex:1" value="${esc(ev.suggested || '')}">${S?.desktop ? '<button data-a="browse">Browse…</button>' : ''}<button class="primary" data-a="ok">Use this folder</button></div>`
+          : (ev.value ? `<div class="hint">Chosen: <code>${esc(ev.value)}</code></div>` : '')}
+  </div>`);
+  if (pend) {
+    const inp = n.querySelector('input');
+    const b = n.querySelector('[data-a=browse]'); if (b) b.onclick = async () => { const r = await api('/api/pick-folder', {start: inp.value}); if (r.path) inp.value = r.path; };
+    n.querySelector('[data-a=ok]').onclick = () => { if (inp.value.trim()) respond(ev.id, {value: inp.value.trim()}, n); };
+  }
+  return n;
+}
+function choiceCard(ev) {
+  const pend = ev.status === 'pending';
+  const n = el(`<div class="card ${pend ? 'pending' : ''}"><h4>❓ ${inline(ev.title)} ${statusPill(ev.status)}</h4>
+    ${pend ? `<div class="acts">${(ev.options || []).map((o, i) => `<button data-i="${i}" title="${esc((ev.hints || [])[i] || '')}">${esc(o)}</button>`).join('')}</div>
+      ${(ev.hints || []).some(Boolean) ? `<ul class="hint" style="margin:4px 0;padding-left:18px">${ev.options.map((o, i) => (ev.hints[i] ? `<li><b>${esc(o)}</b>: ${esc(ev.hints[i])}</li>` : '')).join('')}</ul>` : ''}
+      <div class="hint">${ev.note ? esc(ev.note) + ' ' : ''}Or type your own answer in the box below.</div>` : (ev.value ? `<div class="hint">You answered: ${esc(ev.value)}</div>` : '')}</div>`);
+  if (pend) n.querySelectorAll('button').forEach(b => b.onclick = () => respond(ev.id, {value: ev.options[+b.dataset.i]}, n));
+  return n;
+}
+function planCard(ev) {
+  const pend = ev.status === 'pending';
+  const its = (ev.iterations || []).filter(i => i.status !== 'done');
+  const n = el(`<div class="card ${pend ? 'pending' : ''}"><h4>🗺 ${esc(ev.title || 'Plan of action')} ${statusPill(ev.status)}</h4>
+    <div class="doc">${md(ev.markdown)}</div>
+    ${pend && its.length ? `<div style="margin-top:8px"><b>When each iteration is finished</b><table class="mini" style="margin-top:4px">${its.map((it, i) => `<tr><td>${it.n}. ${esc(it.name)}</td><td style="width:46%">${i === its.length - 1 ? '<span class="hint">last iteration</span>' : `<select data-after="${it.n}"><option value="continue" ${it.after !== 'pause' ? 'selected' : ''}>Continue automatically</option><option value="pause" ${it.after === 'pause' ? 'selected' : ''}>Pause for my release</option></select>`}</td></tr>`).join('')}</table></div>` : ''}
+    ${objectionsHtml(ev.objections)}
+    ${pend ? `<div class="acts"><button class="primary" data-a="yes">Approve plan and start iteration ${((ev.iterations || []).find(i => i.status !== 'done') || {n: 1}).n}</button><button data-a="no">Request changes</button></div>
+      <div data-fb hidden style="margin-top:8px"><textarea rows="3" placeholder="What should change?"></textarea><div class="acts"><button class="primary" data-a="send">Send to Fred</button></div></div>`
+      : (ev.feedback ? `<div class="hint">Your feedback: ${esc(ev.feedback)}</div>` : '')}
+  </div>`);
+  if (pend) {
+    n.querySelector('[data-a=yes]').onclick = () => { const after = {}; n.querySelectorAll('[data-after]').forEach(x => after[x.dataset.after] = x.value); respond(ev.id, {approved: true, after}, n); };
+    n.querySelector('[data-a=no]').onclick = () => { n.querySelector('[data-fb]').hidden = false; n.querySelector('textarea').focus(); };
+    n.querySelector('[data-a=send]').onclick = () => respond(ev.id, {approved: false, feedback: n.querySelector('textarea').value}, n);
+  }
+  return n;
+}
+function archCard(ev) {
+  const pend = ev.status === 'pending';
+  const n = el(`<div class="card arch ${pend ? 'pending' : ''}"><h4>🏛 ${esc(ev.title || 'Architecture')} ${statusPill(ev.status)}</h4>
+    <div class="hint">Mat, the lead architect, proposes how the software will be built. Nothing is planned or built until you approve it.</div>
+    <table class="dec"><tr><th>Decision</th><th>What we do</th><th>Why</th></tr>${(ev.decisions || []).map(d => `<tr><td><b>${esc(d.topic)}</b></td><td>${esc(d.decision)}</td><td class="hint">${esc(d.reason)}</td></tr>`).join('')}</table>
+    ${objectionsHtml(ev.objections)}<details><summary class="hint" style="cursor:pointer">Full architecture document</summary><div class="doc">${md(ev.markdown)}</div></details>
+    ${pend ? `<div class="acts"><button class="primary" data-a="yes">Approve architecture</button><button data-a="no">Request changes</button></div>
+      <div data-fb hidden style="margin-top:8px"><textarea rows="3" placeholder="What should change? (e.g. refresh every hour instead)"></textarea><div class="acts"><button class="primary" data-a="send">Send to Mat</button></div></div>`
+      : (ev.feedback ? `<div class="hint">Your feedback: ${esc(ev.feedback)}</div>` : '')}
+  </div>`);
+  if (pend) {
+    n.querySelector('[data-a=yes]').onclick = () => respond(ev.id, {approved: true}, n);
+    n.querySelector('[data-a=no]').onclick = () => { n.querySelector('[data-fb]').hidden = false; n.querySelector('textarea').focus(); };
+    n.querySelector('[data-a=send]').onclick = () => respond(ev.id, {approved: false, feedback: n.querySelector('textarea').value}, n);
+  }
+  return n;
+}
+
+function objectionsHtml(objs) {
+  if (!objs || !objs.length) return '';
+  return `<details style="margin-top:6px"><summary class="hint" style="cursor:pointer">Devil's advocate: ${objs.length} objection(s) considered</summary><ul class="obj">${objs.map(o => `<li><b>${esc(o.objection)}</b><br>${esc(o.answer)}</li>`).join('')}</ul></details>`;
+}
+/* ------------------------------------------------------------------ item 79: problem first, challenge, proof */
+const PROBLEM_FIELDS = [['who', 'Who is affected'], ['how_often', 'How often'], ['cost_today', 'What it costs today'], ['how_now', 'How it is done now'], ['success', 'What success looks like']];
+function problemHtml(pr) {
+  pr = pr || {};
+  const miss = PROBLEM_FIELDS.filter(([k]) => !(pr[k] || '').trim());
+  return `${pr.statement ? `<div style="margin-bottom:4px"><b>${esc(pr.statement)}</b></div>` : ''}<table class="mini">${PROBLEM_FIELDS.map(([k, l]) => `<tr><td style="width:38%" class="hint">${l}</td><td>${pr[k] ? esc(pr[k]) : '<span class="hint">not known yet</span>'}</td></tr>`).join('')}</table>
+    <div class="hint" style="margin-top:4px">${miss.length ? `Fred still needs: ${miss.map(m => m[1].toLowerCase()).join(', ')}.` : '✓ Complete. Fred checks the idea against it before writing requirements.'}</div>`;
+}
+const CH_KIND = {objection: ['🤔', 'Objection'], contradiction: ['⚖️', 'Contradiction'], assumption: ['❓', 'Assumption to confirm'], clarification: ['🔍', 'Needs clarification']};
+const CH_OPTS = {objection: [['change', 'Change it'], ['keep', 'Keep as is'], ['accept', 'Accept the risk']], contradiction: [['change', 'Change it'], ['keep', 'Keep as is'], ['accept', 'Accept the risk']],
+  assumption: [['confirm', 'Correct'], ['correct', 'Not correct']], clarification: [['answer', 'Answer']]};
+const CH_WORD = {change: 'change it', keep: 'keep as is', accept: 'accept the risk', confirm: 'confirmed', correct: 'not correct', answer: 'answered'};
+function challengeCard(ev) {
+  const pend = ev.status === 'pending', ans = ev.answers || {};
+  const items = (ev.findings || []).map(f => {
+    const [ic, label] = CH_KIND[f.kind] || CH_KIND.objection, a = ans[f.id] || {};
+    const reqs = (f.requirements || []).length ? ` <span class="pill acc">${esc(f.requirements.join(', '))}</span>` : '';
+    return `<div class="chf" data-f="${esc(f.id)}" data-kind="${esc(f.kind)}" style="border-top:1px solid var(--line);padding:8px 0">
+      <div><span class="hint">${ic} ${label}</span>${reqs}</div><b>${esc(f.title)}</b>
+      ${f.detail ? `<div class="hint">${esc(f.detail)}</div>` : ''}${f.recommendation ? `<div style="margin-top:2px">💡 <i>Fred recommends:</i> ${esc(f.recommendation)}</div>` : ''}
+      ${pend ? `<div class="acts" style="margin-top:4px">${(CH_OPTS[f.kind] || CH_OPTS.objection).map(([v, t]) => `<button type="button" data-d="${v}">${t}</button>`).join('')}</div>
+        <input type="text" data-why hidden placeholder="" style="margin-top:4px">`
+      : `<div class="hint" style="margin-top:2px">Your decision: <b>${esc(CH_WORD[a.decision] || 'not decided')}</b>${a.reason ? ' · “' + esc(a.reason) + '”' : ''}</div>`}</div>`;
+  }).join('');
+  const n = el(`<div class="card ${pend ? 'pending' : ''}"><h4>😈 Devil's advocate: ${(ev.findings || []).length} point(s) to decide ${statusPill(ev.status)}</h4>
+    <div class="hint">An independent reviewer who has not seen your conversation read the problem and the requirements cold. You decide on each point; you can always overrule, and your reason is kept so the people who take this over later understand why.</div>
+    ${items}
+    ${pend ? `<div class="acts"><button class="primary" data-send disabled>Send my decisions to Fred</button><span class="hint" data-left></span></div>` : ''}</div>`);
+  if (pend) {
+    const choice = {};
+    const why = {keep: 'Why keep it? (optional, helps later)', accept: 'Why is the risk acceptable? (optional)', change: 'What should change? (optional, otherwise Fred uses his recommendation)', correct: 'What is right instead?', answer: 'Your answer', confirm: ''};
+    const refresh = () => {
+      const all = [...n.querySelectorAll('.chf')], left = all.filter(x => { const c = choice[x.dataset.f]; return !c || ((c === 'answer' || c === 'correct') && !x.querySelector('[data-why]').value.trim()); }).length;
+      n.querySelector('[data-send]').disabled = left > 0;
+      n.querySelector('[data-left]').textContent = left ? `${left} point(s) left to decide` : 'All decided.';
+    };
+    n.querySelectorAll('.chf').forEach(box => {
+      box.querySelectorAll('[data-d]').forEach(b => b.onclick = () => {
+        choice[box.dataset.f] = b.dataset.d;
+        box.querySelectorAll('[data-d]').forEach(x => x.classList.toggle('primary', x === b));
+        const inp = box.querySelector('[data-why]'); inp.placeholder = why[b.dataset.d] || ''; inp.hidden = !why[b.dataset.d]; if (!inp.hidden) inp.focus();
+        refresh();
+      });
+      box.querySelector('[data-why]').oninput = refresh;
+    });
+    n.querySelector('[data-send]').onclick = () => {
+      const answers = {};
+      n.querySelectorAll('.chf').forEach(box => answers[box.dataset.f] = {decision: choice[box.dataset.f], reason: box.querySelector('[data-why]').value.trim()});
+      respond(ev.id, {answers}, n);
+    };
+    refresh();
+  }
+  return n;
+}
+async function renderReq() {
+  const p = $('pane'), slug = cur, pr = view.project.problem || {}, ch = view.project.challenge || {};
+  const hasProblem = PROBLEM_FIELDS.some(([k]) => pr[k]) || pr.statement;
+  let rows = [];
+  try { rows = (await api(`/api/projects/${slug}/traceability`)).rows || []; } catch (e) { rows = []; }
+  if (slug !== cur || tab !== 'req') return;
+  const live = rows.filter(r => r.status !== 'dropped');
+  const proven = live.filter(r => r.proven).length;
+  const proof = live.length ? `<h4 style="margin:12px 0 4px">Proof by tests <span class="pill ${proven === live.length ? 'ok' : ''}">${proven} of ${live.length} proven</span></h4>
+    <table class="mini" id="proofTable">${live.map(r => `<tr><td style="width:64px"><b>${esc(r.id)}</b></td><td>${esc(r.text)}</td><td style="width:150px">${r.proven ? '<span class="pill ok">✓ proven by test</span>' : (r.proof && r.proof.failing) ? '<span class="pill bad">test failing</span>' : '<span class="pill">not tested yet</span>'}</td></tr>`).join('')}</table>
+    <div class="hint">A requirement is proven when a passing test checks it. This is what IT looks at when they take over a prototype.</div>` : '';
+  const decided = (ch.findings || []);
+  const chal = decided.length ? `<details style="margin-top:10px"><summary class="hint" style="cursor:pointer">😈 Devil's advocate review (round ${ch.round || 1}): ${decided.length} point(s), ${decided.filter(f => f.decision === 'keep' || f.decision === 'accept').length} overruled by you</summary>
+    <ul class="obj">${decided.map(f => `<li><b>${esc(f.title)}</b> <span class="hint">· ${esc(CH_WORD[f.decision] || 'not decided')}${f.reason ? ' · “' + esc(f.reason) + '”' : ''}</span></li>`).join('')}</ul></details>` : '';
+  const prob = hasProblem ? `<div class="card" style="margin:0 0 8px"><h4>🎯 The problem we are solving</h4>${problemHtml(pr)}</div>` : '';
+  const doc = view.docs.requirements ? `<div class="doc" style="margin-top:10px">${md(view.docs.requirements)}</div>` : '';
+  p.innerHTML = (prob || doc || proof) ? prob + proof + chal + doc
+    : '<p class="empty">Fred first agrees with you what problem you are solving, then writes the requirements here as you talk.</p>';
+}
+function changeCard(ev) {
+  const pend = ev.status === 'pending';
+  const chips = (label, arr) => (arr && arr.length) ? `<div class="hint">${label}: ${esc(arr.join(', '))}</div>` : '';
+  const n = el(`<div class="card ${pend ? 'pending' : ''}"><h4>🔁 Change request ${esc(ev.cr || '')}: ${esc(ev.title || '')} ${statusPill(ev.status)}</h4>
+    <div class="doc">${md(ev.description || '')}</div>
+    ${chips('Affects requirements', ev.affects_requirements)}${chips('Affects architecture', ev.affects_decisions)}${chips('Affects built iterations', ev.affects_iterations)}
+    ${ev.effort ? `<div class="hint">Estimated effort: ${esc(ev.effort)}</div>` : ''}
+    ${pend ? `<div class="acts"><button class="primary" data-a="yes">Approve change</button><button data-a="no">Reject</button><input type="text" placeholder="Optional note" style="flex:1;min-width:140px"></div>` : (ev.note ? `<div class="hint">Your note: ${esc(ev.note)}</div>` : '')}</div>`);
+  if (pend) n.querySelectorAll('button').forEach(b => b.onclick = () => respond(ev.id, {approved: b.dataset.a === 'yes', note: n.querySelector('input').value}, n));
+  return n;
+}
+function councilCard(ev) {
+  const working = ev.status === 'working';
+  const est = ev.estimate || {};
+  const op = o => `<div class="op"><div class="row"><span class="who">${esc(o.who)}</span><span class="sp"></span><span class="rank">${ev.scores && ev.scores[o.who] != null ? 'avg rank ' + ev.scores[o.who] : ''}</span></div><div class="doc">${md((o.answer || '').slice(0, 1400))}</div></div>`;
+  const n = el(`<div class="card ${working ? 'pending' : ''}"><h4>🏛 Council ${working ? '<span class="spin"></span>' : statusPill('done')}</h4>
+    <div class="hint">${esc(ev.question || '')}</div>
+    <div style="margin:4px 0">${(ev.members || []).map(m => `<span class="mem">${esc(m)}</span>`).join('')}</div>
+    ${working ? `<div class="hint">The council is answering and reviewing each other… ${est.cost != null ? '· about ' + usd(est.cost) + ' at API prices' : ''}</div>` : ''}
+    ${(ev.warnings || []).length ? `<div class="hint" style="color:var(--warn)">⚠ ${ev.warnings.map(esc).join(' · ')}</div>` : ''}
+    ${ev.agreement ? `<div class="what"><b>${esc(ev.agreement)}</b></div>` : ''}
+    ${(ev.opinions && !working) ? `<details style="margin-top:6px"><summary class="hint" style="cursor:pointer">All opinions and rankings (${ev.opinions.length})</summary>${ev.opinions.map(op).join('')}${(ev.failed || []).map(fa => `<div class="hint">${esc(fa.who)} could not answer${fa.error ? ': ' + esc(fa.error) : ''}</div>`).join('')}</details>` : ''}
+    ${(ev.opinions && !working) ? `<div class="hint" style="margin-top:4px">Fred reads this and writes the final recommendation below.</div>` : ''}</div>`);
+  return n;
+}
+function priorArtCard(ev) {
+  const cl = c => `<span class="close ${c === 'same' ? 'same' : c === 'similar' ? 'similar' : 'different'}">${esc(c || 'different')}</span>`;
+  const items = (ev.items || []).map(i => `<div class="item"><div class="row"><b>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.name)}</a>` : esc(i.name)}</b><span class="sp"></span>${cl(i.closeness)}</div>
+    <div>${esc(i.what || '')}</div>${i.cost_licence ? `<div class="hint">${esc(i.cost_licence)}</div>` : ''}${i.reuse ? `<div class="hint">Reuse: ${esc(i.reuse)}</div>` : ''}</div>`).join('');
+  return el(`<div class="card pa"><h4>🔭 Existing solutions found</h4>${items || '<div class="hint">Nothing close was found: this looks worth building.</div>'}${ev.recommendation ? `<div class="what" style="margin-top:6px"><b>Recommendation:</b> ${esc(ev.recommendation)}</div>` : ''}</div>`);
+}
+async function respond(id, payload, node) {
+  node.querySelectorAll('button,input,textarea').forEach(x => x.disabled = true);
+  try { await api('/api/respond', {id, ...payload}); }
+  catch (e) { node.querySelectorAll('button,input,textarea').forEach(x => x.disabled = false); alertBox(e.message); }
+}
+function applyUpdate(ev) {
+  const target = items.find(x => x.id === ev.id); if (!target) return;
+  Object.assign(target, ev.changes || {});
+  const old = $('msgs').querySelector(`[data-id="${ev.id}"]`);
+  if (old) old.replaceWith(renderEvent(target));
+}
+/* collapse runs of activity lines into one expandable line */
+function groupActivities() {
+  const box = $('msgs'); const kids = [...box.children]; let run = [];
+  const flush = () => {
+    if (run.length > 1) {
+      const d = el(`<details class="act" data-grp="1"><summary>▸ ${esc(run[run.length - 1].textContent)} <span class="hint">(+${run.length - 1} more steps)</span></summary><ul></ul></details>`);
+      run.forEach(r => { const li = document.createElement('li'); li.textContent = r.textContent; d.querySelector('ul').appendChild(li); });
+      run[0].before(d); run.forEach(r => r.remove());
+    }
+    run = [];
+  };
+  kids.forEach(k => { if (k.dataset && k.dataset.act) run.push(k); else flush(); }); flush();
+}
+
+/* ------------------------------------------------------------------ live events */
+function connect() {
+  if (es) es.close();
+  es = new EventSource(`/api/stream?token=${TOKEN}&since=${lastSeq}`);
+  es.onmessage = m => { const ev = JSON.parse(m.data); lastSeq = Math.max(lastSeq, ev.seq); onEvent(ev); };
+  es.onerror = () => { es.close(); setTimeout(connect, 2000); };
+}
+let docTimer = null;
+function onEvent(ev) {
+  if (ev.type === 'brainjob') { onBrainJob(ev); return; }
+  if (ev.type === 'project_list') { loadState(); return; }
+  if (!['voice', 'team', 'docs_changed', 'activity', 'message', 'cost'].includes(ev.type)) softState();
+  if (ev.type === 'usage') { loadState(); return; }
+  if (ev.type === 'team' && ev.slug === cur) { if (view) view.team = ev.team; if (tab === 'team') renderTeam(); return; }
+  if (ev.type === 'tests_changed' && ev.slug === cur) { markSide(); if (tab === 'tests') renderSide(); return; }
+  if (ev.slug !== cur) { if (ev.type === 'busy') loadState(); return; }
+  if (ev.type === 'busy') { setBusy(ev.value); if (!ev.value) { refreshView(); autoListen(); } loadState(); return; }
+  if (ev.type === 'docs_changed') { markSide(); clearTimeout(docTimer); docTimer = setTimeout(refreshDocs, 400); return; }
+  if (ev.type === 'cost') { if (view) view.project.cost_usd = ev.usd; renderCost(view?.project); return; }
+  if (ev.type === 'voice') { onVoice(ev); return; }
+  if (ev.type === 'update') { applyUpdate(ev); return; }
+  if (!view) { early.push(ev); return; }  // still loading this project: open() adds it after the history
+  if (items.some(x => x.seq === ev.seq)) return;
+  items.push(ev); $('msgs').querySelector('.typing')?.remove();
+  $('msgs').appendChild(renderEvent(ev)); groupActivities();
+  if (busy) $('msgs').appendChild(el(`<div class="typing"><span class="spin"></span> ${leadName()} is working…</div>`));
+  if (ev.type === 'screenshot' && tab === 'shots') renderSide();
+  if (['setup_done', 'plan', 'iteration', 'handoff', 'architecture', 'release_wait'].includes(ev.type)) { loadState(); refreshDocs(); markSide(); }
+  scrollDown(['approval', 'secret', 'folder', 'plan', 'choice', 'limit', 'architecture', 'handoff', 'change', 'council', 'prior_art', 'challenge'].includes(ev.type));
+}
+async function refreshView() { if (!cur) return; try { view = await api('/api/projects/' + cur); renderHeader(); renderSide(); } catch (e) {} }
+async function refreshDocs() { await refreshView(); }
+
+let busy = false;
+function setBusy(v) {
+  busy = !!v; $('stopBtn').hidden = !busy; $('sendBtn').disabled = !cur;
+  $('msgs').querySelector('.typing')?.remove();
+  if (busy) { $('msgs').appendChild(el(`<div class="typing"><span class="spin"></span> ${leadName()} is working…</div>`)); scrollDown(); }
+  $('status').textContent = '';
+}
+
+/* ------------------------------------------------------------------ side panel */
+function renderSide() {
+  const tabs = cur === 'setup' ? [['setup', 'Setup checklist']] : [['team', 'Team'], ...(view?.project?.existing_folder ? [['status', 'Status']] : []), ['req', 'Requirements'], ['arch', 'Architecture'], ['plan', 'Plan'], ['diagrams', 'Diagrams'], ['tests', 'Tests']];
+  if (!tabs.some(t => t[0] === tab)) tab = tabs[0][0];
+  $('tabs').innerHTML = tabs.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-t="${k}">${l}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { tab = b.dataset.t; renderSide(); });
+  const p = $('pane');
+  if (!cur || !view) { p.innerHTML = '<p class="empty">Nothing here yet.</p>'; return; }
+  if (tab === 'setup') {
+    const s = S || {settings: {}};
+    const rows = [[s.has_api_key, 'Connected to Claude', s.auth_mode === 'subscription' ? 'Your Claude subscription' : 'API key, saved securely'], [!!s.settings.user_name, 'Your name', s.settings.user_name || ''],
+      [!!(s.settings.workspace_dir), 'Projects folder', s.settings.workspace_dir || ''], [s.github_connected, 'GitHub (optional)', s.settings.github_login ? 'Connected as ' + s.settings.github_login : 'Not connected'],
+      [true, 'Approvals', s.settings.approval_mode === 'strict' ? 'Ask before every action' : 'Approve each plan'], [s.setup_complete, 'Setup finished', '']];
+    p.innerHTML = rows.map(([ok, t, d]) => `<div class="check"><div class="dot ${ok ? 'ok' : ''}">${ok ? '✓' : ''}</div><div><b>${esc(t)}</b><div class="hint">${esc(d)}</div></div></div>`).join('') +
+      '<p class="hint" style="margin-top:12px">Fred goes through these with you one at a time and asks before changing anything.</p>';
+  } else if (tab === 'team') { renderTeam();
+  } else if (tab === 'req') { renderReq();
+  } else if (tab === 'status') {
+    p.innerHTML = view.docs.status ? `<div class="doc">${md(view.docs.status)}</div>` : `<p class="empty">Fred scans your folder and writes where the project stands here.</p><p class="hint" style="text-align:center">Folder: <code>${esc(view.project.folder || '')}</code></p>`;
+  } else if (tab === 'arch') {
+    const ok = view.project.architecture_approved;
+    p.innerHTML = view.docs.architecture ? `<div class="row" style="margin-bottom:6px">${ok ? '<span class="pill ok">approved</span>' : '<span class="pill warn">not approved yet</span>'}</div><div class="doc">${md(view.docs.architecture)}</div>`
+      : '<p class="empty">Once the requirements are agreed, Mat, the lead architect, asks how things should work (data sources and refresh, storage, encryption, where it runs) and writes the architecture here for you to approve.</p>';
+  } else if (tab === 'plan') {
+    const its = view.project.iterations || [];
+    const list = its.length ? `<h4 style="margin:0 0 6px">Iterations ${view.project.plan_approved ? '' : '<span class="pill warn">waiting for your approval</span>'}</h4><div class="itlist">${its.map(it => `<div class="itrow"><div class="itnum ${esc(it.status)}">${it.status === 'done' ? '✓' : it.n}</div>
+      <div style="flex:1"><b>${esc(it.name)}</b> <span class="pill ${it.status === 'done' ? 'ok' : it.status === 'building' ? 'acc' : view.project.waiting_release === it.n ? 'warn' : ''}">${esc(it.status === 'building' ? 'in progress' : view.project.waiting_release === it.n ? 'waiting for release' : it.status)}</span>${it.commit ? ` <code class="hint">${esc(it.commit)}</code>` : ''}
+      ${view.project.waiting_release === it.n ? ` <button type="button" class="primary" data-release="${it.n}" style="padding:2px 10px">Release</button>` : ''}
+      <div class="hint">${esc(it.goal || '')}${(it.requirements || []).length ? ' · ' + esc(it.requirements.join(', ')) : ''}</div>
+      ${it.status !== 'done' && it.n !== its[its.length - 1].n ? `<label class="hint">When finished: <select data-after="${it.n}" style="width:auto;padding:2px 6px"><option value="continue" ${it.after !== 'pause' ? 'selected' : ''}>continue automatically</option><option value="pause" ${it.after === 'pause' ? 'selected' : ''}>pause for my release</option></select></label>` : ''}</div></div>`).join('')}</div>` : '';
+    const est = view.project.estimate || {};
+    const estLine = est.so_far || est.remaining ? `<p class="hint">💲 So far ${usd(est.so_far)}${est.remaining ? ` · rest of the plan about ${usd(est.remaining.low)}–${usd(est.remaining.high)}` : ''} at the providers' prices${S?.auth_mode === 'subscription' ? ' (not billed with your subscription)' : ''}.</p>` : '';
+    p.innerHTML = view.docs.plan ? `${list}${estLine}<div class="doc">${md(its.length ? view.docs.plan.split('\n## Iterations\n')[0] : view.docs.plan)}</div>` : '<p class="empty">The plan, split into iterations, appears here once the requirements are agreed.</p>';
+    p.querySelectorAll('[data-after]').forEach(sel => sel.onchange = () => api(`/api/projects/${cur}/iteration-after`, {n: +sel.dataset.after, after: sel.value}).then(refreshView).catch(e => alertBox(e.message)));
+    p.querySelectorAll('[data-release]').forEach(b => b.onclick = () => api(`/api/projects/${cur}/release`, {n: +b.dataset.release}).then(refreshView).catch(e => alertBox(e.message)));
+  } else if (tab === 'diagrams') { renderDiagrams();
+  } else { renderTests(); }
+}
+
+/* ------------------------------------------------------------------ team graph (request C) */
+const ST = {idle: {c: '#868e96', bg: 'var(--code)', label: 'idle'}, working: {c: '#2f9e44', bg: '#d3f9d8', label: 'working'},
+            question: {c: '#f59f00', bg: '#fff3bf', label: 'has a question'}};
+let teamSel = null, teamChecked = Date.now();
+function badge(x, y, status) {
+  const s = ST[status] || ST.idle;
+  let icon = '';
+  if (status === 'working') icon = `<g class="spinning"><path d="M${x - 4} ${y} a4 4 0 1 1 1.2 2.9" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M${x - 5.5} ${y + 3.2} l1.6 -0.4 l-0.3 -1.7" fill="none" stroke="#fff" stroke-width="1.4"/></g>`;
+  else if (status === 'question') icon = `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">?</text>`;
+  else icon = `<rect x="${x - 3}" y="${y - 3}" width="2" height="6" fill="#fff"/><rect x="${x + 1}" y="${y - 3}" width="2" height="6" fill="#fff"/>`;
+  return `<circle cx="${x}" cy="${y}" r="9" fill="${s.c}" stroke="var(--panel)" stroke-width="2"/>${icon}`;
+}
+const shortName = r => { const n = r.kind === 'brain' ? r.name.split(' · ')[0] : r.name; return n.length > 12 ? n.slice(0, 11) + '…' : n; };
+function renderTeam() {
+  const p = $('pane'); if (!view) return;
+  const team = view.team || [];
+  const lead = team.find(r => r.kind === 'lead') || {name: 'Fred', status: 'idle'};
+  const arch = team.find(r => r.kind === 'architect');
+  const workers = team.filter(r => r.kind === 'worker'), brainsN = team.filter(r => r.kind === 'brain');
+  const W = 340, bw = 96, bh = 46;
+  const rowX = (n, i) => (W - n * bw - (n - 1) * 12) / 2 + i * (bw + 12);
+  const node = (r, x, y) => {
+    const s = ST[r.status] || ST.idle, stalled = r.stalled;
+    return `<g class="tnode" data-n="${esc(r.name)}"><rect class="box" x="${x}" y="${y}" width="${bw}" height="${bh}" rx="10" fill="${s.bg}" stroke="${s.c}" stroke-width="1.5" ${stalled ? 'stroke-dasharray="4 3"' : ''}/>
+      <text x="${x + bw / 2}" y="${y + 19}" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1b1f24">${esc(shortName(r))}</text>
+      <text x="${x + bw / 2}" y="${y + 34}" text-anchor="middle" font-size="10.5" fill="#495057">${esc(stalled ? 'no activity 5 min' : s.label)}</text>${badge(x + bw - 4, y + bh - 4, r.status)}</g>`;
+  };
+  const fx = (W - bw) / 2, fy = 8, wy = 96, by = 186;
+  let svg = '', lines = '';
+  workers.forEach((r, i) => { const x = rowX(workers.length, i); lines += `<path d="M${W / 2} ${fy + bh} C ${W / 2} ${wy - 20}, ${x + bw / 2} ${fy + bh + 20}, ${x + bw / 2} ${wy}" fill="none" stroke="${r.status === 'idle' ? 'var(--line)' : (ST[r.status] || ST.idle).c}" stroke-width="1.6"/>`; svg += node(r, x, wy); });
+  brainsN.forEach((r, i) => { const n = Math.min(brainsN.length, 3), x = rowX(n, i % 3), y = by + Math.floor(i / 3) * 60; lines += `<path d="M${W / 2} ${fy + bh} C ${W / 2 - 160} ${wy + 30}, ${x + bw / 2} ${y - 40}, ${x + bw / 2} ${y}" fill="none" stroke="var(--line)" stroke-width="1.2" stroke-dasharray="4 4"/>`; svg += node(r, x, y); });
+  const H = brainsN.length ? by + Math.ceil(brainsN.length / 3) * 60 : wy + bh + 10;
+  let top = node(lead, fx, fy);
+  if (arch) { const ax = W - bw - 4; lines += `<path d="M${fx + bw} ${fy + bh / 2} L${ax} ${fy + bh / 2}" stroke="${arch.status === 'idle' ? 'var(--line)' : (ST[arch.status] || ST.idle).c}" stroke-width="1.6" stroke-dasharray="5 3"/>`; top += node(arch, ax, fy); }
+  svg = `<svg class="team-svg" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Team status">${lines}${top}${svg}</svg>`;
+  const ago = s => { if (!s) return ''; const m = Math.round((Date.now() / 1000 - s) / 60); return m < 1 ? 'just now' : m + ' min ago'; };
+  const list = [lead, ...(arch ? [arch] : []), ...workers, ...brainsN].map(r => `<div class="trow" data-n="${esc(r.name)}"><div class="tdot" style="background:${(ST[r.status] || ST.idle).c}"></div>
+    <div style="flex:1"><b>${esc(r.name)}</b> <span class="hint">${esc(r.stalled ? 'working, but no activity for 5 minutes' : (ST[r.status] || ST.idle).label)}</span>
+    <div>${esc(r.task || (r.status === 'idle' ? 'Waiting for work' : ''))}</div>${r.last ? `<div class="hint">Last: ${esc(r.last)} · ${ago(r.last_time)}</div>` : ''}
+    ${teamSel === r.name && (r.recent || []).length ? `<ul class="hint" style="margin:4px 0;padding-left:18px">${r.recent.map(a => `<li>${esc(a.text)} · ${ago(a.time)}</li>`).join('')}</ul>` : ''}</div></div>`).join('');
+  p.innerHTML = `${svg}<div class="legend" style="margin:6px 0 4px"><span><i style="background:#868e96"></i>idle</span><span><i style="background:#2f9e44"></i>working</span><span><i style="background:#f59f00"></i>has a question</span></div>
+    <div class="hint">Live; re-checked every 5 minutes (last check ${new Date(teamChecked).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}). Click a member to see its recent activity.</div><div class="tlist">${list}</div>`;
+  p.querySelectorAll('[data-n]').forEach(e => e.onclick = () => { teamSel = teamSel === e.dataset.n ? null : e.dataset.n; renderTeam(); });
+}
+setInterval(async () => { if (cur && cur !== 'setup') { try { view.team = (await api(`/api/projects/${cur}/team`)).team; teamChecked = Date.now(); if (tab === 'team') renderTeam(); } catch (e) {} } }, 5 * 60 * 1000);
+
+/* ------------------------------------------------------------------ code changes between iterations (item 45) */
+function openDiagram(slug, id, which, title) {
+  $('graphTitle').textContent = (which === 'compare' ? 'What changed: ' : '') + (title || 'Diagram');
+  $('graphHint').textContent = which === 'compare' ? 'Parts added, removed, moved or connected differently since the previous version.'
+    : 'Click a part to see what it connects to; use Flow to watch the path. Export saves a picture.';
+  $('graphFrame').src = `/diagram/${slug}/${id}?which=${which}&token=${encodeURIComponent(TOKEN)}`;
+  $('graphDlg').showModal();
+}
+async function renderDiagrams() {
+  // "How it works" diagrams drawn with Archify by the team's diagrammer (item 78)
+  const p = $('pane'), slug = cur;
+  let d; try { d = await api(`/api/projects/${slug}/diagrams`); } catch (e) { p.innerHTML = '<p class="empty">Could not load the diagrams.</p>'; return; }
+  if (slug !== cur || tab !== 'diagrams') return;
+  const ask = `<div class="row" style="margin:10px 0;gap:6px"><input type="text" id="dgQ" placeholder="Ask for a diagram, e.g. How does a file get imported?" style="flex:1"><button type="button" class="primary" id="dgAsk">Ask Fred</button></div>
+    <p class="hint">Each diagram is drawn from the real code and checked, so it uses some Claude tokens.</p>`;
+  const why = !d.available ? '<p class="hint">Diagrams need the Archify drawing tool, which comes with the AI Team Lite installer. It is missing or could not draw on this PC, so diagrams are switched off; everything else works normally.</p>'
+    : '';
+  const items = (d.items || []).slice().reverse(), latest = {}, older = [];
+  items.forEach(x => { if (!latest[x.topic]) latest[x.topic] = x; else older.push(x); });
+  const when = x => new Date(x.created * 1000).toLocaleDateString([], {month: 'short', day: 'numeric'}) + (x.iteration ? ` · after iteration ${x.iteration}` : '');
+  const card = x => `<div class="itcard" style="margin:6px 0"><b>${esc(x.title)}</b> <span class="pill">${esc(x.kind)}</span>
+      <div class="hint">${esc(x.question || '')} ${when(x)}</div>
+      <div class="acts" style="margin-top:6px"><button class="primary" data-open="${esc(x.id)}">Open</button>${x.compare ? `<button data-cmp="${esc(x.id)}">What changed</button>` : ''}</div></div>`;
+  const tops = Object.values(latest).sort((a, b) => (b.topic === 'architecture') - (a.topic === 'architecture'));
+  p.innerHTML = why + (tops.length ? tops.map(card).join('') : (why ? '' : '<p class="empty">No diagram yet. Fred asks for the overall picture once the architecture is approved, and after iterations that change it. You can also ask for one below.</p>'))
+    + (older.length ? `<details style="margin-top:8px"><summary class="hint" style="cursor:pointer">Earlier versions (${older.length})</summary>${older.map(card).join('')}</details>` : '')
+    + (d.available && d.enabled ? ask : '');
+  const byId = Object.fromEntries((d.items || []).map(x => [x.id, x]));
+  p.querySelectorAll('[data-open]').forEach(b => b.onclick = () => openDiagram(slug, b.dataset.open, 'html', byId[b.dataset.open].title));
+  p.querySelectorAll('[data-cmp]').forEach(b => b.onclick = () => openDiagram(slug, b.dataset.cmp, 'compare', byId[b.dataset.cmp].title));
+  if ($('dgAsk')) $('dgAsk').onclick = async () => {
+    const q = $('dgQ').value.trim(); if (!q) return;
+    try { await api(`/api/projects/${slug}/message`, {text: `Please draw a diagram that shows: ${q}`}); $('dgQ').value = ''; alertBox('Asked Fred for the diagram. It appears here when it is ready.', true); }
+    catch (e) { alertBox(e.message); }
+  };
+}
+
+/* ------------------------------------------------------------------ tests view (request I) */
+async function renderTests() {
+  const p = $('pane'); const slug = cur;
+  let d; try { d = await api(`/api/projects/${slug}/tests`); } catch (e) { p.innerHTML = '<p class="empty">Could not load the tests.</p>'; return; }
+  if (slug !== cur || tab !== 'tests') return;
+  const res = d.results.slice().reverse();
+  const count = k => d.results.filter(r => r.status === k).length;
+  const pill = s => `<span class="pill ${s === 'passed' ? 'ok' : s === 'failed' ? 'bad' : ''}">${esc(s)}</span>`;
+  let h = `<div class="row" style="margin-bottom:8px"><span class="pill ok">${count('passed')} passed</span><span class="pill bad">${count('failed')} failed</span><span class="sp"></span>
+    <button type="button" id="openTests">📂 Open tests folder</button></div>`;
+  h += res.length ? res.map(r => `<div class="trow-test"><div class="row">${pill(r.status)}<b style="flex:1">${esc(r.name || 'Test')}</b>${r.requirement ? `<span class="pill acc">${esc(r.requirement)}</span>` : ''}</div>
+      <div class="hint">${r.time ? new Date(r.time * 1000).toLocaleString() : ''}${r.caption ? ' · ' + esc(r.caption) : ''}</div>
+      ${r.details ? `<details><summary class="hint" style="cursor:pointer">Details</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(r.details)}</pre></details>` : ''}
+      ${r.screenshot ? `<img src="${fileUrl(r.screenshot)}" alt="">` : ''}</div>`).join('')
+    : '<p class="empty">No test results yet. The Tester records each test here with its screenshot.</p>';
+  if (d.screenshots.length) h += `<h4 style="margin:14px 0 4px">Other screenshots</h4>` + d.screenshots.slice().reverse().map(s => `<div class="trow-test"><div class="hint">${esc(s.split('/').pop())}</div><img src="${fileUrl(s)}" alt=""></div>`).join('');
+  p.innerHTML = h;
+  p.querySelectorAll('img').forEach(i => i.onclick = () => lightbox(i.src));
+  $('openTests').onclick = () => api(`/api/projects/${slug}/open-reports`, {});
+}
+
+/* ------------------------------------------------------------------ composer */
+async function send() {
+  const t = $('input').value.trim(); if ((!t && !attachments.length) || !cur) return;
+  const text = t + (attachments.length ? '\n\n' + attachments.map(a => `[Attached file: ${a}]`).join('\n') : '');
+  $('input').value = ''; autosize(); attachments = []; renderChips();
+  try { await api(`/api/projects/${cur}/message`, {text}); } catch (e) { alertBox(e.message); $('input').value = t; }
+}
+function autosize() { const i = $('input'); i.style.height = 'auto'; i.style.height = Math.min(i.scrollHeight, 200) + 'px'; }
+function renderChips() { $('chips').innerHTML = attachments.map(a => chipHtml(a, false)).join(''); wireChips($('chips'), false); }
+$('input').addEventListener('input', e => { autosize(); if (e.isTrusted) voiceTalk = false; });
+$('input').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+$('sendBtn').onclick = send;
+$('stopBtn').onclick = () => cur && api(`/api/projects/${cur}/stop`, {});
+$('attachBtn').onclick = () => cur && $('fileIn').click();
+$('fileIn').onchange = async () => {
+  for (const f of $('fileIn').files) {
+    if (f.size > 15 * 1024 * 1024) { alertBox(`${f.name} is larger than 15 MB.`); continue; }
+    const b64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.readAsDataURL(f); });
+    try { const r = await api(`/api/projects/${cur}/attach`, {name: f.name, data_b64: b64}); attachments.push(r.path); renderChips(); } catch (e) { alertBox(e.message); }
+  }
+  $('fileIn').value = '';
+};
+/* ------------------------------------------------------------------ talking (hands-free) */
+let listening = false, voiceTalk = false, preVoiceText = '';
+function setListening(on, hint) {
+  listening = on; $('micBtn').classList.toggle('on', on);
+  const vb = $('voiceBar'); vb.hidden = !on && !hint;
+  if (on) {
+    const s = S.settings, w = esc(s.voice_end_word || 'copy');
+    const how = s.voice_end_mode === 'word' ? `say “<b>${w}</b>” to send` : s.voice_end_mode === 'silence' ? `pause ${s.voice_silence_seconds}s to send` : `say “<b>${w}</b>” or pause ${s.voice_silence_seconds}s to send`;
+    vb.innerHTML = `<span class="spin" style="border-color:#d92d20;border-right-color:transparent"></span> Listening… ${how}<span class="sp"></span><button type="button" class="ghost" id="vCancel">Cancel</button>`;
+    $('vCancel').onclick = () => { voiceTalk = false; api('/api/voice/stop', {cancel: true}); };
+  } else if (hint) { vb.textContent = hint; setTimeout(() => { if (!listening) vb.hidden = true; }, 5000); }
+}
+async function startListening() {
+  if (!cur || listening) return;
+  preVoiceText = $('input').value;
+  try { await api('/api/voice/start', {slug: cur}); setListening(true); }
+  catch (e) {
+    if (/needs-download/.test(e.message)) { $('vSize').textContent = S.voice.model_size || 'about 145 MB'; $('voiceDlg').showModal(); }
+    else alertBox(e.message);
+  }
+}
+function onVoice(ev) {
+  if (ev.state === 'listening') { setListening(true); return; }
+  if (ev.state === 'partial') { $('input').value = (preVoiceText ? preVoiceText + ' ' : '') + ev.text; autosize(); return; }
+  if (ev.state === 'downloaded') { setListening(false, 'Speech model ready.'); loadState().then(startListening); return; }
+  if (ev.state === 'final') {
+    setListening(false);
+    $('input').value = (preVoiceText ? preVoiceText + ' ' : '') + ev.text; autosize();
+    if (!ev.text.trim()) return;
+    if (S.settings.voice_review) { $('input').focus(); setListening(false, 'Check the text, then press Enter to send.'); }
+    else { voiceTalk = true; send(); }
+    return;
+  }
+  if (ev.state === 'cancelled') { setListening(false, ev.reason || ''); return; }
+  if (ev.state === 'error') { setListening(false); voiceTalk = false; alertBox(ev.text); }
+}
+function autoListen() {
+  if (!voiceTalk || !S?.settings.voice_auto_listen || listening) return;
+  if ($('msgs').querySelector('.card.pending')) return;  // answer the card first
+  setTimeout(startListening, 400);
+}
+$('micBtn').onclick = () => { if (listening) { api('/api/voice/stop', {cancel: false}); } else { voiceTalk = true; startListening(); } };
+$('vDl').onclick = async () => { $('voiceDlg').close(); setListening(false, 'Downloading the speech model… this can take a few minutes.'); $('voiceBar').hidden = false; await api('/api/voice/download', {slug: cur}); };
+
+/* ------------------------------------------------------------------ usage */
+const pctBar = v => `<div class="bar"><i class="${v >= 90 ? 'max' : v >= 75 ? 'hi' : ''}" style="width:${Math.min(100, v || 0)}%"></i></div>`;
+const resetTxt = r => r ? 'resets ' + new Date(r * 1000).toLocaleString([], {weekday: 'short', hour: '2-digit', minute: '2-digit'}) : '';
+const hm = t => new Date(t * 1000).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+const pctTxt = v => v && v.percent != null ? `${Math.round(v.percent)}%` : v && v.status === 'rejected' ? 'limit reached' : 'OK';
+const usd = v => v == null ? '–' : v < 0.01 && v > 0 ? '<$0.01' : '$' + Number(v).toFixed(2);
+function renderCost(p) {
+  const c = $('cost'), est = p && p.estimate;
+  if (S?.auth_mode === 'subscription') {
+    const pu = S.plan_usage || {}, five = pu.five_hour, week = pu.seven_day;
+    const plan = five || week ? [five && `Session ${pctTxt(five)}`, week && `Week ${pctTxt(week)}`].filter(Boolean).join(' · ') : 'Using your Claude subscription';
+    c.textContent = plan;
+    c.title = 'Covered by your subscription: nothing is billed. Click the usage meter (bottom left) for details.';
+  } else {
+    c.textContent = p && (p.cost_usd || (est && est.so_far)) ? `API cost for this project: ${usd(p.cost_usd || est.so_far)}` : '';
+    c.title = 'Billed to your Anthropic API account (helper brains by their providers)';
+  }
+}
+function renderMeter() {
+  const m = $('usageMeter'); if (!S || !S.has_api_key) { m.hidden = true; return; }
+  m.hidden = false;
+  if (S.auth_mode === 'subscription') {
+    const pu = S.plan_usage || {};
+    const rows = ['five_hour', 'seven_day'].map(k => { const v = pu[k] || {status: 'allowed', percent: null};
+      const when = v.percent == null ? '' : resetOf(v) ? ` <span style="opacity:.7">· ${esc(resetOf(v))}</span>` : v.percent_at ? ` <span style="opacity:.7">· reported ${hm(v.percent_at)}</span>` : '';
+      return `${k === 'five_hour' ? 'Session (5 h)' : 'Week'} ${planPct(v)}${when}${pctBar(v.percent)}`; });
+    m.innerHTML = rows.join('');
+  } else m.innerHTML = `API cost today: <b>$${Number(S.cost_today || 0).toFixed(2)}</b>`;
+  m.innerHTML += `<div class="row" style="margin-top:3px;gap:4px"><span style="opacity:.7;flex:1">Refreshed ${hm(USE_AT / 1000)}</span><button type="button" class="ghost" id="meterRefresh" title="Refresh now" style="padding:0 6px;font-size:12px">↻</button></div>`;
+  $('meterRefresh').onclick = e => { e.stopPropagation(); refreshUsage(true); };
+}
+async function refreshUsage(manual) {
+  // Every 2 minutes (and on ↻): ask Claude for the real plan figures (no tokens), then re-read counts and costs.
+  if (S && S.auth_mode === 'subscription') { try { await api('/api/usage/refresh', {manual: !!manual}); } catch (e) {} }
+  try { await loadState(); } catch (e) {}
+  if ($('useDlg').open) { try { USE = await api('/api/usage'); renderUsage(); } catch (e) {} }
+  if (manual) alertBox('Usage refreshed.', true);
+}
+setInterval(() => refreshUsage(false), 120000);
+let USE = null;
+function renderUsageSimple(u, b) {
+  // one plain sentence instead of token tables
+  $('useChecked').textContent = u.checked ? ' · refreshed ' + hm(u.checked) : '';
+  let h = '';
+  if (u.mode === 'subscription') {
+    const pl = u.plan || {}, wk = pl.seven_day || {}, ss = pl.five_hour || {};
+    const line = (v, what) => v.percent != null ? `You have used <b>${Math.round(v.percent)}%</b> of ${what}${resetOf(v) ? ` (${esc(resetOf(v))})` : ''}.` : `${what[0].toUpperCase() + what.slice(1)}: ${planPct(v)}.`;
+    h += `<p style="font-size:15px;margin:8px 0">${line(wk, 'your weekly Claude limit')}</p><p class="hint">${line(ss, 'the current 5-hour session')}</p>`;
+    const high = [wk, ss].some(v => (v.percent || 0) >= 80);
+    h += high ? '<p class="hint" style="color:var(--warn)">You are close to a limit: Fred will ask before starting big steps, and the work can continue after the reset.</p>'
+              : '<p class="hint">Nothing is billed: your Claude subscription covers it. The figures come from Claude and refresh every 2 minutes.</p>';
+  } else {
+    h += `<p style="font-size:15px;margin:8px 0">This month the team has cost about <b>${usd(u.cost.month)}</b> on your Anthropic account (today ${usd(u.cost.today)}).</p>`;
+  }
+  b.innerHTML = h;
+}
+async function openUsage() { USE = await api('/api/usage'); renderUsage(); if (!$('useDlg').open) $('useDlg').showModal(); }
+$('useRefresh').onclick = () => refreshUsage(true);
+function renderUsage() { renderUsageSimple(USE, $('useBody')); }
+$('usageMeter').onclick = openUsage;
+$('folderBtn').onclick = () => cur && api(`/api/projects/${cur}/open-folder`, {});
+$('pauseBtn').onclick = async () => {
+  if (!view) return;
+  await api(`/api/projects/${cur}/${view.project.paused ? 'resume' : 'pause'}`, {}); await refreshView(); loadState();
+};
+
+/* ------------------------------------------------------------------ work queue (request G) */
+let workTimer = null;
+async function renderWork() {
+  const d = await api('/api/work');
+  $('workSum').textContent = ` · ${d.running} of ${d.max_parallel} working slots in use`;
+  const stPill = s => `<span class="pill ${s === 'working' ? 'ok' : s === 'needs you' || s === 'limit' ? 'warn' : s === 'paused' ? 'bad' : ''}">${esc(s === 'limit' ? 'stopped: usage limit' : s)}</span>`;
+  const since = s => s ? `since ${new Date(s * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}` : '';
+  $('workBody').innerHTML = `<div class="qrow head"><div>Project</div><div>Status</div><div>Who is working on what</div><div>Priority</div><div></div></div>` +
+    (d.rows.length ? d.rows.map(r => `<div class="qrow" data-s="${esc(r.slug)}"><div><a href="#" data-open>${esc(r.name)}</a><div class="hint">${esc(phaseLabel(r.phase) + iterLabel(r.progress, r.phase))}</div></div>
+      <div>${stPill(r.state)}<div class="hint">${since(r.since)}${r.continue_at ? ' · continues ' + new Date(r.continue_at * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : ''}${r.queued ? ` · ${r.queued} message(s) waiting` : ''}</div></div>
+      <div>${r.who.length ? r.who.map(w => `<div><b>${esc(w.name)}</b>: ${esc(w.task || w.last || '')}</div>`).join('') : `<span class="hint">${r.pending.length ? 'Waiting for your answer in the chat' : 'Nobody'}</span>`}</div>
+      <div><select data-prio><option value="high">High</option><option value="normal">Normal</option><option value="low">Low</option></select></div>
+      <div class="row" style="flex-wrap:wrap">${r.state === 'paused' ? '<button type="button" data-act="resume">▶ Resume</button>' : '<button type="button" data-act="pause">⏸ Pause</button>'}<button type="button" data-act="restart" title="Start the current step again">↻ Restart</button></div></div>`).join('')
+      : '<p class="empty">No projects yet.</p>');
+  $('workBody').querySelectorAll('.qrow[data-s]').forEach(row => {
+    const slug = row.dataset.s, r = d.rows.find(x => x.slug === slug);
+    row.querySelector('[data-prio]').value = r.priority;
+    row.querySelector('[data-prio]').onchange = e => api(`/api/projects/${slug}/priority`, {priority: e.target.value}).then(renderWork);
+    row.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => {
+      if (b.dataset.act === 'restart' && !confirm('Restart the current step of this project from the beginning?')) return;
+      await api(`/api/projects/${slug}/${b.dataset.act}`, {}); renderWork(); loadState();
+    });
+    row.querySelector('[data-open]').onclick = e => { e.preventDefault(); $('workDlg').close(); open(slug); };
+  });
+}
+let wtab = 'pipe';
+async function renderPipe() {
+  const d = await api('/api/pipeline');
+  $('workSum').textContent = ` · ${d.running} of ${d.max_parallel} working slots in use`;
+  $('pipeHint').innerHTML = `All approved features of all projects, in master-plan order (top first). ${d.auto ? 'When a project stops or waits for your answer, the next one here continues.' : 'The master plan does not continue projects by itself (Settings &gt; General).'} A project waiting for your answer does not use a working slot.`;
+  const pill = st => `<span class="pill ${st === 'done' ? 'ok' : st === 'building' ? 'acc' : st === 'waiting for release' || st === 'waiting for your answer' ? 'warn' : st === 'stopped mid-way' ? 'bad' : ''}">${esc(st)}</span>`;
+  $('pipeBody').innerHTML = d.projects.length ? d.projects.map((p, pi) => `<div class="pipe-proj" data-s="${esc(p.slug)}">
+    <div class="row" style="flex-wrap:wrap"><b style="font-size:14.5px"><a href="#" data-open>${esc(p.name)}</a></b>${stateHtml(p.state)}${p.approved ? '' : '<span class="pill warn">plan not approved yet</span>'}
+      <span class="sp"></span><button type="button" class="ghost" data-mv="-1" ${pi === 0 ? 'disabled' : ''} title="Move up in the master plan">↑</button><button type="button" class="ghost" data-mv="1" ${pi === d.projects.length - 1 ? 'disabled' : ''} title="Move down">↓</button>
+      ${p.state === 'paused' ? '<button type="button" data-pact="resume">▶ Resume</button>' : '<button type="button" data-pact="pause">⏸ Pause</button>'}
+      ${p.launch ? '<button type="button" class="primary" data-launch>▶ Launch</button>' : ''}</div>
+    ${p.iterations.map(it => `<div class="pipe-it"><div class="itnum ${it.status === 'done' ? 'done' : it.status === 'building' ? 'building' : ''}">${it.status === 'done' ? '✓' : it.n}</div>
+      <div><b>${esc(it.name)}</b>${it.requirements.length ? ` <span class="hint">· ${esc(it.requirements.join(', '))}</span>` : ''}${it.who.length ? `<div class="hint">${it.who.map(w => esc(w.name + (w.task ? ': ' + w.task : ''))).join(' · ')}</div>` : ''}</div>
+      <div>${pill(it.status)}${it.commit ? ` <code class="hint">${esc(it.commit)}</code>` : ''}</div>
+      <div>${it.status === 'done' || it.n === p.iterations[p.iterations.length - 1].n ? '' : `<select data-after="${it.n}" title="What happens when this iteration is finished"><option value="continue" ${it.after !== 'pause' ? 'selected' : ''}>then continue</option><option value="pause" ${it.after === 'pause' ? 'selected' : ''}>then pause for me</option></select>`}</div>
+      <div>${it.status === 'waiting for release' ? `<button type="button" class="primary" data-release="${it.n}">Release</button>` : it.status === 'waiting for your answer' ? '<a href="#" data-open>Answer</a>' : ''}</div></div>`).join('')}</div>`).join('')
+    : '<p class="empty">No plans yet. Approved plans and their iterations appear here.</p>';
+  $('pipeBody').querySelectorAll('.pipe-proj').forEach(box => {
+    const slug = box.dataset.s, act = (path, body) => api(`/api/projects/${slug}/${path}`, body || {}).then(renderPipe).then(loadState).catch(e => alertBox(e.message));
+    box.querySelectorAll('[data-open]').forEach(a => a.onclick = e => { e.preventDefault(); $('workDlg').close(); open(slug); });
+    box.querySelectorAll('[data-after]').forEach(sel => sel.onchange = () => act('iteration-after', {n: +sel.dataset.after, after: sel.value}));
+    box.querySelectorAll('[data-release]').forEach(b => b.onclick = () => act('release', {n: +b.dataset.release}));
+    box.querySelectorAll('[data-pact]').forEach(b => b.onclick = () => act(b.dataset.pact));
+    const l = box.querySelector('[data-launch]'); if (l) l.onclick = () => launchProject(slug);
+    box.querySelectorAll('[data-mv]').forEach(b => b.onclick = async () => {
+      const order = d.projects.map(x => x.slug), k = order.indexOf(slug), t = k + +b.dataset.mv;
+      [order[k], order[t]] = [order[t], order[k]];
+      await api('/api/pipeline/order', {order}); renderPipe();
+    });
+  });
+}
+document.querySelectorAll('.wtab').forEach(b => b.onclick = () => {
+  wtab = b.dataset.w; document.querySelectorAll('.wtab').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('[data-wp]').forEach(x => x.hidden = x.dataset.wp !== wtab);
+  (wtab === 'pipe' ? renderPipe : renderWork)();
+});
+const refreshWork = () => (wtab === 'pipe' ? renderPipe : renderWork)();
+$('workBtn').onclick = async () => { await refreshWork(); $('workDlg').showModal(); clearInterval(workTimer); workTimer = setInterval(() => { if ($('workDlg').open) refreshWork(); else clearInterval(workTimer); }, 4000); };
+
+/* ------------------------------------------------------------- feedback (item 50) */
+$('feedbackBtn').onclick = () => { $('fbTitle').value = ''; $('fbBody').value = ''; $('fbMsg').textContent = ''; $('fbSend').disabled = false; $('fbDlg').showModal(); $('fbTitle').focus(); };
+$('fbSend').onclick = async () => {
+  const title = $('fbTitle').value.trim(); if (!title) { $('fbMsg').textContent = 'Please write a short title first.'; return; }
+  $('fbSend').disabled = true; $('fbMsg').textContent = 'Sending…';
+  try { const r = await api('/api/features/feedback', {title, body: $('fbBody').value});
+    $('fbMsg').textContent = r.shared ? 'Thank you! Your feedback reached the author.' : 'Thank you! Your feedback was saved' + (r.error ? ' (it will reach the author when a connection is available).' : '.');
+    setTimeout(() => $('fbDlg').close(), 1400);
+  } catch (e) { $('fbMsg').textContent = e.message; $('fbSend').disabled = false; }
+};
+
+/* ------------------------------------------------- requested features page (item 51) */
+const FEAT_LABEL = {new: 'Needs a decision', approved: 'Approved', rejected: 'Rejected', planned: 'Planned', built: 'Built'};
+async function renderFeatures() {
+  let d; try { d = await api('/api/features'); } catch (e) { $('featBody').innerHTML = '<p class="hint">Could not load.</p>'; return; }
+  const manage = d.can_manage;
+  $('featImport').hidden = !d.is_owner;
+  $('featIntro').textContent = manage
+    ? 'Feedback from you and from people using the app. Approve what should be built (it goes to the council and the queue) or reject it with a reason.'
+    : 'What the author has approved to build, and what was turned down (with the reason). Use “Send feedback” to suggest your own.';
+  const order = manage ? ['new', 'approved', 'planned', 'built', 'rejected'] : ['approved', 'planned', 'built', 'rejected'];
+  const shown = (d.items || []).filter(i => order.includes(i.status));
+  if (!shown.length) { $('featBody').innerHTML = '<p class="hint">Nothing here yet.</p>'; return; }
+  $('featBody').innerHTML = order.map(st => {
+    const its = shown.filter(i => i.status === st); if (!its.length) return '';
+    return `<h4 style="margin:12px 0 4px">${FEAT_LABEL[st]} <span class="pill">${its.length}</span></h4>` + its.map(i => `
+      <div class="feat" data-id="${esc(i.id)}" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0">
+        <div><b>${esc(i.title)}</b> ${i.source !== 'me' ? `<span class="hint">· from ${i.source === 'feedback' ? 'you' : 'a user'}${i.author ? ' (' + esc(i.author) + ')' : ''}</span>` : ''}</div>
+        ${i.body ? `<div class="hint" style="white-space:pre-wrap;margin:3px 0">${esc(i.body)}</div>` : ''}
+        ${i.status === 'rejected' && i.reason ? `<div class="hint" style="color:var(--bad)">Reason: ${esc(i.reason)}</div>` : ''}
+        ${manage ? `<div class="row" style="flex-wrap:wrap;margin-top:5px">
+          ${st !== 'approved' ? '<button type="button" data-act="approved">Approve</button>' : ''}
+          ${st !== 'planned' ? '<button type="button" data-act="planned">Mark planned</button>' : ''}
+          ${st !== 'built' ? '<button type="button" data-act="built">Mark built</button>' : ''}
+          ${st !== 'rejected' ? '<button type="button" class="danger" data-act="rejected">Reject…</button>' : ''}
+        </div>` : ''}
+      </div>`).join('');
+  }).join('');
+  if (manage) $('featBody').querySelectorAll('.feat').forEach(card => {
+    const id = card.dataset.id;
+    card.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => {
+      let reason = '';
+      if (b.dataset.act === 'rejected') { reason = prompt('Why is this being turned down? (shown on the requested-features page)') || ''; if (reason === '') return; }
+      try { await api('/api/features/status', {id, status: b.dataset.act, reason}); await renderFeatures(); loadState(); } catch (e) { alertBox(e.message); }
+    });
+  });
+}
+$('featuresBtn').onclick = async () => { await renderFeatures(); $('featDlg').showModal(); };
+$('featImport').onclick = async () => {
+  $('featImport').disabled = true;
+  try { const r = await api('/api/features/import', {}); alertBox(r.added ? `${r.added} new item(s) imported.` : 'No new feedback to import.', true); await renderFeatures(); loadState(); }
+  catch (e) { alertBox(e.message); }
+  $('featImport').disabled = false;
+};
+
+/* ------------------------------------------------------------------ launch the project (request 21) */
+let LAUNCH_SAVE_ONLY = false;
+function chooseStart(slug, info, saveOnly) {
+  LAUNCH_SAVE_ONLY = !!saveOnly;
+  const list = info.all_choices && info.all_choices.length ? info.all_choices : (info.choices || []);
+  $('launchList').innerHTML = list.map((c, i) => `<label><input type="radio" name="lstart" value="${esc(c)}" ${c === info.command || (!info.command && !i) ? 'checked' : ''}><b>${esc(c)}</b></label>`).join('');
+  $('launchGo').textContent = saveOnly ? 'Save' : 'Start it';
+  $('launchGo').onclick = async () => {
+    const command = (document.querySelector('input[name=lstart]:checked') || {}).value; if (!command) return;
+    $('launchDlg').close();
+    try { const r = await api(`/api/projects/${slug}/launch`, {command, save_only: LAUNCH_SAVE_ONLY});
+      alertBox(LAUNCH_SAVE_ONLY ? `The project now starts with ${command}.` : `Started ${r.version || command}.`, true); refreshView(); }
+    catch (e) { alertBox(e.message); }
+  };
+  $('launchDlg').showModal();
+}
+async function launchProject(slug) {
+  try { const r = await api(`/api/projects/${slug}/launch`, {});
+    if (r.needs_choice) { chooseStart(slug, r, false); return; }
+    alertBox(`Started ${r.version || 'the app'}.`, true); }
+  catch (e) {
+    const d = el(`<div class="err" style="position:fixed;bottom:20px;right:20px;z-index:30;max-width:440px"><div></div><div class="acts" style="margin-top:8px"><button class="primary" data-fix>Ask Fred to fix it</button><button data-x>Close</button></div></div>`);
+    d.firstChild.textContent = '⚠ ' + e.message; document.body.appendChild(d);
+    d.querySelector('[data-x]').onclick = () => d.remove();
+    d.querySelector('[data-fix]').onclick = async () => { d.remove(); if (cur !== slug) await open(slug); await api(`/api/projects/${slug}/message`, {text: `I tried to launch the project with the Launch button and it failed: ${e.message}\nPlease find out why and fix it.`}); };
+  }
+}
+$('launchBtn').onclick = () => cur && launchProject(cur);
+
+/* ------------------------------------------------------------------ layout: side panel width and collapse (requests 16, 17) */
+const LS = {get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }};
+let sideHidden = LS.get('aiteam.sideHidden') === '1', sideOver = false, sideBadge = false;
+function applyLayout() {
+  const app = $('app'), narrow = innerWidth <= 1180, w = parseInt(LS.get('aiteam.sideW') || '0');
+  if (w) app.style.setProperty('--sidew', Math.max(380, Math.min(w, innerWidth - 240 - 420)) + 'px');
+  app.classList.toggle('noside', !narrow && sideHidden);
+  app.classList.toggle('sideover', narrow && sideOver);
+  const shown = narrow ? sideOver : !sideHidden, t = $('sideToggle');
+  t.style.right = shown ? $('side').getBoundingClientRect().width + 'px' : '0';
+  t.innerHTML = (shown ? '»' : '«') + (!shown && sideBadge ? '<span class="dot"></span>' : '');
+  t.title = shown ? 'Hide the side panel' : 'Show the side panel' + (sideBadge ? ' (something new)' : '');
+  if (shown) sideBadge = false;
+}
+$('sideToggle').onclick = () => {
+  if (innerWidth <= 1180) sideOver = !sideOver; else { sideHidden = !sideHidden; LS.set('aiteam.sideHidden', sideHidden ? '1' : '0'); }
+  if (!sideHidden || sideOver) sideBadge = false;
+  applyLayout(); if (!sideHidden) renderSide();
+};
+function markSide() { const narrow = innerWidth <= 1180; if (narrow ? !sideOver : sideHidden) { sideBadge = true; applyLayout(); } }
+$('resizer').onmousedown = e => {
+  e.preventDefault(); const r = $('resizer'); r.classList.add('drag');
+  const move = ev => { const w = Math.max(380, Math.min(innerWidth - ev.clientX, innerWidth - 240 - 420)); $('app').style.setProperty('--sidew', w + 'px'); LS.set('aiteam.sideW', String(Math.round(w))); applyLayout(); };
+  const up = () => { r.classList.remove('drag'); removeEventListener('mousemove', move); removeEventListener('mouseup', up); if (tab === 'team') renderTeam(); };
+  addEventListener('mousemove', move); addEventListener('mouseup', up);
+};
+addEventListener('resize', applyLayout);
+
+/* ------------------------------------------------------------------ brains settings (requests D and E) */
+let BR = null;
+async function renderBrains() {
+  BR = await api('/api/brains');
+  $('brainList').innerHTML = BR.brains.length ? BR.brains.map(b => `<div class="brainrow" data-id="${esc(b.id)}">
+      <label class="row" style="gap:6px"><input type="checkbox" data-en ${b.enabled ? 'checked' : ''} style="width:auto"> <b>${esc(b.label)}</b></label>
+      <span class="pill">${esc(b.badge)}</span>${!b.has_key ? '<span class="pill bad">no key</span>' : ''}${b.out_of_quota ? '<span class="pill warn">out of quota</span>' : ''}
+      <span class="sp"></span><button type="button" data-test>Test</button><button type="button" class="danger" data-rm>Remove</button>
+      <span class="hint" data-msg style="width:100%"></span></div>`).join('') : '<p class="hint">No council brains yet: Fred decides on his own.</p>';
+  $('brainList').querySelectorAll('.brainrow').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelector('[data-en]').onchange = e => api('/api/brains/toggle', {id, enabled: e.target.checked}).then(renderBrains);
+    row.querySelector('[data-rm]').onclick = () => confirm('Remove this brain from the council?') && api('/api/brains/remove', {id}).then(renderBrains);
+    row.querySelector('[data-test]').onclick = async () => { const m = row.querySelector('[data-msg]'); m.textContent = 'Testing…'; try { const r = await api('/api/brains/test', {id}); m.textContent = (r.ok ? '✓ ' : '✗ ') + r.message; } catch (e) { m.textContent = e.message; } };
+  });
+  const keepProv = $('bProv').value, keepMsg = $('bMsg').innerHTML;
+  $('bProv').innerHTML = Object.entries(BR.providers).map(([k, p]) => `<option value="${k}">${esc(p.name)} (${esc(p.badge)})</option>`).join('');
+  if (keepProv && BR.providers[keepProv]) $('bProv').value = keepProv;  // stay on the provider you were using
+  provChanged(); $('bMsg').innerHTML = keepMsg;
+}
+let REC_WHY = '';
+const tierPill = t => t === 'free' ? '<span class="pill ok">free</span>' : t === 'paid' ? '<span class="pill warn">paid</span>' : '';
+function selectModel(name) {
+  $('bModel').value = name;
+  $('bModelList').querySelectorAll('.mitem').forEach(it => it.classList.toggle('sel', it.dataset.m === name));
+}
+function modelRow(r, isOllama) {
+  const badges = (r.recommended ? `<span class="pill ok" title="${esc(REC_WHY)}">★ recommended (coding)</span>` : '') + (r.best_for || []).map(b => `<span class="pill acc">${esc(b)}</span>`).join('') + (r.added ? '<span class="pill">already added</span>' : '') + (isOllama
+    ? `${r.installed ? '<span class="pill ok">✓ installed</span>' : ''}${r.params ? `<span class="pill">${esc(r.params)}</span>` : ''}`
+    : tierPill(r.tier));
+  const extra = isOllama ? [r.size_gb ? `${r.size_gb} GB download` : '', r.min_ram_gb ? `needs ${r.min_ram_gb} GB memory` : ''].filter(Boolean).join(' · ') : '';
+  return `<label class="mitem ${isOllama && r.installed ? 'inst' : ''} ${isOllama && !r.ram_ok ? 'off' : ''}" data-m="${esc(r.model)}">
+    <input type="radio" name="bpick">
+    <div class="mt"><b>${esc(r.model)}</b> ${badges}<span class="hint">${esc(r.note || '')}${extra ? ' · ' + esc(extra) : ''}</span></div></label>`;
+}
+function renderModelList(rows, isOllama) {
+  if (!rows.length) { $('bModelList').innerHTML = `<div class="mitem off"><div class="mt hint">No models found. Check the key and try again.</div></div>`; return; }
+  if (isOllama) {
+    // installed first, then everything that fits this PC (small to large), then the ones that are too big, folded
+    const inst = rows.filter(r => r.installed), fit = rows.filter(r => !r.installed && r.ram_ok), big = rows.filter(r => !r.installed && !r.ram_ok);
+    $('bModelList').innerHTML =
+      (inst.length ? `<div class="mgroup">Already on your PC (${inst.length})</div>${inst.map(r => modelRow(r, true)).join('')}` : '') +
+      (fit.length ? `<div class="mgroup">Fit your PC — download when you add one (${fit.length})</div>${fit.map(r => modelRow(r, true)).join('')}` : '') +
+      (big.length ? `<details><summary>Too big for this PC's memory (${big.length}) — would be very slow</summary>${big.map(r => modelRow(r, true)).join('')}</details>` : '');
+  } else {
+    const rec = rows.filter(r => r.recommended), rest = rows.filter(r => !r.recommended);
+    $('bModelList').innerHTML = (rec.length ? `<div class="mgroup">Recommended</div>${rec.map(r => modelRow(r, false)).join('')}<div class="mgroup">All other models (${rest.length})</div>` : '') + rest.map(r => modelRow(r, false)).join('');
+  }
+  $('bModelList').querySelectorAll('.mitem').forEach(it => it.onclick = () => { it.querySelector('input').checked = true; selectModel(it.dataset.m); });
+  const pick = isOllama ? (rows.find(r => r.installed && !r.added) || rows.find(r => r.recommended) || rows.find(r => r.ram_ok)) : (rows.find(r => r.recommended) || rows[0]);
+  if (pick) { selectModel(pick.model); const el0 = $('bModelList').querySelector(`.mitem[data-m="${CSS.escape(pick.model)}"] input`); if (el0) el0.checked = true; }
+}
+function provChanged() {
+  const p = BR.providers[$('bProv').value]; const isOllama = !!p.is_local;
+  $('bKeyWrap').hidden = !p.needs_key;
+  $('bHow').innerHTML = (p.how || []).map(x => `<li>${inline(x)}</li>`).join('');
+  $('bNote').innerHTML = `<b>${esc(p.free_hint || '')}</b><br>${esc(p.privacy)}`;
+  $('bModel').value = ''; $('bModelList').innerHTML = ''; $('bLoadMsg').textContent = '';
+  $('bLoad').textContent = isOllama ? 'Refresh the list' : 'Load the list of models';
+  if (isOllama) loadModels();  // local catalog: show it right away, no key needed
+}
+$('bProv').onchange = () => { $('bMsg').textContent = ''; $('bKey').value = ''; provChanged(); };  // never send one provider's key to another
+async function loadModels() {
+  const isOllama = !!BR.providers[$('bProv').value].is_local;
+  $('bLoadMsg').textContent = isOllama ? 'Checking your PC and Ollama…' : 'Loading…';
+  try { const r = await api('/api/brains/models', {provider: $('bProv').value, key: $('bKey').value.trim()});
+    const rows = r.tiered || r.models.map(m => ({model: m, tier: ''}));
+    REC_WHY = r.recommended_why || '';
+    renderModelList(rows, isOllama);
+    if (isOllama) {
+      const nInst = rows.filter(x => x.installed).length, nFit = rows.filter(x => x.ram_ok).length;
+      const state = r.ollama_state === 'running' ? '' : r.ollama_state === 'stopped' ? ' Ollama is installed but could not be started.' : ' Ollama is not installed yet: AI Team Lite installs it when you add your first local model.';
+      $('bLoadMsg').innerHTML = `${esc(`Your PC has ${r.ram_gb || '?'} GB of memory${r.vram_gb ? ` and a ${r.vram_gb} GB graphics card (faster)` : ''}: ${nFit} models fit${nInst ? `, ${nInst} already installed` : ''}.${state}`)}<br><span class="hint">${esc(REC_WHY)}</span>`;
+    } else {
+      $('bLoadMsg').textContent = `${rows.length} models found. All are listed below with what each is best for; the recommended one is at the top.`;
+    }
+  } catch (e) { $('bLoadMsg').textContent = e.message; }
+}
+$('bLoad').onclick = loadModels;
+async function addBrain(force) {
+  const prov = $('bProv').value, model = $('bModel').value.trim();
+  if (!model) { $('bMsg').textContent = 'Pick a model first (Load the list, then choose one).'; return; }
+  // a live counter so the user always sees what is happening (item 63)
+  const t0 = Date.now(), limit = prov === 'ollama' ? 90 : 30;
+  const tick = () => { $('bMsg').innerHTML = `<span class="spin"></span> Testing ${esc(model)}… ${Math.round((Date.now() - t0) / 1000)} s <span class="hint">(it answers within ${limit} s, or AI Team Lite stops waiting)</span>`; };
+  tick(); const timer = setInterval(tick, 1000); $('bAddBtn').disabled = true;
+  try {
+    const r = await api('/api/brains/add', {provider: prov, model, key: $('bKey').value.trim(), force: !!force}).finally(() => { clearInterval(timer); $('bAddBtn').disabled = false; });
+    if (r.needs_download) {
+      $('bMsg').innerHTML = `${esc(model)} is not on your PC yet${r.size_gb ? ` (${r.size_gb} GB download)` : ''}.${r.ollama_installed ? '' : ' Ollama will be installed first.'} <button type="button" class="primary" id="bGet">Download and add</button>`;
+      $('bGet').onclick = async () => { $('bGet').disabled = true; $('bMsg').textContent = 'Starting…'; try { await api('/api/brains/ollama-get', {model}); } catch (e) { $('bMsg').textContent = e.message; } };
+      return;
+    }
+    if (r.added) { $('bKey').value = ''; $('bModel').value = '';
+      $('bMsg').innerHTML = r.test_ok ? `✓ <b>${esc(model)} added and working</b> — it now appears in the list above. ${esc(r.test)}` : `Added but switched off (the test failed): ${esc(r.test)}`;
+      renderBrains(); loadState(); return; }
+    const tierWarn = r.tier === 'paid' ? ' This model is paid, so it needs credit on your account.' : '';
+    $('bMsg').innerHTML = `✗ Not added — the test failed: ${esc(r.test)}.${tierWarn} <a href="#" id="bForce">Add anyway (switched off)</a>`;
+    $('bForce').onclick = e => { e.preventDefault(); addBrain(true); };
+  } catch (e) { $('bMsg').textContent = e.message; }
+}
+$('bAddBtn').onclick = () => addBrain(false);
+function onBrainJob(ev) {
+  const pct = ev.frac != null ? ` ${Math.round(ev.frac * 100)}%` : '';
+  $('bMsg').textContent = (ev.text || '') + pct;
+  if (ev.done && $('setDlg').open) { renderBrains().then(() => { if (BR.providers[$('bProv').value]?.is_local) loadModels(); }); loadState(); }
+}
+document.querySelectorAll('.stab').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.stab').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('[data-sp]').forEach(sec => sec.hidden = sec.dataset.sp !== b.dataset.s);
+  if (b.dataset.s === 'brains') renderBrains();
+  if (b.dataset.s === 'setup') renderSetupTab();
+});
+
+/* ------------------------------------------------------------------ dialogs */
+function alertBox(msg, ok) { const d = el(`<div class="err" style="position:fixed;bottom:20px;right:20px;z-index:30;max-width:420px${ok ? ';background:var(--okbg);color:var(--ok);border-color:var(--ok)' : ''}"></div>`); d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 6000); }
+function lightbox(src) { const d = el(`<div class="lightbox"><img src="${src}" alt=""></div>`); d.onclick = () => d.remove(); document.body.appendChild(d); }
+function newKind() {
+  const ex = document.querySelector('input[name=nkind]:checked').value === 'existing';
+  $('newExisting').hidden = !ex; $('newBrowse').hidden = !S?.desktop;
+  $('newName').required = !ex;
+  $('newNameLbl').textContent = ex ? 'Name in AI Team Lite (optional: the folder name is used if empty)' : 'Give it a short name (you can describe the idea to Fred next)';
+  $('newName').placeholder = ex ? 'e.g. Price watcher' : 'e.g. Invoice tracker';
+  return ex;
+}
+document.querySelectorAll('input[name=nkind]').forEach(r => r.onchange = () => { if (newKind()) $('newFolder').focus(); else $('newName').focus(); });
+$('newBrowse').onclick = async () => { const r = await api('/api/pick-folder', {start: $('newFolder').value}); if (r.path) $('newFolder').value = r.path; };
+$('newBtn').onclick = () => {
+  $('newName').value = ''; $('newFolder').value = ''; document.querySelector('input[name=nkind][value=new]').checked = true;
+  newKind(); $('newDlg').showModal(); $('newName').focus();
+};
+$('newCancel').onclick = () => $('newDlg').close();
+$('newForm').onsubmit = async e => {
+  e.preventDefault(); const name = $('newName').value.trim(), ex = newKind(), folder = $('newFolder').value.trim();
+  if (ex ? !folder : !name) return;
+  try { const p = await api('/api/projects', ex ? {name, folder} : {name}); $('newDlg').close(); await loadState(); open(p.slug); } catch (err) { alertBox(err.message); }
+};
+$('hiddenBtn').onclick = () => { showHidden = !showHidden; loadState(); };
+$('menuBtn').onclick = () => {
+  const p = view?.project; if (!p) return;
+  $('projDlgTitle').textContent = p.name; $('projMsg').textContent = '';
+  $('projDlgInfo').innerHTML = `Folder: <code>${esc(p.folder || '')}</code>${p.existing_folder ? '<br>Started from an existing folder.' : ''}`;
+  $('hideBtn').textContent = p.hidden ? '👁 Show this project again' : '🙈 Hide this project';
+  $('hideHint').textContent = p.hidden ? '' : 'Hidden projects disappear from the list (nothing is deleted). Bring them back with "Show hidden projects".';
+  $('removeWrap').hidden = !p.existing_folder;
+  const li = p.launch || {}; $('startRow').hidden = !((li.all_choices || []).length > 1);
+  $('startHint').textContent = li.command ? `Now: ${li.command}` : '';
+  $('delLbl').innerHTML = `<b>Delete everything:</b> the project folder <code>${esc(p.folder || '')}</code> and all its files${p.existing_folder ? ' (your original files too)' : ''}. This cannot be undone. Type <b>${esc(p.name)}</b> to confirm.`;
+  $('delConfirm').value = ''; $('delBtn').disabled = true;
+  $('projDlg').showModal();
+};
+$('delConfirm').oninput = () => { $('delBtn').disabled = $('delConfirm').value.trim() !== view?.project?.name; };
+async function projAction(path, body) {
+  $('projMsg').textContent = '';
+  try { const r = await api(`/api/projects/${cur}/${path}`, body); return r; } catch (e) { $('projMsg').textContent = e.message; return null; }
+}
+$('startBtn').onclick = () => { $('projDlg').close(); chooseStart(cur, view.project.launch, true); };
+$('reloadBtn').onclick = async () => {
+  const r = await projAction('reload', {}); if (r) { $('projDlg').close(); alertBox('Fred is re-reading the project folder.', true); await refreshView(); loadState(); }
+};
+let BRK = null;
+function openBroken(b) {
+  BRK = b; $('brkTitle').textContent = `“${b.name}” can't be opened`; $('brkMsg').textContent = '';
+  $('brkInfo').innerHTML = `${esc(b.reason)}<br>Folder: <code>${esc(b.path)}</code>`;
+  $('brkReload').hidden = !b.folder_exists; $('brkPathRow').hidden = true; $('brkPath').value = '';
+  $('brokenDlg').showModal();
+}
+async function brokenReload(folder) {
+  $('brkMsg').textContent = '';
+  try { const p = await api(`/api/broken/${BRK.slug}/reload`, folder ? {folder} : {}); $('brokenDlg').close(); await loadState(); open(p.slug); alertBox('Reloaded: Fred is re-reading the folder.', true); }
+  catch (e) { $('brkMsg').textContent = e.message; }
+}
+$('brkReload').onclick = () => brokenReload('');
+$('brkPick').onclick = async () => {
+  if (S?.desktop) { const r = await api('/api/pick-folder', {start: BRK.path}); if (r.path) brokenReload(r.path); }
+  else { $('brkPathRow').hidden = false; $('brkPath').focus(); }
+};
+$('brkPathGo').onclick = () => $('brkPath').value.trim() && brokenReload($('brkPath').value.trim());
+$('brkRemove').onclick = async () => {
+  try { const r = await api(`/api/broken/${BRK.slug}/remove`, {}); $('brokenDlg').close(); alertBox(r.message, true); loadState(); }
+  catch (e) { $('brkMsg').textContent = e.message; }
+};
+$('hideBtn').onclick = async () => { const h = view.project.hidden; if (await projAction(h ? 'unhide' : 'hide', {})) { $('projDlg').close(); if (!h) { await loadState(); open(null); } else { await refreshView(); loadState(); } } };
+$('removeBtn').onclick = async () => { if (!confirm('Remove this project from AI Team Lite? Your folder and files are kept.')) return; const r = await projAction('delete', {mode: 'remove'}); if (r) { $('projDlg').close(); alertBox(r.message, true); await loadState(); open(null); } };
+$('delBtn').onclick = async () => { const r = await projAction('delete', {mode: 'all', confirm: $('delConfirm').value.trim()}); if (r) { $('projDlg').close(); alertBox(r.message, true); await loadState(); open(null); } };
+$('settingsBtn').onclick = () => {
+  $('setMode').value = S.settings.approval_mode; $('setPar').value = String(S.max_parallel || 2); $('setIterPause').checked = !!S.settings.iteration_pause;
+  $('setPipeAuto').checked = S.settings.pipeline_auto !== false; $('setTray').checked = !!S.settings.close_to_tray;
+  const onTab = document.querySelector('.stab.on')?.dataset.s;
+  if (onTab === 'brains') renderBrains();
+  if (onTab === 'setup') renderSetupTab();
+  $('setDlg').showModal();
+};
+$('setCancel').onclick = () => { $('setDlg').close(); renderSide(); };
+$('setSave').onclick = async e => {
+  e.preventDefault();
+  const body = {approval_mode: $('setMode').value, max_parallel: parseInt($('setPar').value), iteration_pause: $('setIterPause').checked,
+    pipeline_auto: $('setPipeAuto').checked, close_to_tray: $('setTray').checked};
+  try { await api('/api/settings', body); $('setDlg').close(); await loadState(); renderSide(); } catch (err) { alertBox(err.message); }
+};
+/* ---------------------------------------------- Setup & connections tab */
+function renderSetupTab() {
+  $('subOut').hidden = S.auth_mode !== 'subscription';
+  const gh = S.github_connected;
+  $('clearGh').hidden = !gh;
+  const rows = [
+    ['How Fred thinks', S.auth_mode === 'subscription' ? 'Your Claude subscription' : (S.api_key_saved ? 'An Anthropic API key' : 'Not connected'), true],
+    ['Projects folder', S.settings.workspace_dir, true],
+    ['GitHub', gh ? 'Connected as ' + esc(S.settings.github_login || '?') : 'Not connected', gh],
+    ['Helper brains', (S.brains_count || 0) + ' added', (S.brains_count || 0) > 0],
+  ];
+  $('connList').innerHTML = rows.map(([k, v, ok]) =>
+    `<div class="env"><span>${esc(k)}</span><span class="${ok ? 'ok' : 'no'}">${v}</span><span></span></div>`).join('');
+  $('setInfo').textContent = 'Version ' + (S.version || '') + '. Your saved keys and sign-in stay in Windows and are never shown to the AI or put in a shared copy.';
+  renderShareBox();
+}
+async function renderShareBox() {
+  const box = $('shareBox'); box.innerHTML = '<p class="hint">Checking…</p>';
+  let u; try { u = await api('/api/app/update-status'); } catch (e) { box.innerHTML = '<p class="hint">Could not check sharing.</p>'; return; }
+  if (u.is_owner) {
+    let line = `You share AI Team Lite from <a href="${esc(u.repo)}" target="_blank" rel="noopener">this repository</a>. When you install a newer version it is published there automatically, so your friends can update.`;
+    box.innerHTML = `<p class="hint">${line}</p>`;
+  } else if (u.sharing || u.repo) {
+    if (u.available) box.innerHTML = `<p class="hint"><b style="color:var(--warn)">Update available: ${esc(u.latest)}</b> (you have ${esc(u.current)}).${u.busy ? ' Finish or pause current work first, then get it from' : ' Get it from'} <a href="${esc(u.repo)}" target="_blank" rel="noopener">the repository</a>.</p>`;
+    else box.innerHTML = `<p class="hint">You're up to date (version ${esc(u.current)}). Updates come from <a href="${esc(u.repo)}" target="_blank" rel="noopener">the author's repository</a>.</p>`;
+  } else {
+    box.innerHTML = `<p class="hint">Publish AI Team Lite to a GitHub repository once, to share it with friends. After that, every time you install a newer version it updates there automatically — friends can get your updates but cannot publish the app themselves. Nothing private (keys, sign-in, your notes) is ever included; AI Team Lite checks before publishing.</p>
+      <div class="row" style="flex-wrap:wrap"><button type="button" id="shareSetup">Create a new repository</button><label class="row" style="gap:6px;width:auto"><input type="checkbox" id="sharePriv" style="width:auto"> Private repository (only you)</label></div>
+      <div class="row" style="flex-wrap:wrap;margin-top:6px"><input type="text" id="shareLinkRepo" placeholder="or use one you already have, e.g. XaeriS/ai-team-lite" style="flex:1;min-width:220px"><button type="button" id="shareLink">Link this repository</button></div>
+      <p id="shareMsg" class="hint" style="min-height:16px"></p>`;
+    $('shareLink').onclick = async () => {
+      const repo = $('shareLinkRepo').value.trim(); if (!repo) { $('shareMsg').textContent = 'Type the repository, e.g. XaeriS/ai-team-lite.'; return; }
+      if (!S.github_connected) { $('shareMsg').textContent = 'Connect GitHub first (the button above).'; return; }
+      $('shareLink').disabled = true; $('shareMsg').textContent = 'Checking the repository and publishing this version…';
+      try { const r = await api('/api/app/link-sharing', {repo});
+        $('shareMsg').innerHTML = `Done: AI Team Lite ${esc(S.version)} is published at <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.full_name)}</a>. New versions you install will be published there automatically.`;
+        await loadState(); renderShareBox();
+      } catch (e) { $('shareMsg').textContent = e.message; $('shareLink').disabled = false; }
+    };
+    $('shareSetup').onclick = async () => {
+      if (!S.github_connected) { $('shareMsg').textContent = 'Connect GitHub first (the button above).'; return; }
+      const name = prompt('Name for the GitHub repository:', 'ai-team-lite'); if (!name) return;
+      $('shareSetup').disabled = true; $('shareMsg').textContent = 'Setting up… this creates the repository and publishes this version.';
+      try { const r = await api('/api/app/setup-sharing', {name, private: $('sharePriv').checked});
+        $('shareMsg').innerHTML = `Done — shared at <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>.`;
+        await loadState(); renderShareBox();
+      } catch (e) { $('shareMsg').textContent = e.message; $('shareSetup').disabled = false; }
+    };
+  }
+}
+$('setupFredBtn').onclick = async () => {
+  if (!confirm('Reopen setup with Fred to change something (folder, GitHub, approvals)?')) return;
+  await api('/api/setup/restart', {});
+  $('setDlg').close(); await loadState(); open('setup');
+};
+$('replaceKey').onclick = () => { $('setDlg').close(); $('onboard').hidden = false; $('keyIn').focus(); };
+$('subOut').onclick = async () => { if (confirm('Sign out of your Claude subscription in AI Team Lite?')) { await api('/api/auth/subscription/logout', {}); $('setDlg').close(); await loadState(); } };
+let subTimer = null;
+$('subBtn').onclick = async () => {
+  $('keyErr').textContent = ''; $('subBtn').disabled = true;
+  try { await api('/api/auth/subscription/start', {}); }
+  catch (e) { $('keyErr').textContent = e.message; $('subBtn').disabled = false; return; }
+  $('subStatus').innerHTML = '<span class="spin"></span> Finish signing in in your browser… (a small window also opened; leave it open)';
+  let tries = 0;
+  clearInterval(subTimer);
+  subTimer = setInterval(async () => {
+    tries++;
+    let st = {}; try { st = await api('/api/auth/subscription/check', {}); } catch (e) {}
+    if (st.signed_in) {
+      clearInterval(subTimer); $('subStatus').textContent = 'Signed in.'; $('subBtn').disabled = false;
+      await loadState(); open(S.setup_complete ? (cur || null) : 'setup');
+    } else if (tries > 100) {
+      clearInterval(subTimer); $('subBtn').disabled = false;
+      $('subStatus').textContent = 'Not signed in yet. Click the button to try again.';
+    }
+  }, 3000);
+};
+$('clearGh').onclick = async () => { if (confirm('Remove the saved GitHub token from this PC?')) { await api('/api/secrets/clear', {name: 'github_token'}); $('setDlg').close(); loadState(); } };
+
+/* ------------------------------------------------------------------ onboarding */
+$('keyBtn').onclick = async () => {
+  const key = $('keyIn').value.trim(); $('keyErr').textContent = '';
+  if (!key) return;
+  $('keyBtn').disabled = true; $('keyBtn').textContent = 'Checking…';
+  try {
+    await api('/api/onboarding/key', {key}); $('keyIn').value = '';
+    await loadState(); open(S.setup_complete ? (cur || null) : 'setup');
+  } catch (e) { $('keyErr').textContent = e.message; }
+  $('keyBtn').disabled = false; $('keyBtn').textContent = 'Save and continue';
+};
+$('keyIn').onkeydown = e => { if (e.key === 'Enter') $('keyBtn').click(); };
+
+/* ------------------------------------------------------------------ start */
+(async () => {
+  applyLayout();
+  await loadState(); connect();
+  if (S.auth_mode === 'subscription') refreshUsage(false);  // real plan figures right away
+  const interrupted = (S.interrupted || []);
+  if (S.has_api_key && S.setup_complete && interrupted.length && S.settings.auto_resume) {
+    for (const x of interrupted) { try { await api(`/api/interrupted/${x.slug}/resume`, {}); } catch (e) {} }
+    await loadState(); await open(interrupted[0].slug);
+  } else if (S.has_api_key && S.setup_complete && interrupted.length) {
+    await open(null);  // show the "Work was interrupted" banner first
+  } else if (S.has_api_key) {
+    await open(!S.setup_complete ? 'setup' : (S.projects.find(p => !p.hidden)?.slug || null));
+  } else { renderAll(); renderSide(); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+python/
+git/
+build/
+BUGS.md
+node/
+archify/

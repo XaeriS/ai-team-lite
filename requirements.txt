@@ -1,0 +1,7 @@
+claude-agent-sdk==0.2.165
+pywebview>=6.2,<7
+keyring>=25
+pillow>=11
+faster-whisper>=1.2,<2
+sounddevice>=0.5
+pystray>=0.19.5

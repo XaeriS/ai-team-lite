@@ -1,0 +1,63 @@
+AI Team Lite by Fred
+====================
+
+> **Prototype.** AI Team Lite is a personal project, not an audited product. Its AI agents write and run code on
+> your computer, and the web is not a safe place: downloaded code, packages and websites can be malicious, and an
+> AI can be tricked. Try it on a test machine or in a separate folder, keep real business data and passwords away
+> from it, read every approval before you click yes, and have someone qualified review anything it builds before
+> you rely on it.
+
+Turn a business need into a working prototype without writing code. You talk (or type) with Fred, your AI team
+lead. Before anything is built he makes sure the problem is worth solving; then his AI team plans, builds and
+tests it in small steps, and starts it for you to try. All you need is a Windows PC and a Claude subscription
+(or an Anthropic API key).
+
+What makes it different
+- Problem first. Fred agrees with you who is affected, how often, what it costs today, how it is done now and
+  what success looks like, before writing a single requirement.
+- He challenges the idea like a business analyst: does a tool you already have do it, what happens upstream and
+  downstream, does it create a second copy of your data, who maintains it. He may advise a simpler way.
+- A devil's advocate who has not seen your conversation reads the requirements cold and raises objections,
+  contradictions, assumptions and vague points. You decide on each one; you can always overrule, and your reason
+  is kept so the people who take it over later understand why.
+- You end up with a prototype plus what IT needs to take it further: requirements with plain "When ..., then ..."
+  checks, each one "proven by test", the architecture, the decisions and their reasons, and diagrams.
+
+First start
+- Connect Fred to Claude: sign in with your Claude subscription (Anthropic's own sign-in page) or paste an
+  Anthropic API key. A key is stored in Windows Credential Manager, never in a file and never shown to the AI.
+- Fred then walks you through setup: your name, your projects folder, GitHub (optional) and approvals.
+
+How a project is built
+1. Fred and you agree the problem, then the requirements. The devil's advocate reviews them; you decide.
+2. Optionally the Scout checks the web for existing tools you could reuse instead of building.
+3. Mat, the lead architect, agrees how it will work (data, storage, security, where it runs) and asks you to
+   approve the architecture.
+4. Fred proposes a plan split into iterations. Nothing is built until you approve it.
+5. Each iteration: tests written first, then the code, then a review; it is saved (Git) only when the tests pass.
+6. When it is ready, "Launch the project" starts it for you to try. Diagrams show how it works.
+
+Approvals and safety
+- Fred explains what he wants to do and the app asks you to Approve or Decline.
+- "Only for big steps" (default): once you approve a plan, the team works inside that project's folder.
+  Installing software, GitHub and anything outside the project folder always ask.
+- "Always": every action asks. Change it in Settings > General.
+- Before each new version, the Reviewer runs a security review of the code.
+
+Big decisions: the council
+- For a big decision Fred can ask a council: extra AI brains give their own answer, review each other
+  anonymously, and Fred decides as chairman. Add free brains in Settings > Council: Google Gemini's free tier
+  (note: Google may use what is sent on its free tier) or Ollama, which runs on your PC.
+
+Everything else is set up for you
+- Claude chooses the right model for each step (the most capable one only where it is needed).
+- Python with everything included; Git, the diagram tool and the speech model are bundled or installed for you.
+- Talk instead of typing: click the microphone and speak; say "copy" or pause to send.
+- The Pipeline shows every project's progress; you can let several projects work in turn.
+- Continue an existing folder: + New project > "Continue an existing folder". Fred reads it (read-only) and
+  carries on as if the team had built it.
+- Share with friends and receive updates: Settings > Setup & connections.
+
+AI Team Lite and AI Team
+- AI Team Lite is the simple version of AI Team, for people who are not developers. It keeps its own settings,
+  keys, sign-in and projects, so both can be installed on the same PC.
