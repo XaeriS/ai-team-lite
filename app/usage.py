@@ -195,13 +195,12 @@ def _ledger(project: str, create: bool = False) -> Path | None:
         return None
 
 
-def _stage(project: str) -> dict:
-    """Which iteration (and phase) the project is in right now, for the ledger."""
+def _stage(project: str, who: str = "") -> dict:
+    """Which iteration, phase and stage (problem, build, test...) the project is in right now, for the ledger."""
     try:
-        from . import iterations, projects
+        from . import projects, timeline
         p = projects.load(project) or {}
-        cur = iterations.current(project)
-        return {"iteration": cur["n"] if cur else None, "phase": p.get("phase", ""), "project_name": p.get("name", "")}
+        return {**timeline.project_stage(project, who), "project_name": p.get("name", "")}
     except Exception:  # noqa: BLE001
         return {"iteration": None, "phase": ""}
 
@@ -233,7 +232,7 @@ def record_tokens(project: str, who: str, usage: dict | None, cost_usd: float = 
            "cache_write": int(usage.get("cache_creation_input_tokens") or 0), "cost": float(cost_usd or 0)}
     if not any((row["in"], row["out"], row["cache_read"], row["cache_write"], row["cost"])):
         return
-    row.update(_stage(project))
+    row.update(_stage(project, who))
     with _lock:
         ledger = _ledger(project, create=True)
         if ledger is not None and not ledger.exists():

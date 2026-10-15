@@ -548,7 +548,22 @@ def build_server(session: "Session"):
             return text("Saved. Still missing on the Problem card: " + ", ".join(miss) + ". Ask about the most important one "
                         "next (at most two questions at a time).")
         return text("The Problem card is complete. Put it at the top of REQUIREMENTS.md (section Problem), then challenge "
-                    "the idea with the checklist before writing requirements.")
+                    "the idea with the checklist (with a short 'Why I ask' line for each question), then call "
+                    "record_questions before writing the requirements.")
+
+    @tool("record_questions", "Fred: at the end of the problem stage, summarise the questions that changed the project: "
+          "first_ask (what the user first asked for, in their words), real_need (what they actually need), questions = "
+          "[{question, why (what goes wrong when it is skipped), changed (what it changed in this project)}], most "
+          "important first. Shows the user the card 'The questions that changed your project' and saves "
+          "reports/QUESTIONS.md.", {"first_ask": str, "real_need": str, "questions": list})
+    async def record_questions(args):
+        qs = challenge.normalize_questions(args.get("questions"))
+        if not qs:
+            return text("Pass questions = [{question, why, changed}] (at least one).", True)
+        data = challenge.save_questions(slug, args.get("first_ask", ""), args.get("real_need", ""), qs)
+        session.hub.publish(slug, {"type": "questions", **data})
+        session.hub.publish(slug, {"type": "docs_changed", "transient": True})
+        return text("Shown to the user and saved in reports/QUESTIONS.md. Continue with the requirements.")
 
     @tool("record_challenge_review", "Fred: after the challenger worker reviewed the requirements, show its findings to "
           "the user and wait for their decisions. findings = [{kind: objection|contradiction|assumption|clarification, "
@@ -654,7 +669,7 @@ def build_server(session: "Session"):
                      record_test_result, start_iteration, commit_iteration]
     project_tools += [handoff_to_architect, complete_task, record_red_tests, record_prior_art, ask_council,
                       record_change_request, run_security_test,
-                      record_problem, record_challenge_review, record_diagram]
+                      record_problem, record_challenge_review, record_diagram, record_questions]
     architect_tools = [check_environment, ask_choice, request_architecture_approval, return_to_fred,
                        ask_council]
     chosen = setup_tools if session.kind == "setup" else (architect_tools if session.persona == "Mat" else project_tools)

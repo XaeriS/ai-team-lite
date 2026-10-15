@@ -113,8 +113,9 @@ try:
         page.click("#usageMeter")
         expect(page.locator("#useDlg")).to_be_visible()
         txt = page.locator("#useBody").inner_text()
-        check("plain usage sentence", "Nothing is billed" in txt or "weekly Claude limit" in txt, txt[:200])
-        check("no token tables", "By brain" not in txt and page.locator("#useBody table").count() == 0)
+        check("plain usage words", "Not billed" in txt or "Weekly limit" in txt, txt[:200])
+        check("no per-model tables (1.0.0 shows simple per-iteration and per-period tables)", "By brain" not in txt
+              and "Claude Sonnet" not in txt and page.locator("#useBody tr[data-it]").count() >= 1)
         page.locator("#useDlg button[type=submit]").click()
         check("header shows no dollar amount", "$" not in page.locator("#cost").inner_text(), page.locator("#cost").inner_text())
         b.close()

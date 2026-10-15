@@ -116,7 +116,7 @@ header.top button,header.top .pill,#cost{white-space:nowrap;flex:none}header.top
 @keyframes s{to{transform:rotate(360deg)}}
 .shot img{max-width:100%;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;display:block;margin-top:6px}
 .err{align-self:stretch;max-width:780px;background:var(--badbg);color:var(--bad);border:1px solid var(--bad);border-radius:10px;padding:10px 14px;white-space:pre-wrap}
-.notice{align-self:center;font-size:12.5px;color:var(--mute)}
+.notice{align-self:center;font-size:12.5px;color:var(--mute)}.notice.watch{color:var(--warn)}
 .typing{align-self:flex-start;color:var(--mute);font-size:13px}
 #composer{padding:10px 18px 16px;background:var(--bg)}
 .cbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:var(--shadow)}
@@ -126,6 +126,8 @@ header.top button,header.top .pill,#cost{white-space:nowrap;flex:none}header.top
 .chip{font-size:12px;background:var(--code);border-radius:6px;padding:2px 4px 2px 8px;display:inline-flex;align-items:center;gap:4px;color:var(--ink)}
 .chip .x{border:none;background:none;padding:0 4px;color:var(--mute);font-size:14px;line-height:1;border-radius:4px}.chip .x:hover{color:var(--bad);background:var(--badbg)}
 .chip.gone{text-decoration:line-through;color:var(--mute)}.chip .ico{width:13px;height:13px}
+.chip.img{padding-left:3px}.chip img.thumb{width:44px;height:32px;object-fit:cover;border-radius:4px;border:1px solid var(--line);cursor:zoom-in}
+.cbox.drop{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .uwrap{align-self:flex-end;display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:760px}
 .uchips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .itcard{align-self:stretch;max-width:780px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:8px 12px;background:var(--panel)}
@@ -158,7 +160,19 @@ aside#side{background:var(--panel);border-left:1px solid var(--line);display:fle
 dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);min-width:380px;max-width:520px;padding:20px}
 #setDlg{max-width:none;width:min(720px,94vw)}#workDlg{max-width:none;width:min(980px,96vw)}
 dialog::backdrop{background:#0007}
-#useDlg{max-width:none;width:min(680px,92vw)}#useDlg svg{display:block;overflow:visible}
+#useDlg{max-width:none;width:min(900px,95vw)}#useDlg svg{display:block;overflow:visible}
+.useg{display:flex;gap:4px;flex-wrap:wrap}.useg button{padding:4px 10px;font-size:12.5px}.useg button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.usec{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--panel2)}
+.usec h4{margin:0 0 6px;font-size:13.5px;display:flex;gap:8px;align-items:center}
+.headline{font-size:15px;margin:6px 0}
+table.ut{width:100%;border-collapse:collapse;font-size:12.5px}table.ut td,table.ut th{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:middle}
+table.ut th{font-size:11.5px;color:var(--mute);font-weight:600}table.ut td.n,table.ut th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.ut tr.pick{cursor:pointer}table.ut tr.pick:hover td{background:var(--panel)}table.ut tr.sel td{background:var(--accent-soft)}
+.sbar{height:8px;border-radius:0 4px 4px 0;background:var(--accent);min-width:2px}.sbar.wait{background:var(--mute);opacity:.55}
+.gauge{display:grid;grid-template-columns:110px 1fr auto;gap:8px;align-items:center;font-size:12.5px;margin:4px 0}
+.chartbox{position:relative}.chartbox .tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 7px;font-size:12px;box-shadow:var(--shadow);white-space:nowrap;transform:translate(-50%,-110%)}
+.spark{display:inline-flex;gap:6px;align-items:center;margin-left:8px;font-size:12px;color:var(--mute)}.spark svg{display:inline-block}
+.spark .flat{color:var(--warn)}
 .welcome{max-width:560px;margin:60px auto;text-align:center;color:var(--mute)}
 .autobox{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
 .mrow{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}
@@ -173,6 +187,7 @@ input.num{width:72px;padding:4px 6px}
 .pa .item{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}
 .pa .close{font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px}
 .pa .same{background:var(--badbg);color:var(--bad)}.pa .similar{background:var(--warnbg);color:var(--warn)}.pa .different{background:var(--okbg);color:var(--ok)}
+details.why{font-size:12px;color:var(--mute);margin-top:2px}details.why summary{cursor:pointer;color:var(--accent);list-style:none}details.why summary::before{content:"ⓘ ";}details.why div{margin:2px 0 2px 14px}
 .obj{margin:6px 0}.obj li{margin:3px 0}.obj b{color:var(--ink)}
 .banner{background:var(--warnbg);color:var(--warn);border:1px solid var(--warn);border-radius:12px;padding:12px 16px;margin:0 0 12px}
 .banner h3{margin:0 0 6px;font-size:15px}.banner .irow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--warn)}
@@ -233,7 +248,7 @@ table.dec th{font-size:12px;color:var(--mute);font-weight:600}
 
 <div id="app">
   <nav>
-    <div class="brand"><img src="/ui/icon.png" alt=""><div><b>AI Team Lite</b><div class="hint" id="whoami"></div></div></div>
+    <div class="brand"><img src="/ui/icon.png" alt=""><div><b>AI Team Lite</b><div class="hint">by Fred</div></div></div>
     <div style="padding:4px 12px 8px"><button class="primary" id="newBtn" style="width:100%">+ New project</button></div>
     <ul id="plist"></ul>
     <div style="padding:0 12px 6px"><button class="ghost" id="hiddenBtn" hidden style="font-size:12.5px;color:var(--mute);padding:4px 6px"></button></div>
@@ -262,7 +277,7 @@ table.dec th{font-size:12px;color:var(--mute);font-weight:600}
       <div class="cbox">
         <div id="voiceBar" hidden></div>
         <div id="chips"></div>
-        <textarea id="input" rows="1" placeholder="Message Fred…  (Enter to send, Shift+Enter for a new line)"></textarea>
+        <textarea id="input" rows="1" placeholder="Message Fred…  (Enter to send, Shift+Enter for a new line)" title="You can paste a screenshot here (Ctrl+V) or drop files"></textarea>
         <div class="row">
           <input type="file" id="fileIn" hidden multiple>
           <button class="ghost icon" id="attachBtn" title="Attach a file (examples help Fred a lot)" aria-label="Attach a file"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
@@ -338,6 +353,7 @@ table.dec th{font-size:12px;color:var(--mute);font-weight:600}
   <p class="hint">Tell the author what you'd like, or what went wrong. It goes straight to their list of requested features.</p>
   <label class="hint">Short title</label><input type="text" id="fbTitle" maxlength="200" placeholder="e.g. Add a dark mode" style="margin:4px 0 8px">
   <label class="hint">Details (optional)</label><textarea id="fbBody" rows="4" placeholder="What would make AI Team Lite better for you?"></textarea>
+  <label class="row" style="margin:6px 0 0;font-size:12.5px"><input type="checkbox" id="fbVoice" style="width:auto"> Include the latest microphone problems (error messages only: no recordings, no words)</label>
   <div class="row" style="justify-content:flex-end;margin-top:10px"><button type="submit">Cancel</button><button type="button" class="primary" id="fbSend">Send</button></div>
   <p id="fbMsg" class="hint" style="min-height:16px"></p>
 </form></dialog>
@@ -352,6 +368,8 @@ table.dec th{font-size:12px;color:var(--mute);font-weight:600}
   <div class="row"><h3 style="margin:0">Settings</h3><span class="sp"></span><button type="button" id="setCancel" title="Close without saving (Esc)">Cancel</button><button class="primary" type="submit" id="setSave">Save and close</button></div>
   <div class="stabs"><button type="button" class="stab on" data-s="gen">General</button><button type="button" class="stab" data-s="brains">Council</button><button type="button" class="stab" data-s="setup">Setup &amp; connections</button></div>
   <div data-sp="gen">
+    <label class="hint" for="setName">Your first name (Fred uses it to greet you)</label>
+    <input type="text" id="setName" maxlength="40" style="margin:4px 0 10px;max-width:280px" autocomplete="off">
     <label class="hint">When should Fred ask before doing things?</label>
     <select id="setMode" style="margin:4px 0 4px"><option value="plan">Only for big steps: I approve the plan, then the team works inside the project</option><option value="strict">Always: ask me before every action</option></select>
     <p class="hint">Risky actions (installing software, GitHub, anything outside the project folder) always ask.</p>
@@ -361,6 +379,7 @@ table.dec th{font-size:12px;color:var(--mute);font-weight:600}
     <label class="hint">Projects allowed to work at the same time</label>
     <select id="setPar" style="margin:4px 0 4px"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
     <p class="hint">Extra projects wait in the Pipeline, highest priority first.</p>
+    <div class="row" style="margin:10px 0 4px;flex-wrap:wrap"><span class="hint">Microphone (for talking to Fred)</span><button type="button" id="setMicTest">🎙 Test microphone</button></div>
     <p class="hint" style="margin:10px 0 0">Connections, sharing and updates are in the <b>Setup &amp; connections</b> tab.</p>
   </div>
   <div data-sp="brains" hidden>
@@ -402,6 +421,16 @@ table.dec th{font-size:12px;color:var(--mute);font-weight:600}
 <dialog id="useDlg"><form method="dialog">
   <div class="row"><h3 style="margin:0">Usage</h3><span class="hint" id="useChecked"></span><span class="sp"></span><button type="button" id="useRefresh" title="Refresh now (it also refreshes by itself every 2 minutes)">↻ Refresh</button><button type="submit">Close</button></div>
   <div id="useBody"></div>
+</form></dialog>
+
+<dialog id="micDlg"><form method="dialog">
+  <div class="row"><h3 style="margin:0">Test the microphone</h3><span class="sp"></span><button type="submit">Close</button></div>
+  <p class="hint" id="micDev" style="margin:8px 0 4px"></p>
+  <p style="margin:4px 0">Say a few words: the bar should move while you speak.</p>
+  <div class="bar" style="height:14px"><i id="micLevel" style="width:0%;transition:width .1s"></i></div>
+  <p id="micResult" style="min-height:20px;margin:8px 0"></p>
+  <div class="row" style="flex-wrap:wrap"><button type="button" class="primary" id="micAgain">Test again</button><button type="button" id="micPrivacy">Open Windows microphone settings</button></div>
+  <p class="hint" style="margin-top:10px">The most common cause is Windows privacy: Settings &gt; Privacy &amp; security &gt; Microphone &gt; "Let desktop apps access your microphone". Nothing you say during the test is recorded or sent anywhere.</p>
 </form></dialog>
 
 <dialog id="voiceDlg"><form method="dialog">
@@ -474,7 +503,6 @@ let USE_AT = Date.now();
 async function loadState() {
   S = await api('/api/state'); USE_AT = Date.now();
   $('onboard').hidden = S.has_api_key;
-  $('whoami').textContent = S.settings.user_name ? 'with ' + S.settings.user_name : '';
   const ul = $('plist'); ul.innerHTML = '';
   if (!S.setup_complete) {
     const li = document.createElement('li'); li.className = cur === 'setup' ? 'sel' : '';
@@ -563,11 +591,14 @@ function when(ts) {
 }
 function took(s) { s = Math.max(0, Math.round(s)); return s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${Math.floor(s / 3600)} h ${Math.floor(s % 3600 / 60)} min`; }
 const ATT_RE = /^\[Attached file: (inputs\/[^\]]+)\]$/gm;
+const isImg = p => /\.(png|jpe?g|gif|webp)$/i.test(p);
 function chipHtml(path, sent) {
   const gone = deletedFiles.has(path);
-  return `<span class="chip ${gone ? 'gone' : ''}" data-path="${esc(path)}" title="${esc(path)}">${CLIP_SM}${esc(path.split('/').pop())}${gone ? ' <span class="hint">(deleted)</span>' : `<button type="button" class="x" title="Delete this file" aria-label="Delete ${esc(path.split('/').pop())}">×</button>`}</span>`;
+  const thumb = isImg(path) && !gone ? `<img class="thumb" src="${fileUrl(path)}" alt="">` : CLIP_SM;
+  return `<span class="chip ${gone ? 'gone' : ''} ${isImg(path) && !gone ? 'img' : ''}" data-path="${esc(path)}" title="${esc(path)}">${thumb}${esc(path.split('/').pop())}${gone ? ' <span class="hint">(deleted)</span>' : `<button type="button" class="x" title="Delete this file" aria-label="Delete ${esc(path.split('/').pop())}">×</button>`}</span>`;
 }
 function wireChips(node, sent) {
+  node.querySelectorAll('.chip img.thumb').forEach(i => i.onclick = () => lightbox(i.src));
   node.querySelectorAll('.chip .x').forEach(b => b.onclick = async () => {
     const path = b.closest('.chip').dataset.path, name = path.split('/').pop();
     if (sent && !confirm(`Delete ${name}?\n\nThe file is removed from the project and Fred is told not to use it anymore.`)) return;
@@ -663,6 +694,7 @@ function renderEvent(ev) {
     case 'prior_art': node = priorArtCard(ev); break;
     case 'problem': node = el(`<div class="card"><h4>🎯 The problem we are solving</h4>${problemHtml(ev)}</div>`); break;
     case 'challenge': node = challengeCard(ev); break;
+    case 'questions': node = el(`<div class="card" style="border-color:var(--accent)"><h4>🧭 The questions that changed your project</h4>${questionsHtml(ev)}</div>`); break;
     case 'diagram': node = el(`<div class="itcard" style="border-left-color:var(--acc)"><b>🗺 New diagram: ${esc(ev.title)}</b>
       <div class="hint">${esc(ev.question || '')}</div><div class="acts" style="margin-top:6px"><button class="primary" data-open>Open</button>${ev.compare ? '<button data-cmp>What changed</button>' : ''}</div></div>`);
       node.querySelector('[data-open]').onclick = () => openDiagram(cur, ev.id, 'html', ev.title);
@@ -682,6 +714,10 @@ function renderEvent(ev) {
     case 'error': node = el(`<div class="err"></div>`); node.textContent = '⚠ ' + ev.text; break;
     case 'notice': node = el(`<div class="notice">${esc(ev.text)}</div>`); break;
     case 'limit': node = limitCard(ev); break;
+    case 'watch': node = el(`<div class="notice watch">⏱ ${esc(ev.text)}</div>`); break;
+    case 'headroom': node = el(`<div class="itcard" style="border-left-color:var(--warn)"><b>Your Claude plan:</b> ${esc(ev.text)} <a href="#" data-u>See usage</a></div>`);
+      node.querySelector('[data-u]').onclick = e => { e.preventDefault(); UQ.scope = null; openUsage(); }; break;
+    case 'stuck': node = stuckCard(ev); break;
     case 'iteration': node = ev.status === 'done'
       ? el(`<div class="itcard done"><b>✅ Iteration ${ev.n}${ev.total ? ' of ' + ev.total : ''} committed:</b> ${esc(ev.name)} <span class="hint">· tests passed · commit <code>${esc(ev.commit || '')}</code></span>${ev.summary ? `<div class="hint">${esc(ev.summary)}</div>` : ''}</div>`)
       : el(`<div class="itcard"><b>▶ Iteration ${ev.n}${ev.total ? ' of ' + ev.total : ''} started:</b> ${esc(ev.name)}${(ev.requirements || []).length ? ` <span class="hint">· ${esc(ev.requirements.join(', '))}</span>` : ''}</div>`); break;
@@ -698,7 +734,7 @@ function statusPill(s) {
 function agentCard(ev) {
   const st = ev.status || 'working';
   const receipt = /Async agent launched/i.test(ev.summary || '');  // engine bookkeeping from 0.6.0, never a report
-  const n = el(`<div class="agent ${st}"><div class="row"><b>${esc(ev.name)}</b>${st === 'working' ? `<span class="spin"></span><span class="hint">working${ev.background ? ' (Fred is waiting for its report)' : ''}…</span>` : receipt ? '<span class="pill">started in the background</span>' : statusPill(st)}</div>
+  const n = el(`<div class="agent ${st}"><div class="row"><b>${esc(ev.name)}</b>${st === 'working' ? `<span class="spin"></span><span class="hint">working${ev.background ? ' in the background (AI Team Lite brings its report to Fred as soon as it finishes)' : ''}…</span>` : receipt ? '<span class="pill">started in the background</span>' : statusPill(st)}</div>
     <div class="hint">${esc(ev.description || '')}</div>${ev.summary && !receipt ? `<details><summary class="hint" style="cursor:pointer">Report</summary><div class="doc">${md(ev.summary)}</div></details>` : ''}</div>`);
   return n;
 }
@@ -714,6 +750,23 @@ function approvalCard(ev) {
   </div>`);
   if (ev.details) n.querySelector('pre').textContent = ev.details;
   if (pend) n.querySelectorAll('button').forEach(b => b.onclick = () => respond(ev.id, {approved: b.dataset.a === 'yes', note: n.querySelector('input').value}, n));
+  return n;
+}
+/* L8: the watchdog says plainly when nothing moves, and offers help */
+function stuckCard(ev) {
+  const open = ev.status === 'open';
+  const n = el(`<div class="card ${open ? 'pending' : ''}" style="${open ? 'border-color:var(--warn);box-shadow:0 0 0 3px var(--warnbg)' : ''}">
+    <h4>⏱ Nothing is moving ${open ? '' : '<span class="pill ok">' + esc(ev.status === 'resolved' ? 'moving again' : ev.status) + '</span>'}</h4>
+    <div>${esc(ev.text)}</div>
+    ${open ? `<div class="acts"><button class="primary" data-a="wake">Wake ${esc(leadName())} up</button><button data-a="restart">Stop and restart this step</button></div>
+      <div class="hint">Waking him up asks him to check what is going on and continue. Restarting stops the current step and starts it again from the beginning.</div>` : ''}
+    ${ev.note ? `<div class="hint">${esc(ev.note)}</div>` : ''}</div>`);
+  if (open) n.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
+    if (b.dataset.a === 'restart' && !confirm('Stop the current step and start it again from the beginning?')) return;
+    n.querySelectorAll('button').forEach(x => x.disabled = true);
+    try { await api(`/api/projects/${cur}/${b.dataset.a === 'wake' ? 'wake' : 'restart-step'}`, {}); }
+    catch (e) { n.querySelectorAll('button').forEach(x => x.disabled = false); alertBox(e.message); }
+  });
   return n;
 }
 let limitTimer = null;
@@ -814,10 +867,16 @@ function objectionsHtml(objs) {
 }
 /* ------------------------------------------------------------------ item 79: problem first, challenge, proof */
 const PROBLEM_FIELDS = [['who', 'Who is affected'], ['how_often', 'How often'], ['cost_today', 'What it costs today'], ['how_now', 'How it is done now'], ['success', 'What success looks like']];
+const PROBLEM_WHY = {who: 'If nobody knows who is affected, the tool gets built for the wrong people and nobody uses it.',
+  how_often: 'A problem that happens twice a year rarely pays for new software; one that happens every day often does.',
+  cost_today: 'Without knowing what the problem costs today, nobody can tell whether the solution is worth building and looking after.',
+  how_now: 'The way it is done today hides rules nobody wrote down; skip it and the new tool misses them.',
+  success: 'Without a measurable goal you cannot tell when it is finished, or whether it helped at all.'};
+const whyHtml = t => t ? `<details class="why"><summary>Why Fred asked this</summary><div>${esc(t)}</div></details>` : '';
 function problemHtml(pr) {
   pr = pr || {};
   const miss = PROBLEM_FIELDS.filter(([k]) => !(pr[k] || '').trim());
-  return `${pr.statement ? `<div style="margin-bottom:4px"><b>${esc(pr.statement)}</b></div>` : ''}<table class="mini">${PROBLEM_FIELDS.map(([k, l]) => `<tr><td style="width:38%" class="hint">${l}</td><td>${pr[k] ? esc(pr[k]) : '<span class="hint">not known yet</span>'}</td></tr>`).join('')}</table>
+  return `${pr.statement ? `<div style="margin-bottom:4px"><b>${esc(pr.statement)}</b></div>` : ''}<table class="mini">${PROBLEM_FIELDS.map(([k, l]) => `<tr><td style="width:38%" class="hint">${l}${whyHtml(PROBLEM_WHY[k])}</td><td>${pr[k] ? esc(pr[k]) : '<span class="hint">not known yet</span>'}</td></tr>`).join('')}</table>
     <div class="hint" style="margin-top:4px">${miss.length ? `Fred still needs: ${miss.map(m => m[1].toLowerCase()).join(', ')}.` : '✓ Complete. Fred checks the idea against it before writing requirements.'}</div>`;
 }
 const CH_KIND = {objection: ['🤔', 'Objection'], contradiction: ['⚖️', 'Contradiction'], assumption: ['❓', 'Assumption to confirm'], clarification: ['🔍', 'Needs clarification']};
@@ -831,7 +890,7 @@ function challengeCard(ev) {
     const reqs = (f.requirements || []).length ? ` <span class="pill acc">${esc(f.requirements.join(', '))}</span>` : '';
     return `<div class="chf" data-f="${esc(f.id)}" data-kind="${esc(f.kind)}" style="border-top:1px solid var(--line);padding:8px 0">
       <div><span class="hint">${ic} ${label}</span>${reqs}</div><b>${esc(f.title)}</b>
-      ${f.detail ? `<div class="hint">${esc(f.detail)}</div>` : ''}${f.recommendation ? `<div style="margin-top:2px">💡 <i>Fred recommends:</i> ${esc(f.recommendation)}</div>` : ''}
+      ${f.detail ? `<div class="hint">${esc(f.detail)}</div>` : ''}${f.recommendation ? `<div style="margin-top:2px">💡 <i>Fred recommends:</i> ${esc(f.recommendation)}</div>` : ''}${whyHtml(f.why)}
       ${pend ? `<div class="acts" style="margin-top:4px">${(CH_OPTS[f.kind] || CH_OPTS.objection).map(([v, t]) => `<button type="button" data-d="${v}">${t}</button>`).join('')}</div>
         <input type="text" data-why hidden placeholder="" style="margin-top:4px">`
       : `<div class="hint" style="margin-top:2px">Your decision: <b>${esc(CH_WORD[a.decision] || 'not decided')}</b>${a.reason ? ' · “' + esc(a.reason) + '”' : ''}</div>`}</div>`;
@@ -880,10 +939,17 @@ async function renderReq() {
   const decided = (ch.findings || []);
   const chal = decided.length ? `<details style="margin-top:10px"><summary class="hint" style="cursor:pointer">😈 Devil's advocate review (round ${ch.round || 1}): ${decided.length} point(s), ${decided.filter(f => f.decision === 'keep' || f.decision === 'accept').length} overruled by you</summary>
     <ul class="obj">${decided.map(f => `<li><b>${esc(f.title)}</b> <span class="hint">· ${esc(CH_WORD[f.decision] || 'not decided')}${f.reason ? ' · “' + esc(f.reason) + '”' : ''}</span></li>`).join('')}</ul></details>` : '';
-  const prob = hasProblem ? `<div class="card" style="margin:0 0 8px"><h4>🎯 The problem we are solving</h4>${problemHtml(pr)}</div>` : '';
+  const prob = (hasProblem ? `<div class="card" style="margin:0 0 8px"><h4>🎯 The problem we are solving</h4>${problemHtml(pr)}</div>` : '')
+    + (view.project.questions ? `<details class="card" style="margin:0 0 8px"><summary style="cursor:pointer"><b>🧭 The questions that changed your project</b></summary>${questionsHtml(view.project.questions)}</details>` : '');
   const doc = view.docs.requirements ? `<div class="doc" style="margin-top:10px">${md(view.docs.requirements)}</div>` : '';
   p.innerHTML = (prob || doc || proof) ? prob + proof + chal + doc
     : '<p class="empty">Fred first agrees with you what problem you are solving, then writes the requirements here as you talk.</p>';
+}
+function questionsHtml(q) {
+  q = q || {};
+  return `<table class="mini"><tr><td style="width:34%" class="hint">What you first asked for</td><td>${esc(q.first_ask || '–')}</td></tr><tr><td class="hint">What you actually need</td><td><b>${esc(q.real_need || '–')}</b></td></tr></table>
+    <ol style="margin:8px 0 4px;padding-left:20px">${(q.questions || []).map(x => `<li style="margin:4px 0"><b>${esc(x.question)}</b>${x.changed ? `<div>➜ ${esc(x.changed)}</div>` : ''}${x.why ? `<div class="hint">Why it matters: ${esc(x.why)}</div>` : ''}</li>`).join('')}</ol>
+    <div class="hint">Saved in your project as reports/QUESTIONS.md, with the questions to ask on your next project.</div>`;
 }
 function changeCard(ev) {
   const pend = ev.status === 'pending';
@@ -952,6 +1018,7 @@ let docTimer = null;
 function onEvent(ev) {
   if (ev.type === 'brainjob') { onBrainJob(ev); return; }
   if (ev.type === 'project_list') { loadState(); return; }
+  if (ev.type === 'voice' && /^test_/.test(ev.state || '')) { onMicTest(ev); return; }
   if (!['voice', 'team', 'docs_changed', 'activity', 'message', 'cost'].includes(ev.type)) softState();
   if (ev.type === 'usage') { loadState(); return; }
   if (ev.type === 'team' && ev.slug === cur) { if (view) view.team = ev.team; if (tab === 'team') renderTeam(); return; }
@@ -966,19 +1033,35 @@ function onEvent(ev) {
   if (items.some(x => x.seq === ev.seq)) return;
   items.push(ev); $('msgs').querySelector('.typing')?.remove();
   $('msgs').appendChild(renderEvent(ev)); groupActivities();
-  if (busy) $('msgs').appendChild(el(`<div class="typing"><span class="spin"></span> ${leadName()} is working…</div>`));
+  if (busy) $('msgs').appendChild(typingEl());
   if (ev.type === 'screenshot' && tab === 'shots') renderSide();
   if (['setup_done', 'plan', 'iteration', 'handoff', 'architecture', 'release_wait'].includes(ev.type)) { loadState(); refreshDocs(); markSide(); }
-  scrollDown(['approval', 'secret', 'folder', 'plan', 'choice', 'limit', 'architecture', 'handoff', 'change', 'council', 'prior_art', 'challenge'].includes(ev.type));
+  scrollDown(['approval', 'secret', 'folder', 'plan', 'choice', 'limit', 'architecture', 'handoff', 'change', 'council', 'prior_art', 'challenge', 'stuck'].includes(ev.type));
 }
 async function refreshView() { if (!cur) return; try { view = await api('/api/projects/' + cur); renderHeader(); renderSide(); } catch (e) {} }
 async function refreshDocs() { await refreshView(); }
 
+/* L9 + L15: a mini chart of the last 30 minutes and the plan's room left, next to the working indicator */
+let SPARK = '', sparkTimer = null;
+function typingEl() { return el(`<div class="typing"><span class="spin"></span> ${leadName()} is working…<span class="spark">${SPARK}</span></div>`); }
+async function refreshSpark() {
+  if (!busy || !cur || cur === 'setup') { SPARK = ''; return; }
+  let a; try { a = await api(`/api/projects/${cur}/activity`); } catch (e) { return; }
+  const m = a.minutes.slice(-30), max = Math.max(1, ...m), w = 90, hh = 16, bw = w / 30;
+  const bars = m.map((v, i) => v ? `<rect x="${(i * bw).toFixed(1)}" y="${(hh - Math.max(1.5, hh * v / max)).toFixed(1)}" width="${(bw - 0.6).toFixed(1)}" height="${Math.max(1.5, hh * v / max).toFixed(1)}" rx="1" fill="var(--accent)"/>` : '').join('');
+  const flat = a.state === 'working' && a.flat_minutes >= 5;
+  const room = (a.headroom || []).find(h => h.kind === 'five_hour' && h.percent != null);
+  SPARK = `<svg width="${w}" height="${hh}" viewBox="0 0 ${w} ${hh}" role="img" aria-label="Tokens per minute, last 30 minutes"><title>Tokens per minute, last 30 minutes (${fmtTok(m.reduce((x, y) => x + y, 0))} tokens)</title><line x1="0" x2="${w}" y1="${hh - 0.5}" y2="${hh - 0.5}" stroke="var(--line)"/>${bars}</svg>`
+    + (flat ? `<span class="flat">no tokens used for ${a.flat_minutes} min: something may be stuck</span>` : '')
+    + (room ? `<span title="Your Claude plan: 5-hour limit">· ${Math.round(room.left)}% of the 5-hour limit left</span>` : '');
+  const t = $('msgs').querySelector('.typing .spark'); if (t) t.innerHTML = SPARK;
+}
 let busy = false;
 function setBusy(v) {
   busy = !!v; $('stopBtn').hidden = !busy; $('sendBtn').disabled = !cur;
+  clearInterval(sparkTimer); if (busy) { refreshSpark(); sparkTimer = setInterval(refreshSpark, 30000); } else SPARK = '';
   $('msgs').querySelector('.typing')?.remove();
-  if (busy) { $('msgs').appendChild(el(`<div class="typing"><span class="spin"></span> ${leadName()} is working…</div>`)); scrollDown(); }
+  if (busy) { $('msgs').appendChild(typingEl()); scrollDown(); }
   $('status').textContent = '';
 }
 
@@ -1034,9 +1117,13 @@ function badge(x, y, status) {
   return `<circle cx="${x}" cy="${y}" r="9" fill="${s.c}" stroke="var(--panel)" stroke-width="2"/>${icon}`;
 }
 const shortName = r => { const n = r.kind === 'brain' ? r.name.split(' · ')[0] : r.name; return n.length > 12 ? n.slice(0, 11) + '…' : n; };
+let stallChecked = 0;
 function renderTeam() {
   const p = $('pane'); if (!view) return;
   const team = view.team || [];
+  if (team.some(r => r.stalled) && Date.now() - stallChecked > 5 * 60 * 1000 && cur && cur !== 'setup') {
+    stallChecked = Date.now(); api(`/api/projects/${cur}/watch-check`, {}).catch(() => {});
+  }
   const lead = team.find(r => r.kind === 'lead') || {name: 'Fred', status: 'idle'};
   const arch = team.find(r => r.kind === 'architect');
   const workers = team.filter(r => r.kind === 'worker'), brainsN = team.filter(r => r.kind === 'brain');
@@ -1139,14 +1226,36 @@ $('input').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventD
 $('sendBtn').onclick = send;
 $('stopBtn').onclick = () => cur && api(`/api/projects/${cur}/stop`, {});
 $('attachBtn').onclick = () => cur && $('fileIn').click();
+async function uploadFile(f, name) {
+  if (!cur) return;
+  if (f.size > 15 * 1024 * 1024) { alertBox(`${name || f.name} is larger than 15 MB.`); return; }
+  const b64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.readAsDataURL(f); });
+  try { const r = await api(`/api/projects/${cur}/attach`, {name: name || f.name, data_b64: b64}); attachments.push(r.path); renderChips(); } catch (e) { alertBox(e.message); }
+}
 $('fileIn').onchange = async () => {
-  for (const f of $('fileIn').files) {
-    if (f.size > 15 * 1024 * 1024) { alertBox(`${f.name} is larger than 15 MB.`); continue; }
-    const b64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.readAsDataURL(f); });
-    try { const r = await api(`/api/projects/${cur}/attach`, {name: f.name, data_b64: b64}); attachments.push(r.path); renderChips(); } catch (e) { alertBox(e.message); }
-  }
+  for (const f of $('fileIn').files) await uploadFile(f);
   $('fileIn').value = '';
 };
+/* L10: paste a screenshot (Win+Shift+S, then Ctrl+V) or drop image files straight into the message box */
+const shotName = (f, i) => { const d = new Date(), z = n => String(n).padStart(2, '0');
+  const ext = ((f.type || '').split('/')[1] || 'png').replace('jpeg', 'jpg').replace(/[^a-z0-9]/g, '') || 'png';
+  return `screenshot-${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}${i ? '-' + (i + 1) : ''}.${ext}`; };
+$('input').addEventListener('paste', async e => {
+  const files = [...(e.clipboardData?.items || [])].filter(it => it.kind === 'file' && /^image\//.test(it.type)).map(it => it.getAsFile()).filter(Boolean);
+  if (!files.length) return;  // ordinary text: paste as usual
+  e.preventDefault();
+  if (!cur) { alertBox('Open a project first, then paste the screenshot.'); return; }
+  for (const [i, f] of files.entries()) await uploadFile(f, f.name && f.name !== 'image.png' ? f.name : shotName(f, i));
+});
+const cbox = document.querySelector('.cbox');
+['dragenter', 'dragover'].forEach(t => cbox.addEventListener(t, e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); cbox.classList.add('drop'); } }));
+['dragleave', 'drop'].forEach(t => cbox.addEventListener(t, () => cbox.classList.remove('drop')));
+cbox.addEventListener('drop', async e => {
+  const files = [...(e.dataTransfer?.files || [])]; if (!files.length) return;
+  e.preventDefault();
+  if (!cur) { alertBox('Open a project first, then drop the file.'); return; }
+  for (const f of files) await uploadFile(f);
+});
 /* ------------------------------------------------------------------ talking (hands-free) */
 let listening = false, voiceTalk = false, preVoiceText = '';
 function setListening(on, hint) {
@@ -1181,8 +1290,36 @@ function onVoice(ev) {
     return;
   }
   if (ev.state === 'cancelled') { setListening(false, ev.reason || ''); return; }
-  if (ev.state === 'error') { setListening(false); voiceTalk = false; alertBox(ev.text); }
+  if (ev.state === 'error') { setListening(false); voiceTalk = false; voiceProblem(ev.text, ev.code); }
 }
+/* L11: show the real reason when listening fails, with the fix */
+function voiceProblem(text, code) {
+  const vb = $('voiceBar'); vb.hidden = false;
+  vb.innerHTML = `<span style="color:var(--bad)">🎙 ${esc(text)}</span><span class="sp"></span>${code === 'blocked' ? '<button type="button" data-a="privacy">Open Windows microphone settings</button>' : ''}<button type="button" data-a="test">Test microphone</button><button type="button" class="ghost" data-a="x">✕</button>`;
+  vb.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+    if (b.dataset.a === 'privacy') api('/api/voice/open-privacy', {});
+    else if (b.dataset.a === 'test') micTest();
+    else vb.hidden = true;
+  });
+}
+async function micTest() {
+  if (listening) { alertBox('Stop listening first.'); return; }
+  $('micLevel').style.width = '0%'; $('micResult').textContent = 'Listening for 4 seconds…'; $('micResult').style.color = '';
+  $('micAgain').disabled = true; if (!$('micDlg').open) $('micDlg').showModal();
+  try { const r = await api('/api/voice/test', {slug: cur || 'setup'}); $('micDev').textContent = r.device ? 'Microphone: ' + r.device : 'Microphone: the Windows default'; }
+  catch (e) { $('micResult').textContent = e.message; $('micResult').style.color = 'var(--bad)'; $('micAgain').disabled = false; }
+}
+function onMicTest(ev) {
+  if (ev.state === 'test_level') { $('micLevel').style.width = Math.round(100 * Math.min(1, ev.level)) + '%'; return; }
+  $('micAgain').disabled = false; $('micLevel').style.width = '0%';
+  if (ev.device) $('micDev').textContent = 'Microphone: ' + ev.device;
+  $('micResult').textContent = (ev.ok ? '✓ ' : '✗ ') + ev.reason;
+  $('micResult').style.color = ev.ok && ev.code === 'ok' ? 'var(--ok)' : ev.ok ? 'var(--warn)' : 'var(--bad)';
+  $('micPrivacy').classList.toggle('primary', ev.code === 'blocked');
+}
+$('micAgain').onclick = micTest;
+$('micPrivacy').onclick = () => api('/api/voice/open-privacy', {});
+$('setMicTest').onclick = micTest;
 function autoListen() {
   if (!voiceTalk || !S?.settings.voice_auto_listen || listening) return;
   if ($('msgs').querySelector('.card.pending')) return;  // answer the card first
@@ -1226,31 +1363,124 @@ async function refreshUsage(manual) {
   // Every 2 minutes (and on ↻): ask Claude for the real plan figures (no tokens), then re-read counts and costs.
   if (S && S.auth_mode === 'subscription') { try { await api('/api/usage/refresh', {manual: !!manual}); } catch (e) {} }
   try { await loadState(); } catch (e) {}
-  if ($('useDlg').open) { try { USE = await api('/api/usage'); renderUsage(); } catch (e) {} }
+  if ($('useDlg').open) { try { await openUsage(); } catch (e) {} }
   if (manual) alertBox('Usage refreshed.', true);
 }
 setInterval(() => refreshUsage(false), 120000);
 let USE = null;
-function renderUsageSimple(u, b) {
-  // one plain sentence instead of token tables
-  $('useChecked').textContent = u.checked ? ' · refreshed ' + hm(u.checked) : '';
-  let h = '';
-  if (u.mode === 'subscription') {
-    const pl = u.plan || {}, wk = pl.seven_day || {}, ss = pl.five_hour || {};
-    const line = (v, what) => v.percent != null ? `You have used <b>${Math.round(v.percent)}%</b> of ${what}${resetOf(v) ? ` (${esc(resetOf(v))})` : ''}.` : `${what[0].toUpperCase() + what.slice(1)}: ${planPct(v)}.`;
-    h += `<p style="font-size:15px;margin:8px 0">${line(wk, 'your weekly Claude limit')}</p><p class="hint">${line(ss, 'the current 5-hour session')}</p>`;
-    const high = [wk, ss].some(v => (v.percent || 0) >= 80);
-    h += high ? '<p class="hint" style="color:var(--warn)">You are close to a limit: Fred will ask before starting big steps, and the work can continue after the reset.</p>'
-              : '<p class="hint">Nothing is billed: your Claude subscription covers it. The figures come from Claude and refresh every 2 minutes.</p>';
-  } else {
-    h += `<p style="font-size:15px;margin:8px 0">This month the team has cost about <b>${usd(u.cost.month)}</b> on your Anthropic account (today ${usd(u.cost.today)}).</p>`;
-  }
-  b.innerHTML = h;
+/* ------------------------------------------------------------------ usage in plain words (L6, L9, L13, L14, L15) */
+const fmtTok = n => { n = n || 0; return n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + ' M' : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + ' k' : String(n); };
+const dur = s => { s = Math.round(s || 0); if (s < 60) return s ? s + ' s' : '–'; const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return h ? `${h} h ${m} min` : `${m} min`; };
+let UQ = {scope: null, unit: 'week', split: 'agent', period: null, open: null};
+const isSub = () => (USE?.mode || S?.auth_mode) === 'subscription';
+const costWord = () => isSub() ? 'would cost' : 'cost';
+const costNote = () => isSub() ? 'At Anthropic\'s API prices. Not billed: your Claude subscription covers it.' : 'At Anthropic\'s list prices; your Anthropic invoice has the exact figure.';
+function barsSvg(vals, labels, w, h, opts = {}) {
+  const max = Math.max(1, ...vals), n = vals.length, gap = 2, bw = Math.max(1, (w - gap * (n - 1)) / n);
+  const bars = vals.map((v, i) => { const bh = v ? Math.max(2, (h - 14) * v / max) : 0, x = i * (bw + gap);
+    return `<rect x="${x.toFixed(1)}" y="${(h - 14 - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="${Math.min(3, bw / 2)}" fill="var(--accent)" ${opts.flatFrom != null && i >= opts.flatFrom ? 'opacity=".35"' : ''}/>
+      <rect x="${x.toFixed(1)}" y="0" width="${(bw + gap).toFixed(1)}" height="${h - 14}" fill="transparent" data-tip="${esc(labels[i])}: ${fmtTok(v)} tokens"/>`; }).join('');
+  const base = `<line x1="0" x2="${w}" y1="${h - 14}" y2="${h - 14}" stroke="var(--line)"/>`;
+  const ticks = (opts.ticks || []).map(([i, t], k, all) => `<span style="position:absolute;left:${(100 * (i + 0.5) / n).toFixed(1)}%;transform:translateX(${k === 0 ? '-10%' : k === all.length - 1 ? '-90%' : '-50%'})">${esc(t)}</span>`).join('');
+  return `<div class="chartbox"><svg viewBox="0 0 ${w} ${h - 14}" width="100%" height="${h - 14}" preserveAspectRatio="none" role="img" aria-label="${esc(opts.label || '')}">${base}${bars}</svg><div class="hint" style="position:relative;height:16px;font-size:11px">${ticks}</div></div>`;
 }
-async function openUsage() { USE = await api('/api/usage'); renderUsage(); if (!$('useDlg').open) $('useDlg').showModal(); }
+function wireTips(root) {
+  root.querySelectorAll('.chartbox').forEach(box => {
+    let tip = null;
+    box.querySelectorAll('[data-tip]').forEach(r => {
+      r.addEventListener('mouseenter', () => { tip = tip || box.appendChild(el('<div class="tip"></div>')); tip.textContent = r.dataset.tip; tip.hidden = false; });
+      r.addEventListener('mousemove', e => { const b = box.getBoundingClientRect(); tip.style.left = (e.clientX - b.left) + 'px'; tip.style.top = (e.clientY - b.top) + 'px'; });
+      r.addEventListener('mouseleave', () => { if (tip) tip.hidden = true; });
+    });
+  });
+}
+function headroomHtml(hr) {
+  if (!hr || !hr.length) return '';
+  const rows = hr.map(h => {
+    const when = h.reset_text ? 'resets ' + h.reset_text : h.resets_at ? resetTxt(h.resets_at) : '';
+    const src = h.percent == null ? 'not reported yet' : h.from_claude ? `read from Claude at ${hm(h.at)}` : `last reported ${h.at ? hm(h.at) : ''} (may be out of date)`;
+    return `<div class="gauge"><b>${esc(h.label)}</b><div>${pctBar(h.percent)}</div><span>${h.percent == null ? '–' : `${Math.round(h.percent)}% used · <b>${Math.round(h.left)}% left</b>`}</span></div>
+      <div class="hint" style="margin:-4px 0 4px 118px">${esc([when, src].filter(Boolean).join(' · '))}</div>`; }).join('');
+  const low = hr.some(h => h.percent != null && ((h.kind === 'five_hour' && h.percent >= 80) || (h.kind === 'seven_day' && h.percent >= 90)));
+  return `<div class="usec"><h4>Your Claude plan</h4>${rows}${low ? '<div class="hint" style="color:var(--warn)">Not much room left: Fred warns you before a big step, and work that hits the limit continues by itself after the reset.</div>' : ''}</div>`;
+}
+function splitTable(sp, total) {
+  const list = UQ.split === 'agent' ? (sp.by_agent || []) : (sp.by_stage || []);
+  if (!list.length) return '<p class="hint">Nothing used in this period.</p>';
+  const max = Math.max(1, ...list.map(x => x.tokens));
+  return `<table class="ut"><tr><th>${UQ.split === 'agent' ? 'Agent' : 'Phase'}</th><th style="width:38%"></th><th class="n">Tokens</th><th class="n">${isSub() ? 'Would cost' : 'Cost'}</th><th class="n">Share</th></tr>
+    ${list.map(x => `<tr><td>${esc(x.name || x.label)}</td><td><div class="sbar" style="width:${(100 * x.tokens / max).toFixed(1)}%" title="${fmtTok(x.tokens)} tokens"></div></td><td class="n">${fmtTok(x.tokens)}</td><td class="n">${usd(x.cost)}</td><td class="n">${total ? Math.round(100 * x.tokens / total) + '%' : ''}</td></tr>`).join('')}</table>`;
+}
+function timeHtml(t) {
+  const st = (t && t.stages) || [];
+  if (!st.length) return '<p class="hint">No time recorded yet (time is recorded from version 1.0.0 on).</p>';
+  const max = Math.max(1, ...st.map(x => x.work + x.wait));
+  return `<table class="ut"><tr><th>Phase</th><th style="width:44%"></th><th class="n">Team working</th><th class="n">Waiting for you</th></tr>
+    ${st.map(x => `<tr><td>${esc(x.label)}</td><td><div style="display:flex;gap:2px"><div class="sbar" style="width:${(100 * x.work / max).toFixed(1)}%" title="Team working: ${dur(x.work)}"></div>${x.wait ? `<div class="sbar wait" style="width:${(100 * x.wait / max).toFixed(1)}%" title="Waiting for you: ${dur(x.wait)}"></div>` : ''}</div></td><td class="n">${dur(x.work)}</td><td class="n">${x.wait ? dur(x.wait) : '–'}</td></tr>`).join('')}
+    <tr><td><b>Total</b></td><td><span class="legend"><span><i style="background:var(--accent)"></i>team working</span><span><i style="background:var(--mute);opacity:.55"></i>waiting for you</span></span></td><td class="n"><b>${dur(t.work)}</b></td><td class="n"><b>${t.wait ? dur(t.wait) : '–'}</b></td></tr></table>`;
+}
+function renderUsage() {
+  const u = USE, b = $('useBody'); if (!u) return;
+  $('useChecked').textContent = u.checked ? ' · refreshed ' + hm(u.checked) : '';
+  const proj = !!u.project, units = [['day', 'Day'], ['week', 'Week'], ['month', 'Month'], ['year', 'Year'], ['all', 'All time']];
+  const scopeBtns = `<div class="useg">${cur && cur !== 'setup' ? `<button type="button" data-scope="${esc(cur)}" class="${proj ? 'on' : ''}">This project</button>` : ''}<button type="button" data-scope="" class="${proj ? '' : 'on'}">All projects</button></div>`;
+  let h = `<div class="row" style="flex-wrap:wrap;gap:10px;margin-top:6px">${scopeBtns}<span class="sp"></span><span class="hint">Summary by</span><div class="useg">${units.map(([k, l]) => `<button type="button" data-unit="${k}" class="${u.unit === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
+  if (u.mode === 'subscription') h += headroomHtml(u.headroom);
+  // headline
+  if (proj) {
+    const est = u.estimate || {};
+    h += `<p class="headline"><b>${esc(u.project.name)}</b> ${isSub() ? 'would have cost' : 'has cost'} <b>${usd(u.total.cost)}</b> so far${u.done ? ` over <b>${u.done}</b> finished iteration${u.done > 1 ? 's' : ''}` : ''} (${fmtTok(u.total.tokens)} tokens).</p>
+      ${est.remaining ? `<p class="hint">The rest of the plan (${u.planned - u.done} iteration${u.planned - u.done > 1 ? 's' : ''}) ${isSub() ? 'would cost' : 'should cost'} about ${usd(est.remaining.low)}–${usd(est.remaining.high)}, from the iterations finished so far.</p>` : ''}`;
+  } else {
+    h += `<p class="headline">This month the team has used <b>${fmtTok(u.month.tokens)}</b> tokens, which ${isSub() ? 'would cost' : 'cost'} <b>${usd(u.month.cost)}</b>.</p>`;
+  }
+  h += `<p class="hint" style="margin-top:0">${costNote()}</p>`;
+  // live activity
+  const a = u.activity || {minutes: [], hours: []}, working = u.state === 'working', flat = working && a.flat_minutes >= 5;
+  const minLabels = a.minutes.map((_, i) => i === 59 ? 'this minute' : `${59 - i} min ago`), hrLabels = a.hours.map((_, i) => i === 23 ? 'this hour' : `${23 - i} h ago`);
+  h += `<div class="usec"><h4>Activity${proj ? '' : ' (all projects)'} ${working ? '<span class="pill ok">working</span>' : ''}</h4>
+    ${flat ? `<div class="hint" style="color:var(--warn);margin-bottom:4px">⚠ No tokens used for ${a.flat_minutes} min while the project says it is working: something may be stuck.</div>` : ''}
+    <div class="hint">Tokens per minute, last 60 minutes</div>${barsSvg(a.minutes, minLabels, 600, 70, {ticks: [[0, '60 min ago'], [30, '30 min'], [59, 'now']], flatFrom: flat ? 60 - a.flat_minutes : null, label: 'Tokens per minute'})}
+    <div class="hint" style="margin-top:6px">Tokens per hour, last 24 hours</div>${barsSvg(a.hours, hrLabels, 600, 70, {ticks: [[0, '24 h ago'], [12, '12 h'], [23, 'now']], label: 'Tokens per hour'})}</div>`;
+  // periods + split
+  const per = u.periods || [];
+  if (UQ.period && !per.some(x => x.start === UQ.period)) UQ.period = null;
+  const sel = per.find(x => x.start === UQ.period);
+  const sp = sel || u.split, spTotal = sel ? sel.tokens : u.total.tokens;
+  h += `<div class="usec"><h4>By ${units.find(x => x[0] === u.unit)[1].toLowerCase()}</h4>
+    <table class="ut"><tr><th>Period</th><th style="width:40%"></th><th class="n">Tokens</th><th class="n">${isSub() ? 'Would cost' : 'Cost'}</th></tr>
+    ${per.map(x => { const mx = Math.max(1, ...per.map(y => y.tokens)); return `<tr class="pick ${x.start === UQ.period ? 'sel' : ''}" data-period="${esc(x.start)}" title="Click to split this period by agent or phase"><td>${esc(x.label)}</td><td><div class="sbar" style="width:${(100 * x.tokens / mx).toFixed(1)}%"></div></td><td class="n">${fmtTok(x.tokens)}</td><td class="n">${usd(x.cost)}</td></tr>`; }).join('')}</table>
+    <div class="row" style="margin:10px 0 4px;flex-wrap:wrap"><b style="font-size:13px">${sel ? esc(sel.label) : (proj ? 'Whole project' : 'All time')}: split by</b><div class="useg"><button type="button" data-split="agent" class="${UQ.split === 'agent' ? 'on' : ''}">Agent</button><button type="button" data-split="stage" class="${UQ.split === 'stage' ? 'on' : ''}">Phase</button></div>${sel ? '<button type="button" class="ghost" data-period="" style="font-size:12px">Show the whole ' + (proj ? 'project' : 'history') + '</button>' : '<span class="hint">click a period above to see only that one</span>'}</div>
+    ${splitTable(sp, spTotal)}</div>`;
+  if (proj) {
+    const its = u.iterations || [];
+    h += `<div class="usec"><h4>Per iteration</h4>${its.length ? `<table class="ut"><tr><th>Iteration</th><th class="n">Tokens</th><th class="n">${isSub() ? 'Would cost' : 'Cost'}</th><th class="n">Team working</th><th class="n">Waiting for you</th></tr>
+      ${its.map(it => `<tr class="pick ${UQ.open === it.n ? 'sel' : ''}" data-it="${it.n}" title="Click for the detail by agent, phase and time"><td>${it.n ? it.n + '. ' : ''}${esc(it.name)} ${it.n ? `<span class="pill ${it.status === 'done' ? 'ok' : it.status === 'building' ? 'acc' : ''}">${esc(it.status === 'building' ? 'in progress' : it.status)}</span>` : ''}</td><td class="n">${fmtTok(it.tokens)}</td><td class="n">${usd(it.cost)}</td><td class="n">${it.n ? dur(it.work) : ''}</td><td class="n">${it.n && it.wait ? dur(it.wait) : (it.n ? '–' : '')}</td></tr>
+        ${UQ.open === it.n ? `<tr><td colspan="5" style="background:var(--panel)"><div class="setgrid" style="grid-template-columns:1fr 1fr;gap:10px"><div><b class="hint">By agent</b>${splitTableFor(it, 'agent')}</div><div><b class="hint">By phase</b>${splitTableFor(it, 'stage')}</div></div>${it.n ? `<b class="hint">Time by phase</b>${timeHtml({stages: it.time_stages, work: it.work, wait: it.wait})}` : ''}</td></tr>` : ''}`).join('')}
+      <tr><td><b>Whole prototype</b></td><td class="n"><b>${fmtTok(u.total.tokens)}</b></td><td class="n"><b>${usd(u.total.cost)}</b></td><td class="n"><b>${dur(u.time.work)}</b></td><td class="n"><b>${u.time.wait ? dur(u.time.wait) : '–'}</b></td></tr></table>` : '<p class="hint">No iterations yet: they appear here once the plan is approved.</p>'}</div>`;
+  } else if ((u.projects || []).length) {
+    const mx = Math.max(1, ...u.projects.map(x => x.tokens));
+    h += `<div class="usec"><h4>Per project</h4><table class="ut"><tr><th>Project</th><th style="width:40%"></th><th class="n">Tokens</th><th class="n">${isSub() ? 'Would cost' : 'Cost'}</th></tr>
+      ${u.projects.map(x => `<tr><td>${esc(x.name)}</td><td><div class="sbar" style="width:${(100 * x.tokens / mx).toFixed(1)}%"></div></td><td class="n">${fmtTok(x.tokens)}</td><td class="n">${usd(x.cost)}</td></tr>`).join('')}</table></div>`;
+  }
+  h += `<div class="usec"><h4>Time spent per phase${proj ? '' : ' (all projects)'}</h4>${timeHtml(u.time)}<div class="hint">The team's working time and the time it waited for your answers are counted apart.</div></div>`;
+  b.innerHTML = h;
+  wireTips(b);
+  b.querySelectorAll('[data-scope]').forEach(x => x.onclick = () => { UQ.scope = x.dataset.scope; UQ.period = null; UQ.open = null; openUsage(); });
+  b.querySelectorAll('[data-unit]').forEach(x => x.onclick = () => { UQ.unit = x.dataset.unit; UQ.period = null; openUsage(); });
+  b.querySelectorAll('[data-split]').forEach(x => x.onclick = () => { UQ.split = x.dataset.split; renderUsage(); });
+  b.querySelectorAll('[data-period]').forEach(x => x.onclick = () => { UQ.period = x.dataset.period || null; renderUsage(); });
+  b.querySelectorAll('[data-it]').forEach(x => x.onclick = () => { UQ.open = UQ.open === +x.dataset.it ? null : +x.dataset.it; renderUsage(); });
+}
+function splitTableFor(item, kind) { const keep = UQ.split; UQ.split = kind; const t = splitTable(item, item.tokens); UQ.split = keep; return t; }
+async function openUsage() {
+  if (UQ.scope === null) UQ.scope = cur && cur !== 'setup' ? cur : '';
+  if (UQ.scope && !(S?.projects || []).some(p => p.slug === UQ.scope)) UQ.scope = '';
+  USE = await api(`/api/analytics?unit=${UQ.unit}${UQ.scope ? '&project=' + encodeURIComponent(UQ.scope) : ''}`);
+  renderUsage(); if (!$('useDlg').open) $('useDlg').showModal();
+}
 $('useRefresh').onclick = () => refreshUsage(true);
-function renderUsage() { renderUsageSimple(USE, $('useBody')); }
-$('usageMeter').onclick = openUsage;
+$('usageMeter').onclick = () => { UQ.scope = null; UQ.period = null; UQ.open = null; openUsage(); };
 $('folderBtn').onclick = () => cur && api(`/api/projects/${cur}/open-folder`, {});
 $('pauseBtn').onclick = async () => {
   if (!view) return;
@@ -1326,7 +1556,7 @@ $('feedbackBtn').onclick = () => { $('fbTitle').value = ''; $('fbBody').value = 
 $('fbSend').onclick = async () => {
   const title = $('fbTitle').value.trim(); if (!title) { $('fbMsg').textContent = 'Please write a short title first.'; return; }
   $('fbSend').disabled = true; $('fbMsg').textContent = 'Sending…';
-  try { const r = await api('/api/features/feedback', {title, body: $('fbBody').value});
+  try { const r = await api('/api/features/feedback', {title, body: $('fbBody').value, voice_log: $('fbVoice').checked});
     $('fbMsg').textContent = r.shared ? 'Thank you! Your feedback reached the author.' : 'Thank you! Your feedback was saved' + (r.error ? ' (it will reach the author when a connection is available).' : '.');
     setTimeout(() => $('fbDlg').close(), 1400);
   } catch (e) { $('fbMsg').textContent = e.message; $('fbSend').disabled = false; }
@@ -1621,6 +1851,7 @@ $('delBtn').onclick = async () => { const r = await projAction('delete', {mode: 
 $('settingsBtn').onclick = () => {
   $('setMode').value = S.settings.approval_mode; $('setPar').value = String(S.max_parallel || 2); $('setIterPause').checked = !!S.settings.iteration_pause;
   $('setPipeAuto').checked = S.settings.pipeline_auto !== false; $('setTray').checked = !!S.settings.close_to_tray;
+  $('setName').value = S.settings.user_name || '';
   const onTab = document.querySelector('.stab.on')?.dataset.s;
   if (onTab === 'brains') renderBrains();
   if (onTab === 'setup') renderSetupTab();
@@ -1630,7 +1861,7 @@ $('setCancel').onclick = () => { $('setDlg').close(); renderSide(); };
 $('setSave').onclick = async e => {
   e.preventDefault();
   const body = {approval_mode: $('setMode').value, max_parallel: parseInt($('setPar').value), iteration_pause: $('setIterPause').checked,
-    pipeline_auto: $('setPipeAuto').checked, close_to_tray: $('setTray').checked};
+    pipeline_auto: $('setPipeAuto').checked, close_to_tray: $('setTray').checked, user_name: $('setName').value.trim()};
   try { await api('/api/settings', body); $('setDlg').close(); await loadState(); renderSide(); } catch (err) { alertBox(err.message); }
 };
 /* ---------------------------------------------- Setup & connections tab */

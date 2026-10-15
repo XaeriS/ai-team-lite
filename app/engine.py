@@ -34,8 +34,13 @@ from claude_agent_sdk import (
     UserMessage,
 )
 
+try:  # background-task lifecycle messages (Claude Agent SDK 0.2.150+); older engines simply never send them
+    from claude_agent_sdk import TaskNotificationMessage, TaskProgressMessage, TaskStartedMessage, TaskUpdatedMessage
+except ImportError:  # pragma: no cover
+    TaskNotificationMessage = TaskProgressMessage = TaskStartedMessage = TaskUpdatedMessage = type("_Never", (), {})
+
 from . import (auth, brains, challenge, iterations, journal, languages, models, paths, policy, projects, prompts, risk,
-               secrets_store, settings, skills as skills_mod, tooling, tracking, tools, usage)
+               secrets_store, settings, skills as skills_mod, timeline, tooling, tracking, tools, usage)
 from .events import EventHub
 
 AGENT_TOOLS = {"Agent", "Task"}
@@ -49,12 +54,19 @@ CARD_TOOLS = {f"mcp__aiteam__{n}" for n in ("request_plan_approval", "ask_folder
                                             "handoff_to_architect", "request_architecture_approval", "record_problem",
                                             "record_challenge_review", "record_diagram",
                                             "return_to_fred", "record_prior_art", "ask_council",
-                                            "record_change_request", "run_security_test")}
+                                            "record_change_request", "run_security_test", "record_questions")}
 WORKER_LABELS = {"developer": "Developer", "tester": "Tester", "reviewer": "Reviewer", "scout": "Scout",
                  "challenger": "Challenger", "diagrammer": "Diagrammer"}
 ROLES = ["Fred", "Mat", "Developer", "Tester", "Reviewer"]
 LEADS = {"Fred": "lead", "Mat": "architect"}
 STALL_SECONDS = 300
+TERMINAL = {"completed", "failed", "stopped", "killed"}
+WAKE_GRACE = 8          # after a background worker finishes, give the engine this long to wake Fred by itself (L7)
+WATCH_POLL = 30         # how often the listener re-checks while a background worker runs
+QUIET_NOTE = 180        # L8: nothing new for 3 minutes while working -> a short "still working" line
+QUIET_STUCK = 300       # L8: nothing at all for 5 minutes (no tokens, no tool running) -> say so and offer help
+COMMAND_STUCK = 1200    # a single command running for 20 minutes without any output is treated as stuck too
+WATCHDOG_TICK = 30
 PRIORITY_ORDER = {"high": 0, "normal": 1, "low": 2}
 PIPELINE_KICK_SECONDS = 1800   # never nudge the same iteration twice within this time
 PIPELINE_TICK = 60
@@ -173,9 +185,17 @@ class Session:
         self.team: dict[str, dict] = {}       # role -> live status for the team view
         self.limit_hit: dict | None = None
         self.turn_started: float | None = None
+        self.turn_ended = 0.0
         self.pending_kickoff: str | None = None  # hidden message for the next speaker after a handoff
         self.background: dict[str, dict] = {}    # worker started in the background anyway: agent id -> card
-        self.waiting_bg: dict[str, str] = {}     # TaskOutput tool use id -> agent id
+        self.task_tools: dict[str, str] = {}     # engine task id -> the tool use id that started it
+        self.bg_reports: list[dict] = []         # finished background workers whose report Fred has not seen yet
+        self.bg_done_at = 0.0
+        self.watch_task: asyncio.Task | None = None  # listens for background workers between turns (L7)
+        self.last_activity = time.time()         # last sign of life: a message, a token, a tool result (L8)
+        self.last_lead_t = 0.0                   # when the lead last said or did something
+        self.open_tools: dict[str, dict] = {}    # tool calls started and not answered yet (a running command)
+        self.watch = {"since": 0.0, "noted": 0.0, "stuck": None}  # watchdog state for the current quiet spell
 
     # ------------------------------------------------------------------ team view
     def set_role(self, role: str, **changes) -> None:
@@ -238,6 +258,7 @@ class Session:
         self.hub.publish(self.slug, {"type": "project_list", "transient": True})
         # while this project waits for the user, its working slot goes to the next work in the master plan
         threading.Thread(target=self.engine._start_next, daemon=True).start()
+        asked = time.time()
         try:
             return await fut
         except asyncio.CancelledError:
@@ -245,6 +266,8 @@ class Session:
             return {"cancelled": True}
         finally:
             self.engine.pending.pop(item_id, None)
+            self.last_activity = time.time()
+            timeline.record(self.slug, "wait", self.persona, asked, time.time())   # L14: time waiting for you
 
     # ------------------------------------------------------------------ permissions
     async def can_use_tool(self, tool_name: str, tool_input: dict, ctx: Any):
@@ -436,10 +459,12 @@ class Session:
 
     # ------------------------------------------------------------------ a turn of conversation
     async def turn(self, text: str, hidden: bool = False) -> None:
+        await self.stop_listening()   # the turn reads the engine's messages itself from here on
         async with self.lock:
             self.busy = True
             self.limit_hit = None
             self.turn_started = time.time()
+            self.last_activity = time.time()
             self.hub.publish(self.slug, {"type": "busy", "value": True})
             journal.record(self.slug, active=True)
             self.set_role(self.persona, status="working", task="Answering you" if not hidden else "Working",
@@ -450,7 +475,8 @@ class Session:
                 if not auth.ready():
                     raise RuntimeError("Fred is not connected to Claude yet (no API key saved and not signed in "
                                        "with a Claude subscription). Open Settings to connect.")
-                if hidden and settings.load().get("cap_context", True) and any(m in text for m in FRESH_MARKERS):
+                if hidden and settings.load().get("cap_context", True) and any(m in text for m in FRESH_MARKERS) \
+                        and not self.background:  # a fresh context would stop a worker still busy in the background
                     await self._reset_context()   # start this iteration with a fresh, small context (item 48)
                     text = self._briefing() + "\n\n" + text
                 notes = self.engine.notes.pop(self.slug, [])
@@ -458,6 +484,11 @@ class Session:
                     note = await asyncio.to_thread(usage.warning_note)  # may refresh the real figures (~2 s)
                     if note:
                         notes.append(note)
+                    if hidden and any(m in text for m in FRESH_MARKERS):   # L15: a big step is about to start
+                        from . import analytics
+                        room = analytics.headroom_warning()
+                        if room:
+                            self.hub.publish(self.slug, {"type": "headroom", "text": room})
                 for attempt in (1, 2):
                     client = await self._ensure_client()
                     try:
@@ -484,7 +515,12 @@ class Session:
                 self.hub.publish(self.slug, {"type": "error", "text": friendly_error(e)})
                 await self._drop_client()
             finally:
+                timeline.record(self.slug, "lead", self.persona, self.turn_started or time.time(), time.time())
+                self.turn_ended = time.time()
                 self.turn_started = None
+                self.open_tools.clear()
+                # a worker that finished during this turn and was followed by the lead's own words: he has its report
+                self.bg_reports = [r for r in self.bg_reports if r["t"] > self.last_lead_t]
                 bg_roles = {b["label"] for b in self.background.values()}
                 for role, r in list(self.team.items()):
                     if r.get("status") in ("working", "question") and role not in bg_roles:
@@ -495,44 +531,186 @@ class Session:
                     self.engine.on_limit(self.slug, self.limit_hit)
                 projects.update(self.slug, updated=time.time())
                 journal.record(self.slug, active=False)
-                more = bool(self.engine.queued.get(self.slug)) or bool(self.pending_kickoff)
+                more = bool(self.engine.queued.get(self.slug)) or bool(self.pending_kickoff) or bool(self.background) \
+                    or bool(self.bg_reports)
                 if not more:
                     self.hub.publish(self.slug, {"type": "busy", "value": False})
                 self.hub.publish(self.slug, {"type": "docs_changed", "transient": True})
 
-    # ------------------------------------------------------------------ safety net: a worker in the background
+    # ------------------------------------------------------------------ L7: a worker in the background
     def _went_background(self, block: Any, receipt: str) -> None:
         """The engine started a worker in the background and returned only a receipt. Keep the worker shown as
-        working, hide the receipt, and make the lead wait for the real report right after this turn."""
+        working and hide the receipt. AI Team Lite itself now waits for the worker's result (it listens to the
+        engine between turns) and wakes Fred with the report: no TaskOutput, which this engine no longer has."""
         label = self.agents.pop(block.tool_use_id)
         m = AGENT_ID.search(receipt)
         aid = m.group(1) if m else ""
-        self.background[aid or block.tool_use_id] = {"card": block.tool_use_id, "label": label}
+        self.background[aid or block.tool_use_id] = {"card": block.tool_use_id, "label": label, "started": time.time()}
         self.hub.update(self.slug, block.tool_use_id, status="working", background=True)
         self.set_role(label, status="working", last="working in the background")
-        wait = (f"call TaskOutput with task_id \"{aid}\" and block=true (repeat until it has finished)" if aid
-                else "wait for its report")
-        self.pending_kickoff = (f"[App] The {label} was started in the background, which AI Team Lite does not support: the "
-                                f"user only sees work that you wait for. Do nothing else first: {wait}, then continue "
-                                "the iteration with its report. Never start workers in the background "
-                                "(always run_in_background=false).")
 
-    def _background_report(self, block: Any) -> None:
-        aid = self.waiting_bg.pop(block.tool_use_id)
-        text = _result_text(block)
-        if not block.is_error and re.search(r"\b(running|in progress|not (yet )?(finished|complete))\b", text[:400], re.I):
-            return  # still working; the lead asks again
-        info = self.background.pop(aid, None)
+    def _bg_key(self, task_id: str, tool_use_id: str | None) -> str | None:
+        tool_use_id = tool_use_id or self.task_tools.get(task_id)
+        if task_id in self.background:
+            return task_id
+        return next((k for k, v in self.background.items() if tool_use_id and v["card"] == tool_use_id), None)
+
+    def _bg_label(self, parent: str | None) -> str | None:
+        if not parent:
+            return None
+        return next((v["label"] for v in self.background.values() if v["card"] == parent), None)
+
+    def _background_done(self, task_id: str, tool_use_id: str | None, status: str, summary: str = "",
+                         output_file: str = "") -> None:
+        key = self._bg_key(task_id, tool_use_id)
+        info = self.background.pop(key, None) if key else None
         if not info:
             return
+        timeline.stop(self.slug, info["card"])
+        failed = status in ("failed", "stopped", "killed")
+        report = (self.last_text.pop(info["label"], "") or "").strip()
+        if not report and output_file:
+            report = _tail(output_file)
+        report = report or (summary or "").strip() or ("It stopped without a report." if failed else "It finished.")
         done_task = (self.team.get(info["label"]) or {}).get("task", "")
         self.set_role(info["label"], status="idle", task=f"Finished: {done_task}" if done_task else "",
-                      last="reported back to Fred" if not block.is_error else "stopped with an error")
-        self.hub.update(self.slug, info["card"], status="failed" if block.is_error else "done", background=False,
-                        summary=text[:1200])
+                      last="reported back to Fred" if not failed else "stopped before finishing")
+        self.hub.update(self.slug, info["card"], status="failed" if failed else "done", background=False,
+                        summary=report[:1200])
         self.hub.publish(self.slug, {"type": "docs_changed", "transient": True})
+        now = time.time()
+        self.bg_reports.append({"label": info["label"], "report": report, "failed": failed, "t": now})
+        self.bg_done_at = now
+
+    def wake_text(self) -> str:
+        parts = []
+        for r in self.bg_reports:
+            state = "stopped before finishing" if r["failed"] else "has finished"
+            parts.append(f"The {r['label']} {state} (it ran in the background). Its report:\n{r['report'][:6000]}")
+        return ("[App] " + "\n\n".join(parts) + "\n\nContinue the work with this report now. Do not call TaskOutput "
+                "(it does not exist in this engine) and never start workers in the background "
+                "(always run_in_background=false).")
+
+    def start_listening(self) -> None:
+        """Between turns, while a worker still runs in the background: read the engine's messages so the screen
+        stays live, notice when the worker finishes, and wake Fred with its report (L7)."""
+        if (self.background or self.bg_reports) and (self.watch_task is None or self.watch_task.done()):
+            self.watch_task = asyncio.get_running_loop().create_task(self._listen())
+
+    async def stop_listening(self) -> None:
+        t, self.watch_task = self.watch_task, None
+        if t is not None and not t.done() and t is not asyncio.current_task():
+            t.cancel()
+            try:
+                await t
+            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                pass
+
+    async def _listen(self) -> None:
+        self_woke = False
+        while True:
+            if not self.background and not self.bg_reports and not self_woke:
+                return
+            timeout: float | None = WATCH_POLL
+            if not self.background and self.bg_reports and not self_woke:
+                timeout = max(0.05, self.bg_done_at + WAKE_GRACE - time.time())
+            client = self.client
+            msg = None
+            if client is not None and hasattr(client, "receive_messages"):
+                agen = client.receive_messages()
+                try:
+                    msg = await asyncio.wait_for(agen.__anext__(), timeout)
+                except asyncio.TimeoutError:
+                    msg = None
+                except StopAsyncIteration:
+                    client = None
+                except asyncio.CancelledError:
+                    raise
+                except Exception:  # noqa: BLE001  (the engine went away: the watchdog takes over)
+                    return
+                finally:
+                    try:
+                        await agen.aclose()
+                    except Exception:  # noqa: BLE001
+                        pass
+            else:
+                await asyncio.sleep(min(timeout or WATCH_POLL, WATCH_POLL))
+            if msg is not None:
+                if isinstance(msg, AssistantMessage) and not msg.parent_tool_use_id and not self_woke:
+                    # the engine woke the lead by itself with the worker's result: show that turn live
+                    self_woke = True
+                    self.bg_reports.clear()
+                    self.hub.publish(self.slug, {"type": "busy", "value": True})
+                    self.set_role(self.persona, status="working", task="Reading the report", last="thinking")
+                self.handle(msg)
+                if isinstance(msg, ResultMessage) and self_woke:
+                    self_woke = False
+                    self.set_role(self.persona, status="idle", task="")
+                    if not self.background:
+                        self.hub.publish(self.slug, {"type": "busy", "value": False})
+                        self.hub.publish(self.slug, {"type": "docs_changed", "transient": True})
+                continue
+            if not self.background and self.bg_reports and not self_woke \
+                    and time.time() >= self.bg_done_at + WAKE_GRACE:
+                text = self.wake_text()
+                self.bg_reports.clear()
+                self.engine.send_message(self.slug, text, hidden=True)
+                return
+
+    def stop_background(self) -> None:
+        """The user stopped the work: stop the workers still running in the background too."""
+        client = self.client
+        for key, info in list(self.background.items()):
+            task_id = key if key in self.task_tools else next((t for t, u in self.task_tools.items()
+                                                                if u == info["card"]), key)
+            if client is not None and hasattr(client, "stop_task"):
+                asyncio.get_running_loop().create_task(_quiet(client.stop_task(task_id)))
+            self.hub.update(self.slug, info["card"], status="failed", background=False, summary="Stopped by you.")
+            self.set_role(info["label"], status="idle", task="", last="stopped by you")
+        self.background.clear()
+        self.bg_reports.clear()
+
+    # ------------------------------------------------------------------ L8: is anything still moving?
+    def running_now(self) -> list[dict]:
+        """What is in progress right now: commands/tools started and not finished, and workers."""
+        now = time.time()
+        out = [{"who": t["who"], "what": t["line"], "since": t["t"], "kind": "tool"} for t in self.open_tools.values()]
+        for label in self.agents.values():
+            out.append({"who": label, "what": (self.team.get(label) or {}).get("task", "") or "working",
+                        "since": (self.team.get(label) or {}).get("since", now), "kind": "worker"})
+        for info in self.background.values():
+            out.append({"who": info["label"], "what": "working in the background", "since": info["started"],
+                        "kind": "worker"})
+        return out
+
+    def _task_message(self, msg: Any) -> bool:
+        """Background-task lifecycle messages from the engine. Returns True when the message was one of them."""
+        if isinstance(msg, TaskStartedMessage):
+            if msg.tool_use_id:
+                self.task_tools[msg.task_id] = msg.tool_use_id
+            return True
+        if isinstance(msg, TaskProgressMessage):
+            key = self._bg_key(msg.task_id, msg.tool_use_id)
+            if key:
+                tool = msg.last_tool_name or ""
+                self.set_role(self.background[key]["label"], status="working",
+                              last=f"working in the background{': ' + describe_tool(tool, {}, self.folder) if tool else ''}")
+            return True
+        if isinstance(msg, TaskNotificationMessage):
+            self._background_done(msg.task_id, msg.tool_use_id, msg.status, msg.summary or "", msg.output_file or "")
+            return True
+        if isinstance(msg, TaskUpdatedMessage):
+            if (msg.status or "") in TERMINAL:
+                self._background_done(msg.task_id, None, msg.status or "completed",
+                                      str((msg.patch or {}).get("result") or (msg.patch or {}).get("error") or ""))
+            return True
+        return False
 
     def handle(self, msg: Any) -> None:
+        if not isinstance(msg, RateLimitEvent):
+            self.last_activity = time.time()
+        if self._task_message(msg):
+            return
         if isinstance(msg, SystemMessage):
             sid = (msg.data or {}).get("session_id")
             if msg.subtype == "init" and sid:
@@ -541,7 +719,10 @@ class Session:
         if isinstance(msg, AssistantMessage):
             if getattr(msg, "error", None):  # the engine's own error text; the ResultMessage explains it
                 return
-            worker = self.agents.get(msg.parent_tool_use_id or "")
+            parent = msg.parent_tool_use_id or ""
+            worker = self.agents.get(parent) or self._bg_label(parent)
+            if not parent:
+                self.last_lead_t = time.time()
             mid = getattr(msg, "message_id", None)
             if msg.usage and mid not in self.counted:  # one model call may arrive as several messages
                 self.counted.add(mid)
@@ -558,6 +739,7 @@ class Session:
                     if block.name in AGENT_TOOLS:
                         label = WORKER_LABELS.get(block.input.get("subagent_type", ""), "Worker")
                         self.agents[block.id] = label
+                        timeline.start(self.slug, block.id, label)
                         self.set_role(label, status="working", task=block.input.get("description", "") or "Working",
                                       last="received a brief from Fred")
                         self.set_role("Fred", status="working", task=f"Supervising the {label}")
@@ -567,11 +749,8 @@ class Session:
                     elif block.name in QUIET_TOOLS:
                         pass
                     elif block.name not in CARD_TOOLS:
-                        if block.name == "TaskOutput":
-                            aid = str((block.input or {}).get("task_id") or (block.input or {}).get("agentId") or "")
-                            if aid in self.background:
-                                self.waiting_bg[block.id] = aid
                         line = describe_tool(block.name, block.input or {}, self.folder)
+                        self.open_tools[block.id] = {"who": worker or lead, "line": line, "t": time.time()}
                         self.set_role(worker or lead, status="working", last=line)
                         self.hub.publish(self.slug, {"type": "activity", "who": worker or lead, "text": line})
                         if block.name in ("Write", "Edit", "MultiEdit") and \
@@ -582,15 +761,14 @@ class Session:
             for block in msg.content:
                 if not isinstance(block, ToolResultBlock):
                     continue
-                if block.tool_use_id in self.waiting_bg:
-                    self._background_report(block)
-                    continue
+                self.open_tools.pop(block.tool_use_id, None)
                 if block.tool_use_id in self.agents:
                     summary = _result_text(block)
                     if not block.is_error and ASYNC_RECEIPT.search(summary):
                         self._went_background(block, summary)
                         continue
                     label = self.agents.pop(block.tool_use_id)
+                    timeline.stop(self.slug, block.tool_use_id)
                     done_task = (self.team.get(label) or {}).get("task", "")
                     self.set_role(label, status="idle", task=f"Finished: {done_task}" if done_task else "",
                                   last="reported back to Fred" if not block.is_error else "stopped with an error")
@@ -598,7 +776,6 @@ class Session:
                     self.hub.update(self.slug, block.tool_use_id, status="failed" if block.is_error else "done",
                                     summary=summary[:1200])
                     self.hub.publish(self.slug, {"type": "docs_changed", "transient": True})
-                    _ = label
             return
         if isinstance(msg, RateLimitEvent):
             entry = usage.record_limit(msg.rate_limit_info)
@@ -636,6 +813,33 @@ class Session:
                                           "resets_at": five.get("resets_at"), "detail": str(detail)[:300]}
                     return  # the limit card explains it (request F)
                 self.hub.publish(self.slug, {"type": "error", "text": str(detail)[:800]})
+
+
+def _tail(path: str, limit: int = 4000) -> str:
+    """The end of a background worker's output file (its last words are its report)."""
+    try:
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    lines = []
+    for line in text.splitlines():  # the file may be a JSON transcript: keep the assistant's text
+        try:
+            row = json.loads(line)
+        except ValueError:
+            lines.append(line)
+            continue
+        msg = row.get("message") if isinstance(row, dict) else None
+        if isinstance(msg, dict) and msg.get("role") == "assistant":
+            c = msg.get("content")
+            lines.append(c if isinstance(c, str) else " ".join(x.get("text", "") for x in c or [] if isinstance(x, dict)))
+    return "\n".join(x for x in lines if x.strip())[-limit:]
+
+
+async def _quiet(coro) -> None:
+    try:
+        await coro
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _result_text(block: Any) -> str:
@@ -726,12 +930,122 @@ class Engine:
         self.thread = threading.Thread(target=self.loop.run_forever, name="agent-loop", daemon=True)
         self.thread.start()
         self.loop.call_soon_threadsafe(self._schedule_tick)
+        self.loop.call_soon_threadsafe(self._schedule_watchdog)
 
     def _schedule_tick(self) -> None:
         def tick():
             threading.Thread(target=self._start_next, daemon=True).start()
             self._schedule_tick()
         self.loop.call_later(PIPELINE_TICK, tick)
+
+    def _schedule_watchdog(self) -> None:
+        def tick():
+            try:
+                self.watchdog()
+            except Exception:  # noqa: BLE001  (the watchdog must never stop the app)
+                pass
+            self._schedule_watchdog()
+        self.loop.call_later(WATCHDOG_TICK, tick)
+
+    # ------------------------------------------------------------------ L8: the watchdog
+    def watchdog(self, now: float | None = None) -> None:
+        for slug in list(self.sessions):
+            self.watch_check(slug, now=now)
+
+    def watch_check(self, slug: str, now: float | None = None, asked: bool = False) -> dict:
+        """Look at a project's work. Nothing new for 3 minutes while it works: a short "still working" line saying
+        what is running. Nothing at all for 5 minutes (no tokens, no tool running): say so plainly, ask Fred to check
+        when he is between turns, and offer "Wake Fred up" / "Stop and restart this step". Returns what was found."""
+        sess = self.sessions.get(slug)
+        now = now or time.time()
+        if sess is None:
+            return {"state": "idle"}
+        w = sess.watch
+        working = sess.busy or bool(sess.background) or bool(sess.bg_reports)
+        if not working or self.waiting_user(slug) or slug in self.limit_timers or (projects.load(slug) or {}).get("paused"):
+            self._watch_reset(sess, moving=False)
+            return {"state": "idle" if not working else "waiting"}
+        if w["since"] and sess.last_activity > w["since"]:
+            self._watch_reset(sess, moving=True)   # it moved again since the last check
+        quiet = now - sess.last_activity
+        running = sess.running_now()
+        tools_running = [r for r in running if r["kind"] == "tool"]
+        found = {"state": "moving", "quiet": round(quiet), "running": running}
+        stuck = (quiet >= QUIET_STUCK and not tools_running) or quiet >= COMMAND_STUCK
+        if stuck:
+            found["state"] = "stuck"
+            if not w["stuck"]:
+                w["since"] = sess.last_activity
+                card_id = self.new_id()
+                w["stuck"] = card_id
+                between = not sess.busy
+                text = (f"Nothing has moved for {int(quiet // 60)} minutes: no tokens used and no tool working. "
+                        + ("Fred was asked to check what is going on." if between else
+                           "Fred may be stuck. You can wake him up, or stop and restart this step."))
+                self.hub.publish(slug, {"type": "stuck", "id": card_id, "status": "open", "text": text,
+                                        "minutes": int(quiet // 60), "running": [r["who"] for r in running]})
+                if between:   # Fred is between turns (e.g. waiting for a report that will not come): ask him now
+                    self.send_message(slug, self.wake_note(slug, int(quiet // 60), auto=True), hidden=True)
+            return found
+        if quiet >= QUIET_NOTE and (asked or now - (w["noted"] or 0) >= QUIET_NOTE):
+            w["since"] = w["since"] or sess.last_activity
+            w["noted"] = now
+            found["state"] = "quiet"
+            self.hub.publish(slug, {"type": "watch", "text": self.still_working_text(sess, quiet, running, now)})
+        return found
+
+    def still_working_text(self, sess: "Session", quiet: float, running: list[dict], now: float) -> str:
+        mins = lambda s: f"{max(1, int((now - s) // 60))} min so far"
+        tool = next((r for r in running if r["kind"] == "tool"), None)
+        if tool:
+            who = "Fred" if tool["who"] == "Fred" else f"the {tool['who']}"
+            return f"Still working: {who} is {tool['what'][0].lower() + tool['what'][1:]} ({mins(tool['since'])})."
+        worker = next((r for r in running if r["kind"] == "worker"), None)
+        if worker:
+            return f"Still working: the {worker['who']} is thinking ({int(quiet // 60)} min without new output)."
+        return f"Still working: {sess.persona} is thinking ({int(quiet // 60)} min without new output)."
+
+    def _watch_reset(self, sess: "Session", moving: bool) -> None:
+        w = sess.watch
+        if w["stuck"]:
+            self.hub.update(sess.slug, w["stuck"], status="resolved",
+                            note="Work started moving again." if moving else "The work stopped.")
+        sess.watch = {"since": 0.0, "noted": 0.0, "stuck": None}
+
+    def wake_note(self, slug: str, minutes: int, auto: bool = False) -> str:
+        sess = self.sessions.get(slug)
+        bg = ", ".join(i["label"] for i in sess.background.values()) if sess else ""
+        return (f"[App] {'Nothing has happened' if auto else 'The user pressed Wake Fred up: nothing happened'} for "
+                f"{minutes} minutes while work is in progress." + (f" Still marked as working in the background: {bg}."
+                                                                    if bg else "") +
+                " Check what is going on (is a worker or a command still running, did something hang?), tell the user "
+                "in one plain line what you found, then continue the work, starting again any step that hung. Do not "
+                "call TaskOutput (it does not exist); run workers in the foreground.")
+
+    def wake(self, slug: str) -> str:
+        """The user pressed "Wake Fred up" (L8)."""
+        sess = self.session(slug)
+        minutes = int((time.time() - sess.last_activity) // 60)
+        self._watch_reset(sess, moving=True)
+        sess.last_activity = time.time()
+        note = self.wake_note(slug, minutes)
+        if sess.busy:   # stuck inside a turn: interrupt it, the note follows straight after
+            with self._send_lock:
+                self.queued.setdefault(slug, []).append(note)
+            if sess.client is not None:
+                self.loop.call_soon_threadsafe(lambda: self.loop.create_task(_quiet(sess.client.interrupt())))
+            self.hub.publish(slug, {"type": "notice", "text": f"You woke {sess.persona} up."})
+            return "queued"
+        self.hub.publish(slug, {"type": "notice", "text": f"You woke {sess.persona} up."})
+        return self.send_message(slug, note, hidden=True)
+
+    def restart_step(self, slug: str) -> str:
+        """The user pressed "Stop and restart this step" (L8)."""
+        sess = self.session(slug)
+        self._watch_reset(sess, moving=True)
+        sess.last_activity = time.time()
+        self.stop(slug)
+        return self.resume(slug, restart=True)
 
     def session(self, slug: str) -> Session:
         if slug not in self.sessions:
@@ -778,6 +1092,11 @@ class Engine:
                 if not hidden:
                     self.hub.publish(slug, {"type": "message", "role": "user", "text": text, "queued": True})
                 return "paused"
+            if not hidden and not sess.busy and sess.turn_ended and slug != projects.SETUP_SLUG \
+                    and self._awaits_reply(slug):
+                # Fred had asked something: the time until this answer was time waiting for you (L14)
+                timeline.record(slug, "wait", sess.persona, sess.turn_ended, min(time.time(), sess.turn_ended + 12 * 3600))
+                sess.turn_ended = 0.0
             if sess.busy:
                 self.queued.setdefault(slug, []).append(text)
                 if not hidden:
@@ -813,6 +1132,7 @@ class Engine:
                         break
                     sess.busy = True
                 await sess.turn("\n\n".join(waiting), hidden=True)
+            sess.start_listening()   # a worker still runs in the background: wait for it and wake Fred (L7)
             self._start_next()
 
         self.loop.call_soon_threadsafe(lambda: self.tasks.__setitem__(slug, self.loop.create_task(run())))
@@ -888,7 +1208,8 @@ class Engine:
                     break
                 slug = p["slug"]
                 sess = self.sessions.get(slug)
-                if (sess and sess.busy) or self.waiting_user(slug) or any(w["slug"] == slug for w in self.waiting):
+                if (sess and (sess.busy or sess.background or sess.bg_reports)) or self.waiting_user(slug) \
+                        or any(w["slug"] == slug for w in self.waiting):
                     continue
                 text = self.next_work(slug, p)
                 if not text or self._awaits_reply(slug):
@@ -1109,8 +1430,14 @@ class Engine:
                     fut.set_result({"cancelled": True, "approved": False})
                     self.hub.update(slug, item_id, status="cancelled")
             sess = self.sessions.get(slug)
-            if sess and sess.client is not None:
-                self.loop.create_task(sess.client.interrupt())
+            if sess and (sess.background or sess.bg_reports):
+                sess.stop_background()
+                self.loop.create_task(sess.stop_listening())
+                if not sess.busy:
+                    self.hub.publish(slug, {"type": "busy", "value": False})
+                    self.hub.publish(slug, {"type": "notice", "text": "Stopped."})
+            if sess and sess.client is not None and sess.busy:
+                self.loop.create_task(_quiet(sess.client.interrupt()))
 
         self.loop.call_soon_threadsafe(do)
 
@@ -1127,6 +1454,7 @@ class Engine:
             if task is not None:
                 self.loop.call_soon_threadsafe(task.cancel)
             try:
+                asyncio.run_coroutine_threadsafe(sess.stop_listening(), self.loop).result(timeout=5)
                 asyncio.run_coroutine_threadsafe(sess._drop_client(), self.loop).result(timeout=10)
             except Exception:
                 pass

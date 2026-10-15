@@ -367,6 +367,91 @@ def _demo_brain():
     H.do_GET = do_get
 
 
+def _demo_v100(hub):
+    """1.0.0 screens: a project with a usage and time history, a watchdog line and a stuck card."""
+    import json as _json
+    import random
+    from datetime import date as _date, datetime as _dt
+    from app import projects as _p
+    rnd = random.Random(7)
+    p = _p.create("Invoice tracker")
+    slug = p["slug"]
+    now = time.time()
+    its = [{"n": 1, "name": "Read invoices from the folder", "status": "done", "started": now - 5 * 86400,
+            "finished": now - 4 * 86400, "after": "continue", "requirements": ["REQ-1"], "kind": "feature"},
+           {"n": 2, "name": "Totals per supplier", "status": "done", "started": now - 3 * 86400,
+            "finished": now - 2 * 86400, "after": "continue", "requirements": ["REQ-2"], "kind": "feature"},
+           {"n": 3, "name": "Export to Excel", "status": "building", "started": now - 3000, "after": "continue",
+            "requirements": ["REQ-3"], "kind": "feature"},
+           {"n": 4, "name": "Monthly e-mail", "status": "planned", "after": "continue", "requirements": ["REQ-4"],
+            "kind": "feature"}]
+    _p.update(slug, phase="execute", plan_approved=True, architecture_approved=True, iterations=its,
+              problem={"statement": "Invoices are typed in by hand", "who": "Accounts team", "how_often": "Daily",
+                       "cost_today": "2 h a day", "how_now": "Excel", "success": "Under 10 minutes"})
+    ledger = _p.project_dir(slug) / _p.META
+    ledger.mkdir(parents=True, exist_ok=True)
+    plan = [(None, "discover", "problem", "Fred", 6 * 86400), (None, "discover", "requirements", "Fred", 5.8 * 86400),
+            (None, "discover", "challenge", "Challenger", 5.7 * 86400), (None, "architecture", "architecture", "Mat", 5.5 * 86400),
+            (None, "plan", "plan", "Fred", 5.2 * 86400)]
+    for n, start, end in ((1, 5 * 86400, 4 * 86400), (2, 3 * 86400, 2 * 86400), (3, 3000, 0)):
+        for who, stage in (("Fred", "coordination"), ("Developer", "build"), ("Tester", "test"), ("Reviewer", "review")):
+            plan.append((n, "execute", stage, who, start - rnd.random() * (start - end)))
+    rows, spans = [], []
+    for n, phase, stage, who, ago in plan:
+        for k in range(6 if who in ("Developer", "Tester") else 3):
+            t = now - ago + k * 120
+            model = "claude-opus-5-5" if who in ("Mat",) else "claude-sonnet-5-5"
+            rows.append({"t": t, "day": _dt.fromtimestamp(t).date().isoformat(), "project": slug, "who": who,
+                         "model": model, "in": rnd.randint(2000, 9000), "out": rnd.randint(300, 2500), "cache_read": 20000,
+                         "cache_write": rnd.randint(0, 3000), "cost": 0, "iteration": n, "phase": phase, "stage": stage})
+        spans.append({"t0": now - ago, "t1": now - ago + rnd.randint(300, 1500), "project": slug,
+                      "kind": "lead" if who in ("Fred", "Mat") else "worker", "who": who, "stage": stage,
+                      "iteration": n, "phase": phase})
+        if who == "Fred" and n:
+            spans.append({"t0": now - ago + 1600, "t1": now - ago + 1600 + rnd.randint(200, 900), "project": slug,
+                          "kind": "wait", "who": "Fred", "stage": stage, "iteration": n, "phase": phase})
+    for m in range(40):   # the last 40 minutes: live activity
+        if m < 33:
+            t = now - (40 - m) * 60
+            rows.append({"t": t, "day": _date.today().isoformat(), "project": slug, "who": "Developer",
+                         "model": "claude-sonnet-5-5", "in": rnd.randint(500, 4000), "out": rnd.randint(100, 900),
+                         "cache_read": 0, "cache_write": 0, "cost": 0, "iteration": 3, "phase": "execute", "stage": "build"})
+    rows.sort(key=lambda r: r["t"])
+    (ledger / "usage.jsonl").write_text("".join(_json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    (ledger / "time.jsonl").write_text("".join(_json.dumps(r) + "\n" for r in spans), encoding="utf-8")
+    from app import paths as _paths
+    with open(_paths.data_dir() / "usage-log.jsonl", "a", encoding="utf-8") as f:
+        f.write("".join(_json.dumps(r) + "\n" for r in rows))
+    hub.publish(slug, {"type": "problem", "statement": "Invoices are typed in by hand", "who": "Accounts team",
+                       "how_often": "Daily", "cost_today": "2 h a day", "how_now": "Excel", "success": "Under 10 minutes"})
+    hub.publish(slug, {"type": "challenge", "id": "ch1", "status": "answered", "answers": {"f1": {"decision": "change"}},
+                       "findings": [{"id": "f1", "kind": "assumption", "title": "All invoices arrive as PDF",
+                                     "detail": "REQ-1 reads PDFs only.", "recommendation": "Ask the accounts team.",
+                                     "why": "An assumption nobody checked is the most common reason a tool fails on real data.",
+                                     "requirements": ["REQ-1"]}]})
+    hub.publish(slug, {"type": "questions", "first_ask": "An app to retype invoices faster",
+                       "real_need": "Invoices read automatically from the shared folder",
+                       "questions": [{"question": "How is it done today?", "why": "The current way hides unwritten rules.",
+                                      "changed": "We found the supplier codes live in Oracle: no second copy."}]})
+    hub.publish(slug, {"type": "message", "role": "fred", "speaker": "Fred", "text": "Iteration 3 is under way: the Developer is building the Excel export."})
+    # L11: a stand-in microphone for the "Test microphone" dialog
+    from app import voice as _voice
+    import numpy as _np
+    _voice.packages_available = lambda: True
+    _voice.device_name = lambda: "Demo USB microphone"
+    _real_test = _voice.test_microphone
+    _voice.test_microphone = lambda on_level, seconds=4.0, source=None: _real_test(
+        lambda v: (on_level(v), time.sleep(0.05)), seconds=0.6,
+        source=iter([_np.full(1600, 0.3 if i % 2 else 0.05, dtype="float32") for i in range(40)]))
+    hub.publish(slug, {"type": "watch", "text": "Still working: the Reviewer is running the full test suite (4 min so far)."})
+    hub.publish(slug, {"type": "stuck", "id": "stuck1", "status": "open", "minutes": 5,
+                       "text": "Nothing has moved for 5 minutes: no tokens used and no tool working. Fred may be stuck. "
+                               "You can wake him up, or stop and restart this step."})
+    hub.publish(slug, {"type": "headroom", "text": "About 18% of your 5-hour limit is left (resets 7:30pm). This step "
+                                                   "may stop at the limit; it then continues by itself after the reset."})
+    return slug
+
+
 def main():
     if not os.environ.get("DEMO_PIPELINE"):  # older UI tests expect the conversation to stop where the script ends
         settings.save({"pipeline_auto": False})
@@ -379,6 +464,8 @@ def main():
         _demo_voice(app)
     if os.environ.get("DEMO_BRAIN"):
         _demo_brain()
+    if os.environ.get("DEMO_V100"):
+        _demo_v100(hub)
     if os.environ.get("DEMO_USAGE"):  # stand-in for Claude's own "/usage" command (item 69)
         import tempfile as _tf
         from app import auth as _auth

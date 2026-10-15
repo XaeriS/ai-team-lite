@@ -68,8 +68,8 @@ try:
         page.click("#usageMeter")
         expect(page.locator("#useDlg")).to_be_visible()
         body = page.locator("#useBody").inner_text()
-        check("tracker shows week and session in plain words", "weekly Claude limit" in body and "5-hour session" in body)
-        check("tracker says nothing is billed", "Nothing is billed" in body)
+        check("tracker shows week and session in plain words", "Weekly limit" in body and "5-hour limit" in body)
+        check("tracker says nothing is billed", "Not billed" in body)
         page.screenshot(path=OUT / "v3-usage.png")
         page.locator("#useDlg button[type=submit]").click()
 

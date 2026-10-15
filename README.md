@@ -53,6 +53,16 @@ Everything else is set up for you
 - Claude chooses the right model for each step (the most capable one only where it is needed).
 - Python with everything included; Git, the diagram tool and the speech model are bundled or installed for you.
 - Talk instead of typing: click the microphone and speak; say "copy" or pause to send.
+  If it cannot hear you, it says why (no microphone, Windows privacy settings, microphone busy) and offers a
+  "Test microphone" button (also in Settings > General).
+- Paste a screenshot (Win+Shift+S, then Ctrl+V) or drop files straight into the message box.
+- Fred teaches the questions, not just the answers: each challenge shows "Why Fred asked this", and the problem
+  stage ends with "The questions that changed your project" (saved as reports/QUESTIONS.md to reuse).
+- Usage in plain words (click the usage meter): what the prototype cost or would cost at API prices, per iteration,
+  per day / week / month / year, by agent and by phase, the time each phase took (waiting for you counted apart),
+  live activity per minute and per hour, and how much of your Claude plan is left.
+- Work never gets stuck silently: if nothing moves for 3 minutes Fred says what is still running; after 5 minutes
+  without any activity he says so and offers "Wake Fred up" or "Stop and restart this step".
 - The Pipeline shows every project's progress; you can let several projects work in turn.
 - Continue an existing folder: + New project > "Continue an existing folder". Fred reads it (read-only) and
   carries on as if the team had built it.

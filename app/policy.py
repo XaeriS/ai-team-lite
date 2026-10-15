@@ -27,6 +27,7 @@ ALWAYS_ALLOW = {
     "mcp__aiteam__ask_council", "mcp__aiteam__record_change_request",
     "mcp__aiteam__run_security_test",
     "mcp__aiteam__record_diagram", "mcp__aiteam__record_problem", "mcp__aiteam__record_challenge_review",
+    "mcp__aiteam__record_questions",
 }
 # helpers that only read, search the web or draw diagrams: they may start before a plan is approved
 EARLY_WORKERS = {"scout", "challenger", "diagrammer"}

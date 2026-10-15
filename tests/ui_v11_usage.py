@@ -28,7 +28,8 @@ try:
         page.click("#usageMeter")
         expect(page.locator("#useDlg")).to_be_visible()
         check("dialog says when it refreshed", "refreshed" in page.locator("#useChecked").inner_text())
-        check("plain sentence, no per-project tables", page.locator("#useBody table").count() == 0)
+        check("simple tables, no per-model detail", page.locator("#useBody table").count() >= 1
+              and "Claude Sonnet" not in page.locator("#useBody").inner_text())
         page.click("#useRefresh")
         expect(page.locator(".err").last).to_contain_text("Usage refreshed", timeout=5000)
         page.clock.fast_forward(125000)

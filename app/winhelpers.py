@@ -155,6 +155,9 @@ def launch_checked(command: str, cwd: Path, wait: float = 2.0) -> int:
 
 
 def open_url(url: str) -> None:
+    if paths.IS_WINDOWS and url.startswith("ms-settings:"):
+        os.startfile(url)  # noqa: S606  (opens the Windows Settings page)
+        return
     import webbrowser
 
     webbrowser.open(url)

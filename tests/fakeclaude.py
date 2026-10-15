@@ -37,6 +37,7 @@ class FakeClient:
         self.connected = False
         self.interrupted = False
         self.permission_log: list[tuple[str, str]] = []
+        self.stopped_tasks: list[str] = []
         FakeClient.instances.append(self)
 
     async def connect(self):
@@ -50,6 +51,14 @@ class FakeClient:
 
     async def query(self, prompt):
         self.prompts.append(prompt)
+
+    async def receive_messages(self):
+        """Messages the engine sends between turns (a test puts them in .queue)."""
+        while True:
+            yield await self.queue.get()
+
+    async def stop_task(self, task_id):
+        self.stopped_tasks.append(task_id)
 
     async def receive_response(self):
         yield SystemMessage("init", {"session_id": "sess-1"})

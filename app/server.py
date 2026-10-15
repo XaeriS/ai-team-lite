@@ -186,7 +186,7 @@ class App:
         p = {**p, "folder": str(projects.project_dir(slug)), "state": self.engine.project_state(slug, p)}
         p["launch"] = engine_mod.launch_info(slug, p)
         p["estimate"] = iterations.cost_estimate(slug)
-        return {"project": p, "history": history, "busy": self.engine.is_busy(slug),
+        return {"project": p, "history": history, "busy": self.engine.is_busy(slug) or p["state"] == "working",
                 "team": self.engine.session(slug).team_snapshot(), "progress": iterations.progress(slug),
                 "docs": {"requirements": projects.read_doc(slug, "REQUIREMENTS.md"),
                          "plan": projects.read_doc(slug, "PLAN.md"),
@@ -380,6 +380,25 @@ def make_handler(app: App):
                     if not projects.load(slug):
                         raise KeyError(slug)
                     return self._json({"diff": tracking.diff(slug, doc, int(a_), int(b_))})
+                if path == "/api/analytics":   # L6, L9, L13, L14, L15
+                    from . import analytics
+                    q = self._query()
+                    slug = q.get("project") or None
+                    if slug and not projects.load(slug):
+                        raise KeyError(slug)
+                    data = analytics.report(slug, q.get("unit") or "week")
+                    data["mode"] = auth.mode()
+                    data["checked"] = time.time()
+                    if slug:
+                        data["state"] = app.engine.project_state(slug)
+                    return self._json(data)
+                m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/activity", path)
+                if m:   # L9: the mini chart next to the working indicator
+                    from . import analytics
+                    if not projects.load(m.group(1)):
+                        raise KeyError(m.group(1))
+                    return self._json({**analytics.activity(m.group(1)), "state": app.engine.project_state(m.group(1)),
+                                       "headroom": analytics.headroom() if auth.mode() == "subscription" else []})
                 if path == "/api/usage":
                     data = usage.summary(14)
                     data["mode"] = auth.mode()
@@ -583,7 +602,12 @@ def make_handler(app: App):
                 title = str(body.get("title", "")).strip()
                 if not title:
                     return self._error(400, "Please write a short title for your feedback.")
-                return self._json(features.submit_feedback(title, str(body.get("body", ""))))
+                text = str(body.get("body", ""))
+                if body.get("voice_log"):   # L11: the latest microphone problems (error messages only, no audio)
+                    lines = voice.recent_problems(10)
+                    if lines:
+                        text += "\n\nRecent microphone problems:\n" + "\n".join(lines)
+                return self._json(features.submit_feedback(title, text))
             if path == "/api/features/status":
                 if not updates.can_manage_features():
                     return self._error(403, "Only the author can change a request's status.")
@@ -697,7 +721,7 @@ def make_handler(app: App):
                 app.hub.publish(slug, {"type": "project_list", "transient": True})
                 return self._json({"ok": True, "message": message})
             m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/(pause|resume|restart|priority|limit-continue|"
-                             r"limit-cancel|open-reports)", path)
+                             r"limit-cancel|open-reports|wake|restart-step|watch-check)", path)
             if m:
                 slug, action = m.groups()
                 if not projects.load(slug):
@@ -712,6 +736,13 @@ def make_handler(app: App):
                     return self._json({"result": app.engine.limit_continue(slug)})
                 elif action == "limit-cancel":
                     app.engine.cancel_auto_continue(slug)
+                elif action == "wake":   # L8: "Wake Fred up"
+                    return self._json({"result": app.engine.wake(slug)})
+                elif action == "restart-step":   # L8: "Stop and restart this step"
+                    return self._json({"result": app.engine.restart_step(slug)})
+                elif action == "watch-check":   # L8: the team graph shows "no activity": check now
+                    found = app.engine.watch_check(slug, asked=True)
+                    return self._json({"state": found.get("state"), "quiet": found.get("quiet", 0)})
                 elif action == "open-reports":
                     d = projects.project_dir(slug) / "reports"
                     d.mkdir(exist_ok=True)
@@ -813,6 +844,8 @@ def make_handler(app: App):
                 for k in ("iteration_pause", "pipeline_auto", "close_to_tray"):
                     if isinstance(body.get(k), bool):
                         changes[k] = body[k]
+                if isinstance(body.get("user_name"), str):   # L12: changed in Settings > General
+                    changes["user_name"] = " ".join(body["user_name"].split())[:40]
                 settings.save(changes)
                 return self._json(app.state())
             if path == "/api/secrets/clear":
@@ -834,6 +867,29 @@ def make_handler(app: App):
                     return self._error(409 if str(e) == "needs-download" else 400, str(e))
             if path == "/api/voice/stop":
                 app.voice_stop(bool(body.get("cancel")))
+                return self._json({"ok": True})
+            if path == "/api/voice/test":   # L11: "Test microphone" with a live level bar
+                slug = str(body.get("slug") or projects.SETUP_SLUG)
+                if not voice.packages_available():
+                    return self._error(400, "Voice is not available in this installation (a part is missing). "
+                                            "Reinstall AI Team Lite.")
+                if app.listener is not None:
+                    return self._error(409, "Stop listening first, then test the microphone.")
+
+                def run_test():
+                    last = {"t": 0.0}
+
+                    def level(v):
+                        if time.time() - last["t"] >= 0.1:
+                            last["t"] = time.time()
+                            app.hub.publish(slug, {"type": "voice", "state": "test_level", "level": round(v, 3),
+                                                   "transient": True})
+                    res = voice.test_microphone(level)
+                    app.hub.publish(slug, {"type": "voice", "state": "test_done", **res, "transient": True})
+                threading.Thread(target=run_test, name="mic-test", daemon=True).start()
+                return self._json({"ok": True, "device": voice.device_name()})
+            if path == "/api/voice/open-privacy":
+                winhelpers.open_url(voice.PRIVACY_URL)
                 return self._json({"ok": True})
             if path == "/api/voice/download":
                 app.voice_download(str(body.get("slug", "")))
