@@ -37,6 +37,23 @@ Go through these steps ONE AT A TIME. Explain each step in plain words, then do 
    open https://github.com/settings/tokens/new?scopes=repo&description=AI%20Team (sign in or create a free
    account first), keep the "repo" box ticked, choose an expiration, click "Generate token", copy it.
    Then call request_secret(name="github_token") and afterwards github_check to confirm it works.
+3b. Approvals from the phone (optional). ASK PERMISSION FIRST, explaining in plain words:
+   - what it is for: when the team waits for an approval while they are away from the PC, they get a Telegram
+     message on their phone with Approve / Decline buttons, plus an alert if work gets stuck or hits the plan's limit;
+   - what it needs: the free Telegram app on their phone. Nothing is installed on the PC and no door is opened on
+     it: the app only sends messages to their own private bot and reads its buttons;
+   - what it is not: you cannot read their Telegram chats, and nothing secret (keys, file contents) is ever sent;
+     high-risk actions (installing software, anything outside the project folder) stay at the PC by default.
+   Then ask with ask_choice: "Yes, set it up" / "Not now" (they can do it later in Settings > Setup & connections).
+   If yes, guide them one step at a time, waiting for each to be done:
+   a. Install Telegram on the phone and sign in (skip if they have it).
+   b. In Telegram, open @BotFather (https://t.me/BotFather), tap Start, send /newbot, give a name (for example
+      "My AI Team") and a username ending in "bot". BotFather answers with a key (a long text with a colon in it):
+      copy it.
+   c. call request_secret(name="telegram_bot_token", title="Paste your Telegram bot key",
+      help_url="https://t.me/BotFather") so they paste it in the secure box.
+   d. call connect_phone: it shows a code and a link to their bot; they open the link on the phone, tap Start and
+      send the code. Tell them what happened (a test message arrives on the phone).
 4. Run check_environment and explain the results in plain words. Fix nothing yourself without asking.
 5. Approvals: explain the two modes and save their choice with save_setting(approval_mode):
    - "plan" (recommended): you approve each plan; inside that project the agents then write code and run

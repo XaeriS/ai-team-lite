@@ -392,7 +392,23 @@ function renderSetupTab() {
   $('connList').innerHTML = rows.map(([k, v, ok]) =>
     `<div class="env"><span>${esc(k)}</span><span class="${ok ? 'ok' : 'no'}">${v}</span><span></span></div>`).join('');
   $('setInfo').textContent = 'Version ' + (S.version || '') + '. Your saved keys and sign-in stay in Windows and are never shown to the AI or put in a shared copy.';
-  renderShareBox();
+  renderPhoneBox(); renderShareBox();
+}
+/* L17: approvals and alerts on the phone (Telegram) */
+function renderPhoneBox() {
+  const t = S.telegram || {}, box = $('phoneBox');
+  if (!t.connected) {
+    box.innerHTML = `<p class="hint">Get a Telegram message with Approve / Decline buttons when the team waits for you, and an alert when work is stuck or hits your plan's limit. Nothing is installed on this PC and no door is opened on it; Fred cannot read your chats. You need the free Telegram app on your phone.</p>
+      <button type="button" class="primary" id="phoneSetup">Set it up with Fred</button>`;
+    $('phoneSetup').onclick = async () => { await api('/api/telegram/setup', {}); $('setDlg').close(); open('setup'); };
+    return;
+  }
+  box.innerHTML = `<div class="env"><span>Phone</span><span class="ok">Linked to ${esc('@' + (t.bot || 'your bot'))}</span><span></span></div>
+    <label class="row" style="margin:6px 0;font-size:12.5px"><input type="checkbox" id="phoneHigh" style="width:auto" ${t.high_risk_on_phone ? 'checked' : ''}> Allow high-risk approvals from the phone too (installing software, anything outside the project folder). Off: those wait for you at the PC.</label>
+    <div class="row" style="flex-wrap:wrap"><button type="button" id="phoneTest">Send a test message</button><button type="button" class="danger" id="phoneOff">Disconnect the phone</button><span class="hint" id="phoneMsg"></span></div>`;
+  $('phoneHigh').onchange = async e => { S = await api('/api/telegram/settings', {high_risk_on_phone: e.target.checked}); };
+  $('phoneTest').onclick = async () => { try { await api('/api/telegram/test', {}); $('phoneMsg').textContent = 'Sent: check your phone.'; } catch (e) { $('phoneMsg').textContent = e.message; } };
+  $('phoneOff').onclick = async () => { if (!confirm('Disconnect your phone? The bot key is removed from this PC.')) return; S = await api('/api/telegram/disconnect', {}); renderPhoneBox(); };
 }
 async function renderShareBox() {
   const box = $('shareBox'); box.innerHTML = '<p class="hint">Checking…</p>';

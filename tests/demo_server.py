@@ -433,6 +433,10 @@ def _demo_v100(hub):
                        "real_need": "Invoices read automatically from the shared folder",
                        "questions": [{"question": "How is it done today?", "why": "The current way hides unwritten rules.",
                                       "changed": "We found the supplier codes live in Oracle: no second copy."}]})
+    hub.publish(slug, {"type": "approval", "id": "ap1", "status": "approved", "via": "phone", "title": "Run a command",
+                       "who": "Tester", "what": "Runs the tests.", "risk": "low"})
+    hub.publish(_p.SETUP_SLUG, {"type": "telegram", "id": "tg1", "state": "linking", "bot": "my_ai_team_bot",
+                                "url": "https://t.me/my_ai_team_bot", "code": "482913"})
     hub.publish(slug, {"type": "message", "role": "fred", "speaker": "Fred", "text": "Iteration 3 is under way: the Developer is building the Excel export."})
     # L11: a stand-in microphone for the "Test microphone" dialog
     from app import voice as _voice

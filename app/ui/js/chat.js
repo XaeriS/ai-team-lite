@@ -140,11 +140,13 @@ function renderEvent(ev) {
     case 'headroom': node = el(`<div class="itcard" style="border-left-color:var(--warn)"><b>Your Claude plan:</b> ${esc(ev.text)} <a href="#" data-u>See usage</a></div>`);
       node.querySelector('[data-u]').onclick = e => { e.preventDefault(); UQ.scope = null; openUsage(); }; break;
     case 'stuck': node = stuckCard(ev); break;
+    case 'telegram': node = phoneCard(ev); break;
     case 'iteration': node = ev.status === 'done'
       ? el(`<div class="itcard done"><b>✅ Iteration ${ev.n}${ev.total ? ' of ' + ev.total : ''} committed:</b> ${esc(ev.name)} <span class="hint">· tests passed · commit <code>${esc(ev.commit || '')}</code></span>${ev.summary ? `<div class="hint">${esc(ev.summary)}</div>` : ''}</div>`)
       : el(`<div class="itcard"><b>▶ Iteration ${ev.n}${ev.total ? ' of ' + ev.total : ''} started:</b> ${esc(ev.name)}${(ev.requirements || []).length ? ` <span class="hint">· ${esc(ev.requirements.join(', '))}</span>` : ''}</div>`); break;
     default: node = document.createComment(ev.type);
   }
+  if (ev.via === 'phone' && node.querySelector) node.querySelector('h4')?.insertAdjacentHTML('beforeend', ' <span class="pill acc">📱 from your phone</span>');
   if (ev.id && node.dataset) node.dataset.id = ev.id;
   return node;
 }
@@ -172,6 +174,15 @@ function approvalCard(ev) {
   </div>`);
   if (ev.details) n.querySelector('pre').textContent = ev.details;
   if (pend) n.querySelectorAll('button').forEach(b => b.onclick = () => respond(ev.id, {approved: b.dataset.a === 'yes', note: n.querySelector('input').value}, n));
+  return n;
+}
+/* L17: linking the phone during setup */
+function phoneCard(ev) {
+  const st = ev.state || 'linking';
+  const n = el(`<div class="card ${st === 'linking' ? 'pending' : ''}"><h4>📱 Link your phone ${st === 'linked' ? '<span class="pill ok">linked</span>' : st === 'expired' ? '<span class="pill">code expired</span>' : ''}</h4>
+    ${st === 'linking' ? `<ol style="margin:4px 0;padding-left:20px"><li>On your phone, open <a href="${esc(ev.url)}" target="_blank" rel="noopener">${esc('@' + (ev.bot || 'your bot'))}</a> in Telegram and tap <b>Start</b>.</li>
+      <li>Send this code to the bot: <b style="font-size:20px;letter-spacing:3px">${esc(ev.code)}</b></li></ol><div class="hint"><span class="spin"></span> Waiting for the code (valid 10 minutes)…</div>`
+      : st === 'linked' ? `<div>Your phone is linked to ${esc('@' + (ev.bot || 'your bot'))}. Approvals and alerts now arrive there too.</div>` : '<div class="hint">The code was not received in time. Ask Fred to try again.</div>'}</div>`);
   return n;
 }
 /* L8: the watchdog says plainly when nothing moves, and offers help */
@@ -436,6 +447,7 @@ function onEvent(ev) {
   if (ev.type === 'brainjob') { onBrainJob(ev); return; }
   if (ev.type === 'project_list') { loadState(); return; }
   if (ev.type === 'voice' && /^test_/.test(ev.state || '')) { onMicTest(ev); return; }
+  if (ev.type === 'telegram' && ev.transient) { loadState().then(() => { if ($('setDlg').open) renderPhoneBox(); }); return; }
   if (!['voice', 'team', 'docs_changed', 'activity', 'message', 'cost'].includes(ev.type)) softState();
   if (ev.type === 'usage') { loadState(); return; }
   if (ev.type === 'team' && ev.slug === cur) { if (view) view.team = ev.team; if (tab === 'team') renderTeam(); return; }

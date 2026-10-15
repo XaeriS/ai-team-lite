@@ -43,6 +43,9 @@ DEFAULTS = {
     "ollama_stop_on_exit": False,    # stop Ollama when AI Team Lite closes (only if AI Team Lite started it)
     "auto_resume": False,            # resume interrupted work automatically at start
     "user_name": "",
+    "telegram_chat_id": None,        # L17: the owner's own Telegram chat (linked once with a code)
+    "telegram_bot": "",              # the bot's @username, to show in Settings
+    "telegram_high_risk_on_phone": False,  # high-risk approvals only at the PC unless switched on
 }
 # Settings Fred is allowed to change through his save_setting tool.
 AGENT_EDITABLE = {"workspace_dir", "approval_mode", "user_name"}

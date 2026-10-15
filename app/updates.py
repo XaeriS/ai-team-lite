@@ -23,7 +23,8 @@ def _version_tuple(v: str) -> tuple:
 
 # A real key is a prefix followed by a long run of token characters. Requiring that run (24+) means the scan
 # flags genuine secrets without tripping on placeholders ("sk-ant-…") or the short fake keys used in tests.
-SECRET_RE = re.compile(r"(?:sk-ant-|AIza|xai-|ghp_|github_pat_|gho_)[A-Za-z0-9_-]{24,}")
+SECRET_RE = re.compile(r"(?:sk-ant-|AIza|xai-|ghp_|github_pat_|gho_)[A-Za-z0-9_-]{24,}"
+                       r"|\b\d{8,10}:AA[A-Za-z0-9_-]{30,}")   # the last one: a Telegram bot key (L17)
 
 
 def share_config() -> dict:

@@ -562,3 +562,220 @@ def test_screen_files_are_served_with_their_types(isolated):
         assert r.headers["Content-Type"].startswith("text/javascript" if src.endswith(".js") else "text/css")
     httpd.shutdown()
     eng.shutdown()
+
+
+# ------------------------------------------------------------------------------- L17: approvals from the phone
+class FakeTelegram:
+    """Stands in for the Telegram Bot API: records what the app sends, returns scripted updates."""
+
+    def __init__(self):
+        self.sent, self.edits, self.answers, self.updates = [], [], [], []
+        self.next_id = 100
+
+    def __call__(self, token, method, params, timeout=15):
+        if method == "getMe":
+            return {"username": "my_ai_team_bot", "first_name": "My AI Team"}
+        if method == "sendMessage":
+            self.next_id += 1
+            self.sent.append(params)
+            return {"message_id": self.next_id}
+        if method == "editMessageText":
+            self.edits.append(params)
+            return {}
+        if method == "answerCallbackQuery":
+            self.answers.append(params)
+            return True
+        if method == "getUpdates":
+            out, self.updates = self.updates, []
+            time.sleep(0.05)
+            return out
+        raise AssertionError(method)
+
+
+def _phone(engine_hub=None, linked=True):
+    from app import telegram
+    hub = engine_hub or EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    fake = FakeTelegram()
+    bridge = telegram.Bridge(eng, api=fake)
+    eng.telegram = bridge
+    secrets_store.set_secret("telegram_bot_token", "123:abc")
+    if linked:
+        settings.save({"telegram_chat_id": 4242})
+    return eng, bridge, fake, hub
+
+
+def _press(bridge, data, chat=4242, sender=4242):
+    bridge.handle_update({"update_id": 1, "callback_query": {"id": "q1", "data": data, "from": {"id": sender},
+                                                              "message": {"chat": {"id": chat}}}})
+
+
+def test_phone_messages_and_buttons():
+    from app import telegram
+    text, buttons = telegram.card_message("approval", {"title": "Run a command", "who": "Developer",
+                                                       "what": "Installs the test tools.", "risk": "medium",
+                                                       "details": "pip install secret-thing"}, "Invoice tracker", False)
+    assert "Invoice tracker" in text and "Developer wants to: Run a command" in text and "medium risk" in text
+    assert "pip install" not in text, "the exact command never leaves the PC"
+    assert [b["data"] for b in buttons[0]] == ["b0", "b1"]
+    text, buttons = telegram.card_message("approval", {"title": "Install software", "risk": "high"}, "P", False)
+    assert buttons == [] and "needs you at the PC" in text
+    assert telegram.card_message("approval", {"title": "x", "risk": "high"}, "P", True)[1]
+    assert telegram.card_message("secret", {"title": "Paste your key"}, "P", True)[1] == []
+    assert telegram.answer_payload("approval", {}, "b0") == {"approved": True, "note": "", "via": "phone"}
+    assert telegram.answer_payload("plan", {}, "b0")["approved"] is True
+    assert telegram.answer_payload("choice", {"options": ["Yes", "No"]}, "b1")["value"] == "No"
+    assert telegram.answer_payload("choice", {"options": ["Yes"]}, "b7") is None
+    assert telegram.answer_payload("secret", {}, "b0") is None
+
+
+def test_link_phone_with_a_code(isolated):
+    eng, bridge, fake, hub = _phone(linked=False)
+    info = bridge.begin_link()
+    assert info["bot"] == "my_ai_team_bot" and len(info["code"]) == 6 and info["url"].endswith("my_ai_team_bot")
+    bridge.handle_update({"update_id": 1, "message": {"chat": {"id": 99, "type": "group"}, "text": info["code"]}})
+    assert bridge.chat_id() is None, "only a private chat can be linked"
+    bridge.handle_update({"update_id": 2, "message": {"chat": {"id": 4242, "type": "private"}, "text": "nope"}})
+    assert bridge.chat_id() is None
+    bridge.handle_update({"update_id": 3, "message": {"chat": {"id": 4242, "type": "private"},
+                                                      "text": f"/start {info['code']}"}})
+    assert bridge.chat_id() == 4242 and bridge.link is None
+    assert "linked" in fake.sent[-1]["text"]
+    assert bridge.status()["connected"] and bridge.status()["bot"] == "my_ai_team_bot"
+    bridge.stop()
+    eng.shutdown()
+
+
+def test_approve_from_the_phone(isolated):
+    slug = _bg_project("Phone")
+    eng, bridge, fake, hub = _phone()
+    sess = eng.session(slug)
+    fut = asyncio.run_coroutine_threadsafe(sess.ask_user("approval", {"title": "Run a command", "who": "Tester",
+                                                                      "what": "Runs the tests.", "risk": "low"}),
+                                           eng.loop)
+    assert _wait(lambda: bridge.cards and fake.sent)
+    item_id = next(iter(bridge.cards))
+    msg = fake.sent[-1]
+    assert msg["chat_id"] == 4242 and "Tester wants to: Run a command" in msg["text"]
+    data = msg["reply_markup"]["inline_keyboard"][0][0]["callback_data"]
+    assert data == f"c:{item_id}:b0"
+    _press(bridge, data, chat=777, sender=777)   # a stranger who found the bot
+    assert not fut.done() and not fake.answers, "other chats are ignored and get no answer"
+    _press(bridge, data)
+    assert fut.result(5)["approved"] is True
+    assert fake.answers[-1]["text"] == "Sent to Fred." and "approved from your phone" in fake.edits[-1]["text"]
+    card = next(e for e in hub.history(slug) if e["type"] == "approval")
+    assert card["status"] == "approved" and card["via"] == "phone"
+    _press(bridge, data)
+    assert fake.answers[-1]["text"] == "This request is no longer waiting."
+    bridge.stop()
+    eng.shutdown()
+
+
+def test_answered_at_the_pc_updates_the_phone(isolated):
+    slug = _bg_project("Pc")
+    eng, bridge, fake, hub = _phone()
+    fut = asyncio.run_coroutine_threadsafe(eng.session(slug).ask_user("choice", {"title": "Desktop or web?",
+                                                                                 "options": ["Desktop", "Web"]}), eng.loop)
+    assert _wait(lambda: bridge.cards)
+    item_id = next(iter(bridge.cards))
+    assert [r[0]["text"] for r in fake.sent[-1]["reply_markup"]["inline_keyboard"]] == ["Desktop", "Web"]
+    eng.respond(item_id, {"value": "Web"})
+    assert fut.result(5)["value"] == "Web"
+    assert _wait(lambda: fake.edits and "Answered at the PC" in fake.edits[-1]["text"])
+    bridge.stop()
+    eng.shutdown()
+
+
+def test_stuck_alert_wakes_fred_from_the_phone(isolated, monkeypatch):
+    slug = _bg_project("Alert")
+    eng, bridge, fake, hub = _phone()
+    woke = []
+    monkeypatch.setattr(eng, "wake", lambda s: woke.append(s) or "started")
+    sess = eng.session(slug)
+    sess.busy = True
+    sess.last_activity = time.time() - 400
+    eng.watch_check(slug)
+    assert _wait(lambda: any("Nothing has moved" in m["text"] for m in fake.sent))
+    alert = next(m for m in fake.sent if "Nothing has moved" in m["text"])
+    wake_btn = alert["reply_markup"]["inline_keyboard"][0][0]["callback_data"]
+    assert wake_btn == f"s:{slug}:wake"
+    _press(bridge, wake_btn)
+    assert woke == [slug] and fake.answers[-1]["text"] == "Fred was woken up."
+    bridge.stop()
+    eng.shutdown()
+
+
+def test_nothing_is_sent_without_a_linked_phone(isolated):
+    slug = _bg_project("Quiet")
+    eng, bridge, fake, hub = _phone(linked=False)
+    fut = asyncio.run_coroutine_threadsafe(eng.session(slug).ask_user("approval", {"title": "x"}), eng.loop)
+    time.sleep(0.3)
+    assert not fake.sent and not bridge.cards
+    eng.stop(slug)   # cancels the waiting card
+    assert fut.result(5).get("cancelled")
+    eng.shutdown()
+
+
+def test_setup_asks_permission_and_links_the_phone(isolated):
+    from app import tools
+    assert "ASK PERMISSION FIRST" in prompts.SETUP and "Nothing is installed on the PC" in prompts.SETUP
+    assert "connect_phone" in prompts.SETUP and "@BotFather" in prompts.SETUP
+    assert "telegram_bot_token" in secrets_store.KNOWN
+    eng, bridge, fake, hub = _phone(linked=False)
+    sess = eng.session(projects.SETUP_SLUG)
+    _, chosen = tools.build_server(sess)
+    handler = {t.name: t.handler for t in chosen}["connect_phone"]
+    fut = asyncio.run_coroutine_threadsafe(handler({}), eng.loop)
+    assert _wait(lambda: any(e["type"] == "telegram" for e in hub.history(projects.SETUP_SLUG)))
+    card = next(e for e in hub.history(projects.SETUP_SLUG) if e["type"] == "telegram")
+    assert card["state"] == "linking" and card["bot"] == "my_ai_team_bot"
+    bridge.handle_update({"update_id": 5, "message": {"chat": {"id": 4242, "type": "private"}, "text": card["code"]}})
+    out = fut.result(10)["content"][0]["text"]
+    assert out.startswith("Linked") and "High-risk approvals stay at the PC" in out
+    card = next(e for e in hub.history(projects.SETUP_SLUG) if e["type"] == "telegram")
+    assert card["state"] == "linked"
+    bridge.stop()
+    eng.shutdown()
+
+
+def test_phone_settings_endpoints(isolated):
+    import urllib.error
+    import urllib.request
+    from app import telegram
+    from app.server import App, serve
+    _ready()
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    app = App(engine=eng, hub=hub)
+    fake = FakeTelegram()
+    app.telegram.api = fake
+    httpd, url = serve(app)
+    base = url.split("/?")[0]
+
+    def post(path, body=None):
+        req = urllib.request.Request(base + path, data=json.dumps(body or {}).encode(),
+                                     headers={"X-Token": app.token, "Content-Type": "application/json"})
+        return json.loads(urllib.request.urlopen(req).read())
+    assert post("/api/telegram/settings", {})["telegram"]["connected"] is False
+    try:
+        post("/api/telegram/test")
+        raise AssertionError("must refuse without a phone")
+    except urllib.error.HTTPError as e:
+        assert e.code == 400
+    secrets_store.set_secret(telegram.TOKEN_NAME, "123:abc")
+    settings.save({"telegram_chat_id": 4242, "telegram_bot": "my_ai_team_bot"})
+    assert post("/api/telegram/test")["telegram"]["connected"] and "Test from AI Team Lite" in fake.sent[-1]["text"]
+    assert post("/api/telegram/settings", {"high_risk_on_phone": True})["telegram"]["high_risk_on_phone"] is True
+    st = post("/api/telegram/disconnect")["telegram"]
+    assert st["connected"] is False and not secrets_store.has(telegram.TOKEN_NAME)
+    httpd.shutdown()
+    eng.shutdown()
+
+
+
+def test_publish_check_catches_a_telegram_key(isolated, tmp_path):
+    from app import updates
+    (tmp_path / "notes.txt").write_text("bot key 123456789:AAH" + "x" * 33)
+    with pytest.raises(RuntimeError, match="looks like it contains a secret"):
+        updates.scan_for_secrets(tmp_path)

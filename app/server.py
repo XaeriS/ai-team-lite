@@ -16,6 +16,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from . import (__version__, auth, brains, challenge, github, iterations, journal, paths, projects, secrets_store,
                settings, skills as skills_mod, tooling, tracking, tools, features, updates, usage, voice, winhelpers)
 from . import engine as engine_mod
+from . import telegram
 from .engine import Engine
 from .events import EventHub
 
@@ -91,6 +92,10 @@ class App:
         self.listener = None
         self.voice_downloading = False
         self.voice_lock = threading.Lock()
+        self.telegram = telegram.Bridge(self.engine)   # L17: approvals and alerts on the phone
+        self.engine.telegram = self.telegram
+        if self.telegram.connected():
+            self.telegram.start()
 
     # ---------------------------------------------------------------- voice
     def voice_start(self, slug: str) -> str:
@@ -171,7 +176,8 @@ class App:
             "desktop": self.bridge is not None,
             "windows": paths.IS_WINDOWS,
             "interrupted": journal.interrupted(),
-            "why": {"problem": challenge.PROBLEM_WHY},   # L5: "Why Fred asked this" texts, kept in one place
+            "why": {"problem": challenge.PROBLEM_WHY},
+            "telegram": self.telegram.status(),   # L5: "Why Fred asked this" texts, kept in one place
             "seq": self.hub.seq,
         }
 
@@ -812,6 +818,24 @@ def make_handler(app: App):
             if path == "/api/voice/stop":
                 app.voice_stop(bool(body.get("cancel")))
                 return self._json({"ok": True})
+            m = re.fullmatch(r"/api/telegram/(setup|test|disconnect|settings)", path)
+            if m:   # L17: phone approvals, from Settings > Setup & connections
+                action = m.group(1)
+                if action == "setup":
+                    app.engine.send_message(projects.SETUP_SLUG, "[App] The user opened Settings and wants to set up "
+                                            "approvals from the phone (Telegram). Do only that step (3b of the setup), "
+                                            "starting with the explanation and asking permission.", hidden=True)
+                elif action == "test":
+                    if not app.telegram.connected():
+                        return self._error(400, "No phone is linked yet.")
+                    if not app.telegram.send("👋 Test from AI Team Lite: approvals and alerts will arrive here."):
+                        return self._error(400, "The message could not be sent. Check the internet connection, "
+                                                "or link the phone again.")
+                elif action == "disconnect":
+                    app.telegram.disconnect()
+                else:
+                    settings.save({"telegram_high_risk_on_phone": bool(body.get("high_risk_on_phone"))})
+                return self._json(app.state())
             if path == "/api/voice/test":   # L11: "Test microphone" with a live level bar
                 slug = str(body.get("slug") or projects.SETUP_SLUG)
                 if not voice.packages_available():

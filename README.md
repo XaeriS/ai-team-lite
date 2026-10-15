@@ -61,6 +61,10 @@ Everything else is set up for you
 - Usage in plain words (click the usage meter): what the prototype cost or would cost at API prices, per iteration,
   per day / week / month / year, by agent and by phase, the time each phase took (waiting for you counted apart),
   live activity per minute and per hour, and how much of your Claude plan is left.
+- Approve from your phone (optional): when the team waits for you while you are away, a Telegram message arrives
+  with Approve / Decline buttons, plus alerts when work is stuck or hits your plan's limit. Fred asks your
+  permission and sets it up with you (Settings > Setup & connections). Nothing is installed on the PC and no door
+  is opened on it; only your own chat is accepted; high-risk actions stay at the PC unless you allow them.
 - Work never gets stuck silently: if nothing moves for 3 minutes Fred says what is still running; after 5 minutes
   without any activity he says so and offers "Wake Fred up" or "Stop and restart this step".
 - The Pipeline shows every project's progress; you can let several projects work in turn.

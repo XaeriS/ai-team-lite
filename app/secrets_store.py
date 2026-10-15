@@ -8,7 +8,7 @@ from pathlib import Path
 SERVICE = "AI Team Lite"
 KNOWN = {"anthropic_api_key": "Anthropic API key", "github_token": "GitHub token",
          "gemini_api_key": "Google Gemini API key",
-         "app_repo_token": "AI Team Lite sharing token"}
+         "app_repo_token": "AI Team Lite sharing token", "telegram_bot_token": "Telegram bot key"}
 
 
 def _fallback_file() -> Path | None:

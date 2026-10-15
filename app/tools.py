@@ -7,6 +7,7 @@ import json
 import platform
 import re
 import time
+import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -169,7 +170,7 @@ def build_server(session: "Session"):
         return text(f"Saved {key} = {value}")
 
     @tool("request_secret", "Show the user a secure box to paste a secret. It is saved in Windows Credential "
-          "Manager; you never see it. name: github_token | anthropic_api_key.",
+          "Manager; you never see it. name: github_token | anthropic_api_key | telegram_bot_token.",
           {"name": str, "title": str, "explanation": str, "help_url": str})
     async def request_secret(args):
         name = args["name"]
@@ -663,7 +664,36 @@ def build_server(session: "Session"):
                     "security-audit skill (.aiteam/skills/security-audit, guidance mode, ATTACK-CLASSES.md), writing "
                     "reports/SECURITY_REVIEW.md. High findings become fix tasks before the version; tell the user the summary.")
 
-    setup_tools = [check_environment, save_setting, request_secret, ask_folder, ask_choice, github_check, finish_setup]
+    @tool("connect_phone", "Setup: after the user agreed and pasted their Telegram bot key (request_secret "
+          "name=telegram_bot_token), link their phone: shows a code the user sends to their bot, waits until it "
+          "arrives (up to 10 minutes) and sends a test message. Returns whether it worked.", {})
+    async def connect_phone(args):
+        bridge = session.engine.telegram
+        if bridge is None:
+            return text("Phone approvals are not available in this installation.", True)
+        if not bridge.token():
+            return text("No bot key yet: ask for it first with request_secret(name=\"telegram_bot_token\").", True)
+        from . import telegram
+        try:
+            info = await session.run_blocking(bridge.begin_link)
+        except telegram.TelegramError as e:
+            return text(f"Could not use the bot key: {e} Ask the user to copy it again from @BotFather.", True)
+        card = uuid.uuid4().hex[:12]
+        session.hub.publish(slug, {"type": "telegram", "id": card, "state": "linking", **info})
+        end = time.time() + telegram.LINK_SECONDS
+        while time.time() < end and not bridge.chat_id():
+            await session.sleep(2)
+        if not bridge.chat_id():
+            session.hub.update(slug, card, state="expired")
+            return text("The code did not arrive within 10 minutes. Offer to try again (call connect_phone again) or "
+                        "to do it later from Settings > Setup & connections.")
+        session.hub.update(slug, card, state="linked")
+        settings.save({"telegram_high_risk_on_phone": False})
+        return text(f"Linked: the user's phone now gets approvals and alerts from @{info['bot']} (a confirmation "
+                    "message was sent). High-risk approvals stay at the PC unless they change it in Settings.")
+
+    setup_tools = [check_environment, save_setting, request_secret, ask_folder, ask_choice, github_check, finish_setup,
+                   connect_phone]
     project_tools = [check_environment, save_setting, request_secret, ask_choice, github_check, github_create_repo,
                      github_push, request_plan_approval, take_screenshot, show_image, launch_for_user,
                      record_test_result, start_iteration, commit_iteration]

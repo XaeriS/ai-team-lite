@@ -54,7 +54,7 @@ CARD_TOOLS = {f"mcp__aiteam__{n}" for n in ("request_plan_approval", "ask_folder
                                             "handoff_to_architect", "request_architecture_approval", "record_problem",
                                             "record_challenge_review", "record_diagram",
                                             "return_to_fred", "record_prior_art", "ask_council",
-                                            "record_change_request", "run_security_test", "record_questions")}
+                                            "record_change_request", "run_security_test", "record_questions", "connect_phone")}
 WORKER_LABELS = {"developer": "Developer", "tester": "Tester", "reviewer": "Reviewer", "scout": "Scout",
                  "challenger": "Challenger", "diagrammer": "Diagrammer"}
 ROLES = ["Fred", "Mat", "Developer", "Tester", "Reviewer"]
@@ -254,16 +254,20 @@ class Session:
         self.engine.pending[item_id] = (fut, self.slug, kind)
         self.hub.publish(self.slug, {"type": kind, "id": item_id, "status": "pending", **payload})
         self.hub.publish(self.slug, {"type": "project_list", "transient": True})
+        self.engine.notify("card", slug=self.slug, item_id=item_id, kind=kind, payload=payload)
         # while this project waits for the user, its working slot goes to the next work in the master plan
         threading.Thread(target=self.engine._start_next, daemon=True).start()
         asked = time.time()
+        answer: dict = {}
         try:
-            return await fut
+            answer = await fut
+            return answer
         except asyncio.CancelledError:
             self.hub.update(self.slug, item_id, status="cancelled")
             return {"cancelled": True}
         finally:
             self.engine.pending.pop(item_id, None)
+            self.engine.notify("answered", slug=self.slug, item_id=item_id, via=answer.get("via"))
             self.last_activity = time.time()
             timeline.record(self.slug, "wait", self.persona, asked, time.time())   # L14: time waiting for you
 
@@ -923,6 +927,8 @@ class Engine:
         self.waiting: list[dict] = []          # turns waiting for a free slot (max parallel projects)
         self.notes: dict[str, list[str]] = {}  # app notes for Fred, delivered with the next message
         self.limit_timers: dict[str, tuple[str, Any, float]] = {}  # slug -> (card id, timer, when)
+        self.listeners: list[Callable[..., None]] = []  # e.g. the Telegram bridge (L17): notify(event, **details)
+        self.telegram = None
         self._send_lock = threading.RLock()
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.loop.run_forever, name="agent-loop", daemon=True)
@@ -935,6 +941,14 @@ class Engine:
             threading.Thread(target=self._start_next, daemon=True).start()
             self._schedule_tick()
         self.loop.call_later(PIPELINE_TICK, tick)
+
+    def notify(self, event: str, **details) -> None:
+        """Tell listeners (the phone) that a card waits, was answered, or that work is stuck / hit the limit."""
+        for listener in list(self.listeners):
+            try:
+                listener(event, **details)
+            except Exception:  # noqa: BLE001  (a listener must never break the work)
+                pass
 
     def _schedule_watchdog(self) -> None:
         def tick():
@@ -982,6 +996,7 @@ class Engine:
                            "Fred may be stuck. You can wake him up, or stop and restart this step."))
                 self.hub.publish(slug, {"type": "stuck", "id": card_id, "status": "open", "text": text,
                                         "minutes": int(quiet // 60), "running": [r["who"] for r in running]})
+                self.notify("stuck", slug=slug, card_id=card_id, text=text)
                 if between:   # Fred is between turns (e.g. waiting for a report that will not come): ask him now
                     self.send_message(slug, self.wake_note(slug, int(quiet // 60), auto=True), hidden=True)
             return found
@@ -1304,6 +1319,9 @@ class Engine:
         self.hub.publish(slug, {"type": "limit", "id": item_id, "status": "waiting", "resets_at": resets,
                                 "continue_at": when, "auto": when is not None, "label": entry.get("label", ""),
                                 "detail": entry.get("detail", "")})
+        self.notify("limit", slug=slug, text="Your Claude plan's usage limit was reached, so the work stopped. " + (
+            time.strftime("It continues by itself at %H:%M.", time.localtime(when)) if when else
+            "Continue it from the app when the limit resets."))
         self.hub.publish(slug, {"type": "project_list", "transient": True})
         if when is not None:
             def schedule():
@@ -1324,6 +1342,8 @@ class Engine:
                             note="Continued automatically." if auto else "Continued.")
         if (projects.load(slug) or {}).get("paused"):
             return "paused"
+        if auto:
+            self.notify("resumed", slug=slug, text="The usage limit has reset: the work continues.")
         return self.send_message(slug, CONTINUE_TEXT, hidden=True)
 
     def cancel_auto_continue(self, slug: str, note: str = "") -> None:
