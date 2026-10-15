@@ -2,8 +2,8 @@
 
 - Plan usage (Claude subscription): the Claude engine sends rate-limit updates with the 5-hour session and
   weekly utilization and reset times. The latest of each is kept in usage.json.
-- Tokens and API-price cost per reply are appended to usage-log.jsonl (one line per model call or turn),
-  so the app can show today / this week / this month and who used what.
+- Tokens and API-price cost per reply are appended to usage-log.jsonl (one line per model call or turn);
+  analytics.py turns them into the Usage window (per period, agent, phase and iteration).
 - Each line also records the project's iteration and phase, and is copied into a ledger INSIDE the project
   folder (.aiteam/usage.jsonl), so a project keeps its full token history by model and iteration even if it is
   moved to another folder or another PC (item 57).
@@ -16,14 +16,13 @@ import re
 import subprocess
 import threading
 import time
-from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 
-from . import models, paths
+from . import ledger, models, paths
 
 LIMIT_LABELS = {"five_hour": "Current session (5 hours)", "seven_day": "This week", "seven_day_sonnet": "This week (Sonnet only)",
-                "seven_day_opus": "This week (Opus)", "seven_day_sonnet": "This week (Sonnet)", "overage": "Extra usage"}
+                "seven_day_opus": "This week (Opus)", "overage": "Extra usage"}
 _lock = threading.Lock()
 
 
@@ -181,18 +180,7 @@ def plan() -> dict:
 
 def _ledger(project: str, create: bool = False) -> Path | None:
     """The project's own usage ledger (inside its folder), or None for the setup chat / unknown projects."""
-    if not project or project in ("setup", "?"):
-        return None
-    try:
-        from . import projects
-        if not projects.load(project):
-            return None
-        d = projects.project_dir(project) / projects.META
-        if create:
-            d.mkdir(parents=True, exist_ok=True)
-        return d / "usage.jsonl"
-    except Exception:  # noqa: BLE001
-        return None
+    return ledger.project_file(project, "usage.jsonl", create)
 
 
 def _stage(project: str, who: str = "") -> dict:
@@ -205,7 +193,7 @@ def _stage(project: str, who: str = "") -> dict:
         return {"iteration": None, "phase": ""}
 
 
-def _backfill(project: str, ledger: Path) -> None:
+def _backfill(project: str, path: Path) -> None:
     """First time a project gets its ledger: copy its earlier rows from the app's log, matching each to the
     iteration that was running then (by the iterations' start and finish times)."""
     try:
@@ -215,13 +203,13 @@ def _backfill(project: str, ledger: Path) -> None:
     except Exception:  # noqa: BLE001
         spans = []
     lines = []
-    for r in _rows():
+    for r in all_rows():
         if r.get("project") != project:
             continue
         if "iteration" not in r:
             r["iteration"] = next((n for n, a, b in spans if a <= r.get("t", 0) <= b), None)
         lines.append(json.dumps(r))
-    ledger.write_text("".join(x + "\n" for x in lines), encoding="utf-8")
+    path.write_text("".join(x + "\n" for x in lines), encoding="utf-8")
 
 
 def record_tokens(project: str, who: str, usage: dict | None, cost_usd: float = 0.0, model: str = "") -> None:
@@ -234,186 +222,62 @@ def record_tokens(project: str, who: str, usage: dict | None, cost_usd: float = 
         return
     row.update(_stage(project, who))
     with _lock:
-        ledger = _ledger(project, create=True)
-        if ledger is not None and not ledger.exists():
-            _backfill(project, ledger)
-        with open(_log_file(), "a", encoding="utf-8") as f:
-            f.write(json.dumps(row) + "\n")
-        if ledger is not None:
-            try:
-                with open(ledger, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(row) + "\n")
-            except OSError:
-                pass  # the folder may be read-only or offline; the app's log still has it
+        own = _ledger(project, create=True)
+        if own is not None and not own.exists():
+            _backfill(project, own)
+        ledger.append(row, _log_file(), own)
 
 
-def _rows(path: Path | None = None) -> list[dict]:
-    try:
-        lines = (path or _log_file()).read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    out = []
-    for line in lines:
-        try:
-            out.append(json.loads(line))
-        except ValueError:
-            pass
-    return out
+def all_rows() -> list[dict]:
+    """Every token row of every project (the app's own log)."""
+    return ledger.read(_log_file())
 
 
-def _row_model(r: dict) -> str:
+def project_rows(slug: str) -> list[dict]:
+    """A project's usage history: its own ledger when it has one (it travels with the folder), else the app's log."""
+    own = _ledger(slug)
+    if own is not None and own.exists():
+        return ledger.read(own)
+    return [r for r in all_rows() if r.get("project") == slug]
+
+
+def row_model(r: dict) -> str:
     """Rows from before 0.7.0 have no model: Claude rows then used the default model (Sonnet)."""
     if r.get("model"):
         return r["model"]
     return "" if r.get("who") == "total" else models.CLAUDE["sonnet"]["id"]
 
 
-def _tok(r: dict) -> int:
+def tokens(r: dict) -> int:
+    """Tokens of one row as the app counts them: input, output and cache writes (cache reads are nearly free)."""
     return r.get("in", 0) + r.get("out", 0) + r.get("cache_write", 0)
 
 
-def summary(days: int = 14) -> dict:
-    today = date.today()
-    week_start = today - timedelta(days=today.weekday())
-    month_start = today.replace(day=1)
-    by_day: dict[str, dict] = {(today - timedelta(days=i)).isoformat(): defaultdict(int) for i in range(days)}
-    cost = {"today": 0.0, "week": 0.0, "month": 0.0}
-    tokens = {"today": 0, "week": 0, "month": 0}
-    split = {"input": 0, "output": 0, "cached": 0}       # this month, input vs output vs cached input (item 44)
-    cache = {"cached_input": 0, "fresh_input": 0, "saved": 0.0}  # cache savings this month (item 43a)
-    periods = {"today": today, "week": week_start, "month": month_start}
-    projects: dict[str, dict] = defaultdict(lambda: {"tokens": 0, "cost": 0.0, "est_cost": 0.0, "week": 0,
-                                                     "models": defaultdict(int), "unpriced": False})
-    by_model: dict[str, dict] = defaultdict(lambda: {"today": 0, "week": 0, "month": 0, "total": 0,
-                                                     "est_cost": 0.0, "est_week": 0.0,
-                                                     "input": 0, "output": 0, "cached": 0})
-    by_day_model: dict[str, dict] = {k: defaultdict(int) for k in by_day}
-    for r in _rows():
-        d = date.fromisoformat(r["day"])
-        tok = _tok(r)
-        model = _row_model(r)
-        est = models.cost({**r, "model": model}) if tok else 0.0
-        for key, start in periods.items():
-            if d >= start:
-                cost[key] += r.get("cost", 0)
-                tokens[key] += tok
-        if r["day"] in by_day and tok:
-            by_day[r["day"]][r.get("who") or "Fred"] += tok
-            by_day_model[r["day"]][models.label(model)] += tok
-        p = projects[r.get("project") or "?"]
-        p["tokens"] += tok
-        p["cost"] += r.get("cost", 0)
-        if d >= week_start:
-            p["week"] += tok
-        if tok:
-            p["models"][models.label(model)] += tok
-            if est is None:
-                p["unpriced"] = True
-            else:
-                p["est_cost"] += est
-            m = by_model[model]
-            m["total"] += tok
-            m["est_cost"] += est or 0
-            m["input"] += r.get("in", 0); m["output"] += r.get("out", 0)
-            m["cached"] += r.get("cache_read", 0)
-            for key, start in periods.items():
-                if d >= start:
-                    m[key] += tok
-            if d >= week_start:
-                m["est_week"] += est or 0
-            if d >= month_start:
-                split["input"] += r.get("in", 0); split["output"] += r.get("out", 0)
-                split["cached"] += r.get("cache_read", 0)
-                cache["cached_input"] += r.get("cache_read", 0)
-                cache["fresh_input"] += r.get("in", 0) + r.get("cache_write", 0)
-                pr = models.price_for(model)
-                if pr:  # what the cached input would have cost at the full input price, minus the cache-read price
-                    cache["saved"] += r.get("cache_read", 0) * (pr["in"] - pr["cache_read"]) / 1_000_000
-    week_total = sum(p["week"] for p in projects.values()) or 1
-    total_in = cache["cached_input"] + cache["fresh_input"]
-    cache["cached_pct"] = round(100 * cache["cached_input"] / total_in, 1) if total_in else 0.0
-    cache["saved"] = round(cache["saved"], 2)
-    return {"plan": plan(), "cost": {k: round(v, 2) for k, v in cost.items()}, "tokens": tokens,
-            "split": split, "cache": cache,
-            "days": [{"day": k, **dict(v)} for k, v in sorted(by_day.items())],
-            "days_by_model": [{"day": k, **dict(v)} for k, v in sorted(by_day_model.items())],
-            "models": [{"model": k, "label": models.label(k), "priced": models.price_for(k) is not None,
-                        **{kk: (round(vv, 2) if isinstance(vv, float) else vv) for kk, vv in v.items()}}
-                       for k, v in sorted(by_model.items(), key=lambda kv: -kv[1]["total"])],
-            "projects": {k: {"tokens": v["tokens"], "cost": round(v["cost"], 2), "est_cost": round(v["est_cost"], 2),
-                             "week_share": round(100 * v["week"] / week_total, 1), "unpriced": v["unpriced"],
-                             "models": dict(v["models"])} for k, v in projects.items()},
-            "prices_checked": models.PRICES_CHECKED}
+def est_cost(r: dict) -> float:
+    """What one row costs at the providers' list prices (0 when the model has no known price)."""
+    return models.cost({**r, "model": row_model(r)}) or 0.0
 
 
-def project_rows(slug: str) -> list[dict]:
-    """A project's usage history: its own ledger when it has one (it travels with the folder), else the app's log."""
-    ledger = _ledger(slug)
-    if ledger is not None and ledger.exists():
-        return _rows(ledger)
-    return [r for r in _rows() if r.get("project") == slug]
-
-
-PHASE_LABELS = {"discover": "Requirements (Fred)", "architecture": "Architecture (Mat)", "plan": "Planning",
-                "execute": "Between iterations", "review": "Review"}
-
-
-def project_usage(slug: str) -> dict:
-    """Tokens and estimated cost of one project by model and by iteration (item 57)."""
-    from . import iterations
-    names = {it["n"]: it["name"] for it in iterations.load(slug)}
-
-    def blank():
-        return {"in": 0, "out": 0, "cached": 0, "cache_write": 0, "tokens": 0, "est_cost": 0.0, "unpriced": False}
-    total, by_model, groups = blank(), defaultdict(blank), {}
-    for r in project_rows(slug):
-        tok = _tok(r)
-        if not tok and not r.get("cache_read"):
-            continue
-        model = _row_model(r)
-        est = models.cost({**r, "model": model})
-        n = r.get("iteration")
-        key = f"it-{n}" if n else f"ph-{r.get('phase') or 'other'}"
-        if key not in groups:
-            label = f"Iteration {n}: {names.get(n, '')}".rstrip(": ") if n else \
-                PHASE_LABELS.get(r.get("phase") or "", "Before AI Team Lite tracked iterations")
-            groups[key] = {"key": key, "n": n or 0, "label": label, **blank(), "models": defaultdict(blank)}
-        for bucket in (total, by_model[model], groups[key], groups[key]["models"][model]):
-            bucket["in"] += r.get("in", 0); bucket["out"] += r.get("out", 0)
-            bucket["cached"] += r.get("cache_read", 0); bucket["cache_write"] += r.get("cache_write", 0)
-            bucket["tokens"] += tok
-            if est is None:
-                bucket["unpriced"] = True
-            else:
-                bucket["est_cost"] += est
-
-    def clean(b):
-        return {k: (round(v, 4) if isinstance(v, float) else v) for k, v in b.items() if k != "models"}
-    ordered = sorted(groups.values(), key=lambda g: (g["n"] == 0, g["n"]))
-    ledger = _ledger(slug)
-    return {"total": clean(total),
-            "by_model": [{"model": m, "label": models.label(m), **clean(v)}
-                         for m, v in sorted(by_model.items(), key=lambda kv: -kv[1]["tokens"])],
-            "by_iteration": [{**clean(g), "models": [{"model": m, "label": models.label(m), **clean(v)}
-                                                    for m, v in sorted(g["models"].items(), key=lambda kv: -kv[1]["tokens"])]}
-                             for g in ordered],
-            "portable": bool(ledger and ledger.exists()), "ledger": str(ledger) if ledger else ""}
+def cost_today() -> float:
+    """What the API key was really billed today (the engine reports it per turn)."""
+    today = date.today().isoformat()
+    return round(sum(r.get("cost", 0) for r in all_rows() if r.get("day") == today), 2)
 
 
 def project_cost(slug: str, windows: list[tuple[float, float]] | None = None) -> dict:
     """Estimated cost of a project at the providers' prices (whatever the sign-in method), plus the cost of each
     time window given (used per iteration)."""
-    total, per_window, tokens = 0.0, [0.0] * len(windows or []), 0
+    total, per_window, count = 0.0, [0.0] * len(windows or []), 0
     for r in project_rows(slug):
-        if not _tok(r):
+        if not tokens(r):
             continue
-        c = models.cost({**r, "model": _row_model(r)}) or 0.0
+        c = est_cost(r)
         total += c
-        tokens += _tok(r)
+        count += tokens(r)
         for i, (a, b) in enumerate(windows or []):
             if a <= r.get("t", 0) <= b:
                 per_window[i] += c
-    return {"est_cost": round(total, 4), "tokens": tokens, "windows": [round(x, 4) for x in per_window]}
+    return {"est_cost": round(total, 4), "tokens": count, "windows": [round(x, 4) for x in per_window]}
 
 
 def _fresh_real(data: dict, max_age: float = 180) -> bool:

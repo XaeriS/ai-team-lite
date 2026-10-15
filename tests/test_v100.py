@@ -537,7 +537,28 @@ def test_name_can_be_changed_in_settings(isolated):
                                  headers={"X-Token": app.token, "Content-Type": "application/json"})
     st = json.loads(urllib.request.urlopen(req).read())
     assert st["settings"]["user_name"] == "Anne"
-    html = (engine_mod.Path(__file__).resolve().parent.parent / "app" / "ui" / "index.html").read_text()
+    ui = engine_mod.Path(__file__).resolve().parent.parent / "app" / "ui"
+    html = "\n".join(f.read_text() for f in [ui / "index.html", *sorted((ui / "js").glob("*.js"))])
     assert "'with ' + S.settings.user_name" not in html, "the name is not shown as part of the product name"
+    httpd.shutdown()
+    eng.shutdown()
+
+
+
+# ------------------------------------------------------------------------------- L16: the screen in several files
+def test_screen_files_are_served_with_their_types(isolated):
+    import urllib.request
+    from app.server import App, serve
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    app = App(engine=eng, hub=hub)
+    httpd, url = serve(app)
+    base = url.split("/?")[0]
+    page = urllib.request.urlopen(url).read().decode()
+    scripts = __import__("re").findall(r'src="(/ui/js/[\w.]+)"', page)
+    assert len(scripts) >= 5 and '/ui/app.css' in page and 'const TOKEN = "' + app.token in page
+    for src in scripts + ["/ui/app.css"]:
+        r = urllib.request.urlopen(base + src)
+        assert r.headers["Content-Type"].startswith("text/javascript" if src.endswith(".js") else "text/css")
     httpd.shutdown()
     eng.shutdown()

@@ -16,7 +16,7 @@ import re
 
 ALWAYS_ALLOW = {
     "Read", "Glob", "Grep", "LS", "TodoWrite", "TodoRead", "NotebookRead", "WebSearch", "WebFetch",
-    "TaskOutput", "BashOutput", "ToolSearch", "ListMcpResourcesTool", "ReadMcpResourceTool",
+    "BashOutput", "ToolSearch", "ListMcpResourcesTool", "ReadMcpResourceTool",
     "mcp__aiteam__check_environment", "mcp__aiteam__request_secret", "mcp__aiteam__ask_folder",
     "mcp__aiteam__save_setting", "mcp__aiteam__request_plan_approval", "mcp__aiteam__github_check",
     "mcp__aiteam__finish_setup", "mcp__aiteam__show_image", "mcp__aiteam__ask_choice",

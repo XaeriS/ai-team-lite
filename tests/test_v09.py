@@ -52,19 +52,6 @@ def test_brain_not_added_when_test_fails(isolated, monkeypatch):
     eng.shutdown(); httpd.shutdown()
 
 
-# ------------------------------------------------------------------ usage split + cache (43a,44)
-def test_usage_split_and_cache_savings(isolated):
-    usage.record_tokens("p", "Developer", {"input_tokens": 1000, "output_tokens": 500,
-                                           "cache_read_input_tokens": 9000, "cache_creation_input_tokens": 200},
-                        model="claude-sonnet-5-5")
-    s = usage.summary()
-    assert s["split"]["input"] == 1000 and s["split"]["output"] == 500 and s["split"]["cached"] == 9000
-    m = next(x for x in s["models"] if x["model"] == "claude-sonnet-5-5")
-    assert m["input"] == 1000 and m["output"] == 500
-    # cached 9000 tokens saved at (in 2.0 - cache_read 0.10)/M
-    assert s["cache"]["cached_pct"] > 80 and s["cache"]["saved"] == round(9000 * (2.0 - 0.10) / 1e6, 2)
-
-
 # ------------------------------------------------------------------ context cap (48)
 def test_context_cap_resets_and_briefs(isolated):
     secrets_store.set_secret("anthropic_api_key", "sk-ant-x")

@@ -126,8 +126,6 @@ def describe_tool(name: str, inp: dict, root: Path) -> str:
         return "updating the to-do list"
     if name in QUIET_TOOLS:
         return "getting ready"
-    if name == "TaskOutput":
-        return "waiting for a worker's report"
     if name.startswith("mcp__aiteam__"):
         return name.removeprefix("mcp__aiteam__").replace("_", " ")
     return name

@@ -9,12 +9,11 @@ plan, build, test, review, diagrams... They are worked out from who is working a
 """
 from __future__ import annotations
 
-import json
 import threading
 import time
 from pathlib import Path
 
-from . import paths
+from . import ledger, paths
 
 _lock = threading.Lock()
 _open: dict[tuple[str, str], tuple[str, float]] = {}   # (project, key) -> (who, start) for a worker running now
@@ -90,40 +89,14 @@ def _log_file() -> Path:
     return paths.data_dir() / "time-log.jsonl"
 
 
-def _ledger(project: str) -> Path | None:
-    if not project or project in ("setup", "?"):
-        return None
-    try:
-        from . import projects
-        if not projects.load(project):
-            return None
-        d = projects.project_dir(project) / projects.META
-        d.mkdir(parents=True, exist_ok=True)
-        return d / "time.jsonl"
-    except Exception:  # noqa: BLE001
-        return None
-
-
 def record(project: str, kind: str, who: str, t0: float, t1: float) -> None:
     """kind: "lead" (a turn of Fred or Mat), "worker" (a worker's run) or "wait" (waiting for the user)."""
     if not project or t1 - t0 < 0.5:
         return
     row = {"t0": round(t0, 2), "t1": round(t1, 2), "project": project, "kind": kind, "who": who,
            **project_stage(project, who)}
-    line = json.dumps(row) + "\n"
     with _lock:
-        try:
-            with open(_log_file(), "a", encoding="utf-8") as f:
-                f.write(line)
-        except OSError:
-            pass
-        ledger = _ledger(project)
-        if ledger is not None:
-            try:
-                with open(ledger, "a", encoding="utf-8") as f:
-                    f.write(line)
-            except OSError:
-                pass
+        ledger.append(row, _log_file(), ledger.project_file(project, "time.jsonl", create=True))
 
 
 def start(project: str, key: str, who: str) -> None:
@@ -140,27 +113,11 @@ def stop(project: str, key: str) -> None:
 
 def rows(project: str | None = None) -> list[dict]:
     """Time spans of one project (its own ledger when it has one) or of all projects."""
-    path = None
-    if project:
-        try:
-            from . import projects
-            p = projects.project_dir(project) / projects.META / "time.jsonl"
-            path = p if p.exists() else None
-        except Exception:  # noqa: BLE001
-            path = None
-    try:
-        lines = (path or _log_file()).read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    out = []
-    for line in lines:
-        try:
-            r = json.loads(line)
-        except ValueError:
-            continue
-        if project and r.get("project") != project:
-            continue
-        out.append(r)
+    own = ledger.project_file(project, "time.jsonl") if project else None
+    if own is not None and own.exists():
+        out = ledger.read(own)
+    else:
+        out = [r for r in ledger.read(_log_file()) if not project or r.get("project") == project]
     # a worker running right now counts up to now
     now = time.time()
     with _lock:

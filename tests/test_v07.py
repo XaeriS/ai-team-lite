@@ -79,16 +79,15 @@ def test_usage_per_brain_and_cost(isolated):
     usage.record_tokens("calc", "Reviewer", {"input_tokens": 1_000_000}, model="claude-haiku-5-5")
     usage.record_tokens("calc", "Ollama · qwen", {"input_tokens": 5000}, model="ollama:qwen3:8b")
     usage.record_tokens("other", "Fred", {"input_tokens": 2_000_000}, model="")  # before 0.7.0: Sonnet
-    s = usage.summary()
-    m = {x["model"]: x for x in s["models"]}
-    assert m["claude-sonnet-5-5"]["est_cost"] == pytest.approx(2 + 1 + 4)
-    assert m["claude-haiku-5-5"]["est_cost"] == pytest.approx(0.10) and m["ollama:qwen3:8b"]["est_cost"] == 0
-    assert s["projects"]["calc"]["est_cost"] == pytest.approx(3.10)
-    assert s["projects"]["calc"]["models"]["Claude Haiku 5.5"] == 1_000_000
-    assert s["projects"]["calc"]["week_share"] + s["projects"]["other"]["week_share"] == pytest.approx(100, abs=0.2)
-    assert "Claude Sonnet 5.5" in s["days_by_model"][-1]
+    from app import analytics
+    s = analytics.report(None, "all")
+    per = {x["slug"]: x for x in s["projects"]}
+    agents = {x["name"]: x for x in s["split"]["by_agent"]}
+    assert agents["Developer"]["cost"] == pytest.approx(2 + 1) and agents["Reviewer"]["cost"] == pytest.approx(0.10)
+    assert agents["Ollama · qwen"]["cost"] == 0 and agents["Fred"]["cost"] == pytest.approx(4)   # no model: Sonnet
+    assert per["calc"]["cost"] == pytest.approx(3.10) and s["total"]["cost"] == pytest.approx(7.10)
     settings.save({"prices": {"claude-haiku-5-5": {"in": 1, "out": 5, "cache_read": 0.1, "cache_write": 1.25}}})
-    assert usage.summary()["projects"]["calc"]["est_cost"] == pytest.approx(4.0)
+    assert {x["slug"]: x for x in analytics.report(None)["projects"]}["calc"]["cost"] == pytest.approx(4.0)
     assert models.price_for("mystery-model") is None
 
 

@@ -142,17 +142,17 @@ def test_ledger_by_iteration_and_model_travels(isolated, tmp_path):
     ledger = projects.project_dir(slug) / ".aiteam" / "usage.jsonl"
     rows = [json.loads(x) for x in ledger.read_text().splitlines()]
     assert len(rows) == 2 and rows[1]["iteration"] == 1 and rows[0]["iteration"] is None
-    d = usage.project_usage(slug)
-    assert d["portable"] and d["total"]["in"] == 1100 and d["total"]["out"] == 510
-    it1 = next(g for g in d["by_iteration"] if g["n"] == 1)
-    assert it1["label"] == "Iteration 1: First" and it1["models"][0]["label"].startswith("Claude Opus")
-    assert it1["cached"] == 300 and it1["est_cost"] > 0
+    from app import analytics
+    d = analytics.report(slug)
+    assert d["total"]["tokens"] == 1610
+    it1 = next(g for g in d["iterations"] if g["n"] == 1)
+    assert it1["name"] == "First" and it1["tokens"] == 1500 and it1["cost"] > 0
     # the app's own log is lost (new PC) and the folder is moved: the project still knows its history
     (Path(usage._log_file())).unlink()
     moved = tmp_path / "elsewhere"
     shutil.copytree(projects.project_dir(slug), moved)
     q = projects.create_from_folder(str(moved), "Ledger moved")
-    assert usage.project_usage(q["slug"])["total"]["out"] == 510
+    assert analytics.report(q["slug"])["total"]["tokens"] == 1610
 
 
 def test_ledger_backfills_earlier_history(isolated):

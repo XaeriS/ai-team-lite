@@ -90,8 +90,7 @@ def test_tracking_versions_and_approval(isolated):
     assert len(tracking.versions(slug, "requirements")) == 2
     tracking.mark_approved(slug, "requirements")
     assert tracking.versions(slug, "requirements")[-1]["approved"]
-    d = tracking.diff(slug, "requirements", 1, 2)
-    assert any(x["t"] == "add" and "REQ-3" in x["text"] for x in d)
+    assert "REQ-3" in tracking.text_of(slug, "requirements", 2) and "REQ-3" not in tracking.text_of(slug, "requirements", 1)
 
 
 def test_tracking_traceability_and_progress(isolated):
@@ -114,8 +113,6 @@ def test_tracking_traceability_and_progress(isolated):
     tracking.snapshot(slug, "added REQ-4", git=False)
     rows = {r["id"]: r for r in tracking.traceability(slug)}
     assert rows["REQ-4"]["status"] == "proposed"
-    prog = tracking.progress(slug)
-    assert prog["requirements"]["total"] >= 2 and prog["iterations"]["done"] == 1
 
 
 def test_change_requests(isolated):
@@ -124,10 +121,8 @@ def test_change_requests(isolated):
     cr = tracking.add_change_request(slug, {"title": "Dark mode", "description": "add a dark theme",
                                             "affects_requirements": ["REQ-1"], "effort": "1 iteration"})
     assert cr["id"] == "CR-1" and cr["status"] == "pending"
-    assert tracking.progress(slug)["open_change_requests"] == 1
     tracking.decide_change_request(slug, "CR-1", approved=True, note="go")
     assert tracking.change_requests(slug)[0]["status"] == "approved"
-    assert tracking.progress(slug)["open_change_requests"] == 0
 
 
 # ------------------------------------------------------------------------------- skills (24, 30)

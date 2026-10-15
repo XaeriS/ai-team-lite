@@ -41,6 +41,7 @@ def test_expert_features_are_gone(isolated):
         eng.shutdown()
     for gone in ("strix", "omniroute", "graphify", "rust_install"):
         assert not any(gone in n for n in dir(tooling)), gone
-    ui = (ROOT / "app" / "ui" / "index.html").read_text(encoding="utf-8")
+    ui = "\n".join(f.read_text(encoding="utf-8") for f in [ROOT / "app" / "ui" / "index.html",
+                                                            *sorted((ROOT / "app" / "ui" / "js").glob("*.js"))])
     for gone in ("data-adv", "Advanced mode", "OmniRoute", "Strix", "renderChanges", "cleanBtn", "setLang", "roleBox"):
         assert gone not in ui, gone

@@ -69,12 +69,6 @@ def test_gemini_needs_key():
     b = brains.add("gemini", "gemini-2.5-flash")
     ok, msg = brains.test(b)
     assert not ok and "no API key" in msg
-def _project_with_test(tmp):
-    folder = tmp / "proj"
-    (folder / "tests").mkdir(parents=True)
-    (folder / "tests" / "test_calc.py").write_text("from calc import add\n\ndef test_add():\n    assert add(2, 3) == 5\n")
-    return folder
-# ------------------------------------------------------------------------------- risk explanations
 def test_risk_explanations(tmp_path):
     root = tmp_path
     inside = lambda p: str(p).startswith(str(root)) or not Path(p).is_absolute()
@@ -130,7 +124,6 @@ def test_approval_card_has_explanation_and_team_updates(isolated):
         yield msgs[0]
 
     hub, eng = _engine(script)
-    team_events = []
     eng.send_message(p["slug"], "go")
     assert _wait(lambda: eng.pending_for(p["slug"]))
     first = [e for e in hub.history(p["slug"]) if e["type"] == "approval"][-1]

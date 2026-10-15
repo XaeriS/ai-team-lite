@@ -99,11 +99,12 @@ def test_usage_plan_and_summary():
     usage.record_tokens("calc", "Fred", {"input_tokens": 100, "output_tokens": 50})
     usage.record_tokens("calc", "Developer", {"input_tokens": 1000, "output_tokens": 500, "cache_creation_input_tokens": 10})
     usage.record_tokens("calc", "total", None, 0.37)
-    s = usage.summary(14)
-    assert s["tokens"]["today"] == 1660 and s["cost"]["today"] == 0.37
-    today = s["days"][-1]
-    assert today["Fred"] == 150 and today["Developer"] == 1510 and "total" not in today
-    assert s["projects"]["calc"]["tokens"] == 1660 and s["projects"]["calc"]["cost"] == 0.37
+    from app import analytics
+    assert usage.cost_today() == 0.37
+    s = analytics.report(None, "day")
+    assert s["periods"][0]["label"] == "Today" and s["periods"][0]["tokens"] == 1660
+    agents = {a["name"]: a["tokens"] for a in s["periods"][0]["by_agent"]}
+    assert agents == {"Fred": 150, "Developer": 1510}, "the engine's per-turn cost row is not an agent"
 
 
 # ------------------------------------------------------------------------------- engine: questions while a card waits, usage events

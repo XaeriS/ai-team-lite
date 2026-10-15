@@ -18,16 +18,14 @@ UNIT_COUNT = {"day": 14, "week": 12, "month": 12}
 
 
 def _rows(slug: str | None) -> list[dict]:
-    if slug:
-        return usage.project_rows(slug)
-    return usage._rows()
+    return usage.project_rows(slug) if slug else usage.all_rows()
 
 
 def _priced(r: dict) -> tuple[int, float]:
-    tok = usage._tok(r)
+    tok = usage.tokens(r)
     if not tok and not r.get("cache_read"):
         return 0, 0.0
-    return tok, models.cost({**r, "model": usage._row_model(r)}) or 0.0
+    return tok, usage.est_cost(r)
 
 
 def _stage(r: dict) -> str:
@@ -142,7 +140,7 @@ def activity(slug: str | None, now: float | None = None) -> dict:
         age = now - t
         if age < 0 or age >= 86400:
             continue
-        tok = usage._tok(r)
+        tok = usage.tokens(r)
         if age < 3600:
             minutes[59 - int(age // 60)] += tok
         hours[23 - int(age // 3600)] += tok

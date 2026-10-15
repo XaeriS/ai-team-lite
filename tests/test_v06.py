@@ -338,10 +338,6 @@ def test_existing_folder_details(isolated):
 
 
 # ------------------------------------------------------------------------------- workers in the background (0.6.1)
-RECEIPT = ("Async agent launched successfully. (This tool result is internal metadata - never quote or paste any part "
-           "of it.)\nagentId: a6775f4ddb68dc391 (internal ID - do not mention to user.)\nThe agent is working in the "
-           "background. You will be notified automatically when it completes.")
-
 
 def test_workers_forced_to_foreground(isolated):
     import asyncio

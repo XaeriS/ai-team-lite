@@ -5,10 +5,10 @@
 - Approved versions are marked (plan approval -> requirements + plan; architecture approval -> architecture).
 - Each requirement (REQ-n) gets a status computed from the documents, the iterations and the test results.
 - Change requests after approval are recorded as CR-n with their impact and need the user's approval.
+(The version history is kept for traceability and for IT; Lite shows no history or diff screen.)
 """
 from __future__ import annotations
 
-import difflib
 import hashlib
 import json
 import re
@@ -97,21 +97,6 @@ def mark_approved(slug: str, doc: str, by: str = "you") -> dict | None:
     return items[-1]
 
 
-def diff(slug: str, doc: str, a: int, b: int) -> list[dict]:
-    old = text_of(slug, doc, a).splitlines() if a else []
-    new = text_of(slug, doc, b).splitlines()
-    out = []
-    for line in difflib.ndiff(old, new):
-        tag = line[:1]
-        if tag in "+- ":
-            out.append({"t": {"+": "add", "-": "del", " ": "same"}[tag], "text": line[2:]})
-    return out
-
-
-def history(slug: str) -> dict:
-    return {doc: {"label": DOCS[doc][1], "versions": versions(slug, doc)} for doc in DOCS}
-
-
 # ---------------------------------------------------------------------------- requirements status
 def parse_requirements(text: str) -> dict[str, str]:
     reqs: dict[str, str] = {}
@@ -198,26 +183,3 @@ def decide_change_request(slug: str, cr_id: str, approved: bool, note: str = "")
             projects.update(slug, change_requests=crs)
             return cr
     return None
-
-
-# ---------------------------------------------------------------------------- progress
-def progress(slug: str) -> dict:
-    rows = traceability(slug)
-    live = [r for r in rows if r["status"] != "dropped"]
-    done = [r for r in live if r["status"] in ("built", "tested")]
-    its = iterations.load(slug)
-    tests = tools.load_tests(projects.project_dir(slug))
-    days: dict[str, dict] = defaultdict(lambda: {"passed": 0, "failed": 0})
-    for t in tests:
-        if t.get("status") in ("passed", "failed") and t.get("time"):
-            days[time.strftime("%Y-%m-%d", time.localtime(t["time"]))][t["status"]] += 1
-    last = {}
-    for doc in DOCS:
-        vs = versions(slug, doc)
-        if vs:
-            last[doc] = {"v": vs[-1]["v"], "time": vs[-1]["time"], "approved": vs[-1].get("approved", False)}
-    return {"requirements": {"total": len(live), "done": len(done),
-                             "percent": round(100 * len(done) / len(live)) if live else 0},
-            "iterations": {"total": len(its), "done": sum(1 for i in its if i.get("status") == "done")},
-            "tests_by_day": [{"day": k, **v} for k, v in sorted(days.items())][-14:],
-            "documents": last, "open_change_requests": sum(1 for c in change_requests(slug) if c["status"] == "pending")}

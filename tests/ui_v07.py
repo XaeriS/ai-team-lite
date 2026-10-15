@@ -29,9 +29,6 @@ def check(name, cond, extra=""):
         fails.append(name)
 
 
-def settings_file():
-    return json.loads((tmp / "d" / "settings.json").read_text())
-
 
 try:
     with sync_playwright() as pw:

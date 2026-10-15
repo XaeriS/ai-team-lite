@@ -13,13 +13,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import (__version__, auth, brains, github, iterations, journal, paths, projects, secrets_store,
+from . import (__version__, auth, brains, challenge, github, iterations, journal, paths, projects, secrets_store,
                settings, skills as skills_mod, tooling, tracking, tools, features, updates, usage, voice, winhelpers)
 from . import engine as engine_mod
 from .engine import Engine
 from .events import EventHub
 
 UI_DIR = Path(__file__).parent / "ui"
+UI_TYPES = {".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png",
+            ".ico": "image/x-icon"}
 MAX_UPLOAD = 15 * 1024 * 1024
 
 SETUP_KICKOFF = ("[App] The user has just connected AI Team Lite to Claude and this is the first-time setup. "
@@ -87,7 +89,6 @@ class App:
         self.token = secrets.token_urlsafe(24)
         self.bridge = None  # set by main.py when running in the desktop window
         self.listener = None
-        self.listener_slug = None
         self.voice_downloading = False
         self.voice_lock = threading.Lock()
 
@@ -107,7 +108,6 @@ class App:
                     with self.voice_lock:
                         self.listener = None
 
-            self.listener_slug = slug
             extra = {k: make() for k, make in self.voice_overrides.items()}  # test hooks (factories)
             self.listener = voice.Listener(on_event, **extra).start()
             return "listening"
@@ -167,10 +167,11 @@ class App:
                       "listening": self.listener is not None, "downloading": self.voice_downloading,
                       "model_size": voice.MODEL_SIZES.get(s["voice_model"], "")},
             "plan_usage": usage.plan() if auth.mode() == "subscription" else {},
-            "cost_today": usage.summary(1)["cost"]["today"] if auth.mode() != "subscription" else None,
+            "cost_today": usage.cost_today() if auth.mode() != "subscription" else None,
             "desktop": self.bridge is not None,
             "windows": paths.IS_WINDOWS,
             "interrupted": journal.interrupted(),
+            "why": {"problem": challenge.PROBLEM_WHY},   # L5: "Why Fred asked this" texts, kept in one place
             "seq": self.hub.seq,
         }
 
@@ -201,15 +202,6 @@ class App:
             return []
         return [f.relative_to(projects.project_dir(slug)).as_posix()
                 for f in sorted(d.glob("*.png"), key=lambda f: f.stat().st_mtime)]
-
-
-def _ollama_pull(app, model):
-    try:
-        tooling.ollama_pull(model, lambda msg, frac=None: app.hub.publish("setup", {"type": "ollama", "text": msg,
-                                                                                    "frac": frac, "transient": True}))
-        app.hub.publish("setup", {"type": "ollama", "text": f"{model} ready.", "done": True, "transient": True})
-    except Exception as e:  # noqa: BLE001
-        app.hub.publish("setup", {"type": "ollama", "text": f"Download failed: {e}", "error": True, "transient": True})
 
 
 _brain_job = threading.Lock()
@@ -299,7 +291,9 @@ def make_handler(app: App):
             if path.startswith("/ui/"):
                 f = (UI_DIR / path[4:]).resolve()
                 if UI_DIR.resolve() in f.parents and f.is_file():
-                    return self._send(200, f.read_bytes(), mimetypes.guess_type(f.name)[0] or "application/octet-stream")
+                    # fixed types: the Windows registry sometimes maps .js to text/plain
+                    ctype = UI_TYPES.get(f.suffix.lower()) or mimetypes.guess_type(f.name)[0] or "application/octet-stream"
+                    return self._send(200, f.read_bytes(), ctype)
                 return self._error(404, "not found")
             if not self._authorized():
                 return self._error(403, "forbidden")
@@ -357,29 +351,11 @@ def make_handler(app: App):
                 if path == "/api/features":
                     return self._json({**features.summary(), "is_owner": updates.is_owner(),
                                        "can_manage": updates.can_manage_features()})
-                m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/usage", path)
+                m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/traceability", path)
                 if m:
                     if not projects.load(m.group(1)):
                         raise KeyError(m.group(1))
-                    return self._json(usage.project_usage(m.group(1)))
-                m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/(history|traceability|tracking-progress|changes)", path)
-                if m:
-                    slug, what = m.groups()
-                    if not projects.load(slug):
-                        raise KeyError(slug)
-                    if what == "history":
-                        return self._json(tracking.history(slug))
-                    if what == "traceability":
-                        return self._json({"rows": tracking.traceability(slug)})
-                    if what == "changes":
-                        return self._json({"items": tracking.change_requests(slug)})
-                    return self._json(tracking.progress(slug))
-                m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/diff/([a-z]+)/(\d+)/(\d+)", path)
-                if m:
-                    slug, doc, a_, b_ = m.groups()
-                    if not projects.load(slug):
-                        raise KeyError(slug)
-                    return self._json({"diff": tracking.diff(slug, doc, int(a_), int(b_))})
+                    return self._json({"rows": tracking.traceability(m.group(1))})
                 if path == "/api/analytics":   # L6, L9, L13, L14, L15
                     from . import analytics
                     q = self._query()
@@ -399,16 +375,6 @@ def make_handler(app: App):
                         raise KeyError(m.group(1))
                     return self._json({**analytics.activity(m.group(1)), "state": app.engine.project_state(m.group(1)),
                                        "headroom": analytics.headroom() if auth.mode() == "subscription" else []})
-                if path == "/api/usage":
-                    data = usage.summary(14)
-                    data["mode"] = auth.mode()
-                    data["checked"] = time.time()
-                    names = {p["slug"]: p["name"] for p in projects.list_projects()}
-                    names[projects.SETUP_SLUG] = "Setup"
-                    data["projects"] = [{"slug": k, "name": names.get(k, k), **v,
-                                         **({"estimate": iterations.cost_estimate(k)} if k in names and k != projects.SETUP_SLUG else {})}
-                                        for k, v in data["projects"].items()]
-                    return self._json(data)
                 if path == "/api/stream":
                     return self._stream()
             except KeyError:
@@ -497,11 +463,6 @@ def make_handler(app: App):
                 settings.save({"subscription_signed_in": False})
                 if auth.mode() == "subscription":
                     settings.save({"auth_mode": "api_key" if secrets_store.has("anthropic_api_key") else ""})
-                return self._json(app.state())
-            if path == "/api/auth/use-key":
-                if not secrets_store.has("anthropic_api_key"):
-                    return self._error(400, "No API key is saved yet.")
-                settings.save({"auth_mode": "api_key"})
                 return self._json(app.state())
             if path == "/api/projects":
                 if not settings.load()["setup_complete"]:
@@ -627,14 +588,6 @@ def make_handler(app: App):
                 settings.save({"pipeline_order": order})
                 threading.Thread(target=app.engine._start_next, daemon=True).start()
                 return self._json(app.engine.pipeline_overview())
-            m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/change/(CR-\d+)", path)
-            if m:
-                slug, cr_id = m.groups()
-                if not projects.load(slug):
-                    raise KeyError(slug)
-                cr = tracking.decide_change_request(slug, cr_id, bool(body.get("approved")), str(body.get("note", "")))
-                app.hub.publish(slug, {"type": "project_list", "transient": True})
-                return self._json({"ok": bool(cr), "change": cr})
             m = re.fullmatch(r"/api/interrupted/([a-z0-9-]+)/(resume|restart|dismiss)", path)
             if m:
                 slug, action = m.groups()
@@ -662,15 +615,6 @@ def make_handler(app: App):
                 got = usage.fetch_plan(force=bool(body.get("manual"))) if auth.mode() == "subscription" else None
                 return self._json({"ok": bool(got), "plan": usage.plan() if auth.mode() == "subscription" else {},
                                    "source": "claude" if got else "reports"})
-            if path == "/api/ollama/pull":
-                model = str(body.get("model", ""))
-                threading.Thread(target=lambda: _ollama_pull(app, model), daemon=True).start()
-                return self._json({"ok": True})
-            if path == "/api/app/closing":
-                # the window is closing: record whether work is in progress so the user can be warned
-                busy = [p["slug"] for p in projects.list_projects() if app.engine.project_state(p["slug"], p)
-                        in ("working", "needs you", "waiting")]
-                return self._json({"busy": busy, "names": [projects.load(x)["name"] for x in busy]})
             m = re.fullmatch(r"/api/broken/([a-z0-9-]+)/(remove|reload)", path)
             if m:
                 slug, action = m.groups()
