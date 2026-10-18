@@ -342,14 +342,20 @@ def test_report_per_iteration_agent_phase_and_periods(isolated):
     assert a["periods"][0]["label"] == "All time" and "projects" in a  # (this test wrote only the project ledger)
 
 
-def test_activity_flat_minutes():
+def test_activity_per_minute_and_no_token_only_stuck_warning():
+    """L18: tokens per minute are shown, but whether work is stuck is left to the watchdog (it knows when a command
+    is still running); the screen no longer warns "something may be stuck" from tokens alone."""
+    import pathlib
     from app import analytics
     from unittest import mock
     now = 10_000_000.0
     rows = [{"t": now - 600, "in": 10, "out": 0, "cache_write": 0}]
     with mock.patch.object(analytics, "_rows", lambda slug: rows):
         a = analytics.activity("x", now=now)
-    assert a["minutes"][49] == 10 and a["flat_minutes"] == 10
+    assert a["minutes"][49] == 10 and "flat_minutes" not in a
+    ui = pathlib.Path(__file__).resolve().parent.parent / "app" / "ui"
+    screen = "\n".join(f.read_text() for f in [ui / "app.css", *sorted((ui / "js").glob("*.js"))])
+    assert "something may be stuck" not in screen and "flat_minutes" not in screen
 
 
 def test_time_by_stage_keeps_waiting_apart(isolated):

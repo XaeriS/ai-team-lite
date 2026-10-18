@@ -165,7 +165,7 @@ table.ut tr.pick{cursor:pointer}table.ut tr.pick:hover td{background:var(--panel
 .gauge{display:grid;grid-template-columns:110px 1fr auto;gap:8px;align-items:center;font-size:12.5px;margin:4px 0}
 .chartbox{position:relative}.chartbox .tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 7px;font-size:12px;box-shadow:var(--shadow);white-space:nowrap;transform:translate(-50%,-110%)}
 .spark{display:inline-flex;gap:6px;align-items:center;margin-left:8px;font-size:12px;color:var(--mute)}.spark svg{display:inline-block}
-.spark .flat{color:var(--warn)}
+
 .welcome{max-width:560px;margin:60px auto;text-align:center;color:var(--mute)}
 .autobox{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
 .mrow{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}

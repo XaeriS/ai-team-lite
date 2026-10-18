@@ -49,7 +49,7 @@ const costNote = () => isSub() ? 'At Anthropic\'s API prices. Not billed: your C
 function barsSvg(vals, labels, w, h, opts = {}) {
   const max = Math.max(1, ...vals), n = vals.length, gap = 2, bw = Math.max(1, (w - gap * (n - 1)) / n);
   const bars = vals.map((v, i) => { const bh = v ? Math.max(2, (h - 14) * v / max) : 0, x = i * (bw + gap);
-    return `<rect x="${x.toFixed(1)}" y="${(h - 14 - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="${Math.min(3, bw / 2)}" fill="var(--accent)" ${opts.flatFrom != null && i >= opts.flatFrom ? 'opacity=".35"' : ''}/>
+    return `<rect x="${x.toFixed(1)}" y="${(h - 14 - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="${Math.min(3, bw / 2)}" fill="var(--accent)"/>
       <rect x="${x.toFixed(1)}" y="0" width="${(bw + gap).toFixed(1)}" height="${h - 14}" fill="transparent" data-tip="${esc(labels[i])}: ${fmtTok(v)} tokens"/>`; }).join('');
   const base = `<line x1="0" x2="${w}" y1="${h - 14}" y2="${h - 14}" stroke="var(--line)"/>`;
   const ticks = (opts.ticks || []).map(([i, t], k, all) => `<span style="position:absolute;left:${(100 * (i + 0.5) / n).toFixed(1)}%;transform:translateX(${k === 0 ? '-10%' : k === all.length - 1 ? '-90%' : '-50%'})">${esc(t)}</span>`).join('');
@@ -107,11 +107,10 @@ function renderUsage() {
   }
   h += `<p class="hint" style="margin-top:0">${costNote()}</p>`;
   // live activity
-  const a = u.activity || {minutes: [], hours: []}, working = u.state === 'working', flat = working && a.flat_minutes >= 5;
+  const a = u.activity || {minutes: [], hours: []}, working = u.state === 'working';
   const minLabels = a.minutes.map((_, i) => i === 59 ? 'this minute' : `${59 - i} min ago`), hrLabels = a.hours.map((_, i) => i === 23 ? 'this hour' : `${23 - i} h ago`);
   h += `<div class="usec"><h4>Activity${proj ? '' : ' (all projects)'} ${working ? '<span class="pill ok">working</span>' : ''}</h4>
-    ${flat ? `<div class="hint" style="color:var(--warn);margin-bottom:4px">⚠ No tokens used for ${a.flat_minutes} min while the project says it is working: something may be stuck.</div>` : ''}
-    <div class="hint">Tokens per minute, last 60 minutes</div>${barsSvg(a.minutes, minLabels, 600, 70, {ticks: [[0, '60 min ago'], [30, '30 min'], [59, 'now']], flatFrom: flat ? 60 - a.flat_minutes : null, label: 'Tokens per minute'})}
+    <div class="hint">Tokens per minute, last 60 minutes</div>${barsSvg(a.minutes, minLabels, 600, 70, {ticks: [[0, '60 min ago'], [30, '30 min'], [59, 'now']], label: 'Tokens per minute'})}
     <div class="hint" style="margin-top:6px">Tokens per hour, last 24 hours</div>${barsSvg(a.hours, hrLabels, 600, 70, {ticks: [[0, '24 h ago'], [12, '12 h'], [23, 'now']], label: 'Tokens per hour'})}</div>`;
   // periods + split
   const per = u.periods || [];

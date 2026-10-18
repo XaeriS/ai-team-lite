@@ -478,10 +478,8 @@ async function refreshSpark() {
   let a; try { a = await api(`/api/projects/${cur}/activity`); } catch (e) { return; }
   const m = a.minutes.slice(-30), max = Math.max(1, ...m), w = 90, hh = 16, bw = w / 30;
   const bars = m.map((v, i) => v ? `<rect x="${(i * bw).toFixed(1)}" y="${(hh - Math.max(1.5, hh * v / max)).toFixed(1)}" width="${(bw - 0.6).toFixed(1)}" height="${Math.max(1.5, hh * v / max).toFixed(1)}" rx="1" fill="var(--accent)"/>` : '').join('');
-  const flat = a.state === 'working' && a.flat_minutes >= 5;
   const room = (a.headroom || []).find(h => h.kind === 'five_hour' && h.percent != null);
   SPARK = `<svg width="${w}" height="${hh}" viewBox="0 0 ${w} ${hh}" role="img" aria-label="Tokens per minute, last 30 minutes"><title>Tokens per minute, last 30 minutes (${fmtTok(m.reduce((x, y) => x + y, 0))} tokens)</title><line x1="0" x2="${w}" y1="${hh - 0.5}" y2="${hh - 0.5}" stroke="var(--line)"/>${bars}</svg>`
-    + (flat ? `<span class="flat">no tokens used for ${a.flat_minutes} min: something may be stuck</span>` : '')
     + (room ? `<span title="Your Claude plan: 5-hour limit">· ${Math.round(room.left)}% of the 5-hour limit left</span>` : '');
   const t = $('msgs').querySelector('.typing .spark'); if (t) t.innerHTML = SPARK;
 }

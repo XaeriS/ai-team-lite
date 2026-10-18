@@ -144,12 +144,8 @@ def activity(slug: str | None, now: float | None = None) -> dict:
         if age < 3600:
             minutes[59 - int(age // 60)] += tok
         hours[23 - int(age // 3600)] += tok
-    flat = 0
-    for v in reversed(minutes):
-        if v:
-            break
-        flat += 1
-    return {"minutes": minutes, "hours": hours, "flat_minutes": flat, "now": now}
+    # (whether work is stuck is the watchdog's call, engine.watch_check: it knows when a command is still running)
+    return {"minutes": minutes, "hours": hours, "now": now}
 
 
 # ---------------------------------------------------------------------------- iterations (L6, L13, L14)
