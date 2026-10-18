@@ -785,3 +785,168 @@ def test_publish_check_catches_a_telegram_key(isolated, tmp_path):
     (tmp_path / "notes.txt").write_text("bot key 123456789:AAH" + "x" * 33)
     with pytest.raises(RuntimeError, match="looks like it contains a secret"):
         updates.scan_for_secrets(tmp_path)
+
+
+# ------------------------------------------------------------------------------- 1.2.0
+def test_screenshot_never_captures_the_whole_desktop(isolated, monkeypatch, tmp_path):
+    """L19: no window found -> no picture (never all screens); the window is found in the whole process tree."""
+    import inspect
+    from app import paths as P, winhelpers
+    src = inspect.getsource(winhelpers.screenshot_command)
+    assert "ImageGrab" not in src and "all_screens" not in src
+    monkeypatch.setattr(P, "IS_WINDOWS", False)
+    with pytest.raises(winhelpers.NoWindow):
+        winhelpers.screenshot_command("run.bat", tmp_path, tmp_path / "x.png")
+    assert not (tmp_path / "x.png").exists()
+    # run.bat (100) -> cmd (200) -> python (300) owns the window: found although it is two levels down
+    monkeypatch.setattr(winhelpers, "_visible_windows", lambda: [(11, 999), (22, 300)])
+    monkeypatch.setattr(winhelpers, "_descendants", lambda pid: {100, 200, 300})
+    assert winhelpers.find_app_window(100, before={11}) == 22
+    # nothing of ours, but exactly one new window appeared after the launch
+    monkeypatch.setattr(winhelpers, "_descendants", lambda pid: {100})
+    assert winhelpers.find_app_window(100, before={11}) == 22
+    # several unknown new windows (a film starting on another screen...): no guessing
+    monkeypatch.setattr(winhelpers, "_visible_windows", lambda: [(11, 999), (22, 300), (33, 400)])
+    assert winhelpers.find_app_window(100, before={11}) is None
+
+
+def test_short_test_output_and_full_log(isolated, tmp_path):
+    from app import testrun
+    out = ("============================= test session starts ==============================\n"
+           + "".join(f"tests/test_a.py::test_ok_{i} PASSED\n" for i in range(200)) +
+           "_________________________________ test_total __________________________________\n"
+           "    def test_total():\n>       assert total([1, 2]) == 4\nE       assert 3 == 4\n"
+           "E        +  where 3 = total([1, 2])\n\ntests/test_calc.py:8: AssertionError\n"
+           "=========================== short test summary info ============================\n"
+           "FAILED tests/test_calc.py::test_total - assert 3 == 4\n"
+           "======================== 1 failed, 200 passed in 1.23s =========================\n")
+    log = testrun.save_log(tmp_path, "iteration 2", "python -m pytest -q", out)
+    s = testrun.summarize(out, False, log)
+    assert s.startswith("Tests FAILED. 1 failed, 200 passed in 1.23s")
+    assert "FAILED tests/test_calc.py::test_total" in s and "E       assert 3 == 4" in s
+    assert "tests/test_calc.py:8: AssertionError" in s and "PASSED" not in s
+    assert len(s) < 800 < len(out) and log.startswith("reports/test-logs/") and (tmp_path / log).read_text().endswith(out)
+    ok = testrun.summarize("..........\n10 passed in 0.5s\n", True, "")
+    assert ok == "Tests passed. 10 passed in 0.5s"
+    crash = testrun.summarize("Traceback...\nModuleNotFoundError: No module named 'flask'\n", False, "")
+    assert "No module named 'flask'" in crash
+    for i in range(25):
+        testrun.save_log(tmp_path, f"run {i}", "x", "y")
+    assert len(list((tmp_path / "reports" / "test-logs").glob("*.log"))) <= testrun.KEEP_LOGS
+
+
+def test_affected_tests_only_while_building(isolated, tmp_path):
+    from app import testrun
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "calc.py").write_text("def total(x): return sum(x)\n")
+    (tmp_path / "report.py").write_text("def make(): pass\n")
+    (tmp_path / "tests" / "test_calc.py").write_text("from calc import total\n")
+    (tmp_path / "tests" / "test_report.py").write_text("import report\n")
+    (tmp_path / "tests" / "test_other.py").write_text("def test_x(): pass\n")
+    old = time.time() - 3600
+    for f in tmp_path.rglob("*.py"):
+        __import__("os").utime(f, (old, old))
+    since = time.time() - 60
+    (tmp_path / "calc.py").write_text("def total(x): return sum(x) + 0\n")
+    cmd, note = testrun.affected(tmp_path, "python -m pytest -q tests", since)
+    assert cmd == "python -m pytest -q tests/test_calc.py" and note.startswith("1 related test file")
+    assert testrun.affected(tmp_path, "python run_my_tests.py", since)[0] == "python run_my_tests.py"
+    (tmp_path / "notes.py").write_text("x = 1\n")
+    (tmp_path / "calc.py").touch()
+    __import__("os").utime(tmp_path / "calc.py", (old, old))
+    cmd, note = testrun.affected(tmp_path, "python -m pytest -q", since)
+    assert cmd == "python -m pytest -q" and note.startswith("all tests"), "nothing related: run everything"
+
+
+def test_commit_still_runs_the_full_suite(isolated, monkeypatch):
+    from app import iterations, testrun
+    _ready()
+    p = projects.create("Full")
+    slug = p["slug"]
+    projects.update(slug, plan_approved=True, iterations=[{"n": 1, "name": "One", "status": "building", "red": {"failed": True}}])
+    ran = []
+    monkeypatch.setattr(testrun, "run", lambda cmd, cwd, timeout=300: (ran.append(cmd), (False, "E boom\nFAILED t.py::x\n1 failed in 0.1s"))[1])
+    r = iterations.commit(slug, 1, "s", "python -m pytest -q")
+    assert ran == ["python -m pytest -q"] and not r["ok"] and r["output"].startswith("Tests FAILED")
+
+
+def test_project_map(isolated, tmp_path):
+    from app import projectmap
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "calc.py").write_text('"""Adds up the invoice lines."""\ndef total(x): return sum(x)\n')
+    (tmp_path / "app" / "util.py").write_text("def a(): pass\nclass B: pass\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_calc.py").write_text("# checks the totals\nfrom app.calc import total\n")
+    (tmp_path / "run.bat").write_text("@echo off\npython -m app\n")
+    (tmp_path / ".venv").mkdir()
+    (tmp_path / ".venv" / "junk.py").write_text("x")
+    (tmp_path / "logo.png").write_bytes(b"\x89PNG")
+    assert projectmap.refresh(tmp_path)
+    m = (tmp_path / "PROJECT_MAP.md").read_text()
+    assert "| `app/calc.py` | Adds up the invoice lines. |" in m and "defines a, B" in m
+    assert "**Start:** `run.bat`" in m and "**Tests:** 1 file(s) in `tests`" in m
+    assert ".venv" not in m and "logo.png" not in m
+    assert not projectmap.refresh(tmp_path), "unchanged files: the map is not rewritten"
+    (tmp_path / "app" / "calc.py").write_text('"""Adds up the lines and the taxes."""\n')
+    assert projectmap.refresh(tmp_path) and "the taxes" in (tmp_path / "PROJECT_MAP.md").read_text()
+
+
+def test_lessons(isolated):
+    from app import lessons
+    a = lessons.add("On this PC, run the tests with the bundled Python, not py.", "p1")
+    b = lessons.add("on this pc run the tests with the bundled python not py", "p2")
+    assert a["id"] == b["id"] and len(lessons.load()) == 1, "the same lesson is kept once"
+    with pytest.raises(ValueError):
+        lessons.add("The key is sk-ant-" + "a" * 30)
+    with pytest.raises(ValueError):
+        lessons.add("ok")
+    home = str(__import__("pathlib").Path.home())
+    c = lessons.add(f"Excel files under {home}\\Documents are locked while open.")
+    assert home not in c["text"] and "~" in c["text"]
+    assert "run the tests with the bundled Python" in lessons.note()
+    assert lessons.delete(a["id"]) and all(i["id"] != a["id"] for i in lessons.load())
+
+
+def test_lessons_reach_the_team_and_settings(isolated):
+    import urllib.request
+    from app import lessons, tools
+    from app.server import App, serve
+    slug = _bg_project("Learn")
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    sess = eng.session(slug)
+    _, chosen = tools.build_server(sess)
+    handler = {t.name: t.handler for t in chosen}["record_lesson"]
+    out = asyncio.run_coroutine_threadsafe(handler({"lesson": "Streamlit needs the --server.headless flag here."}),
+                                           eng.loop).result(5)
+    assert out["content"][0]["text"].startswith("Lesson kept")
+    opts = sess.build_options()
+    assert "Streamlit needs the --server.headless flag" in opts.system_prompt["append"]
+    assert "Streamlit needs the --server.headless flag" in opts.agents["developer"].prompt
+    assert (projects.project_dir(slug) / "PROJECT_MAP.md").exists(), "the map is ready when the team starts"
+    app = App(engine=eng, hub=hub)
+    httpd, url = serve(app)
+    base = url.split("/?")[0]
+    items = json.loads(urllib.request.urlopen(urllib.request.Request(base + "/api/lessons",
+                                                                      headers={"X-Token": app.token})).read())["items"]
+    assert items[0]["text"].startswith("Streamlit")
+    req = urllib.request.Request(base + "/api/lessons/delete", data=json.dumps({"id": items[0]["id"]}).encode(),
+                                 headers={"X-Token": app.token, "Content-Type": "application/json"})
+    assert json.loads(urllib.request.urlopen(req).read())["items"] == [] and lessons.load() == []
+    httpd.shutdown()
+    eng.shutdown()
+
+
+def test_instructions_keep_the_fixed_part_first():
+    """L24: what changes during a project sits at the end, so the long fixed part is re-used from Claude's cache."""
+    a = prompts.render(prompts.PROJECT, name="Alpha", folder="C:/p/a", phase="discover", existing="", github="no",
+                       architecture_approved="no", plan_approved="no", iterations="none", models="m", language="Python",
+                       conventions="c", challenge="x")
+    b = prompts.render(prompts.PROJECT, name="Beta", folder="C:/p/b", phase="execute", existing="", github="yes",
+                       architecture_approved="yes", plan_approved="yes", iterations="1. A [done]", models="m",
+                       language="Python", conventions="c", challenge="x")
+    same = next(i for i, (x, y) in enumerate(zip(a, b)) if x != y)
+    assert same > 0.9 * len(a), "two different projects share over 90% of the instructions, from the start"
+    assert a.rstrip().splitlines()[-3].startswith('Project: "Alpha"') or "## This project" in a[same - 200:]
+    assert "run_tests" in prompts.PROJECT and "PROJECT_MAP.md" in prompts.DEVELOPER and "run_tests" in prompts.TESTER
+    assert "record_lesson" in prompts.PROJECT and "PROJECT_MAP.md" in prompts.REVIEWER

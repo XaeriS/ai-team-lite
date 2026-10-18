@@ -366,6 +366,7 @@ $('settingsBtn').onclick = () => {
   $('setMode').value = S.settings.approval_mode; $('setPar').value = String(S.max_parallel || 2); $('setIterPause').checked = !!S.settings.iteration_pause;
   $('setPipeAuto').checked = S.settings.pipeline_auto !== false; $('setTray').checked = !!S.settings.close_to_tray;
   $('setName').value = S.settings.user_name || '';
+  renderLessons();
   const onTab = document.querySelector('.stab.on')?.dataset.s;
   if (onTab === 'brains') renderBrains();
   if (onTab === 'setup') renderSetupTab();
@@ -393,6 +394,14 @@ function renderSetupTab() {
     `<div class="env"><span>${esc(k)}</span><span class="${ok ? 'ok' : 'no'}">${v}</span><span></span></div>`).join('');
   $('setInfo').textContent = 'Version ' + (S.version || '') + '. Your saved keys and sign-in stay in Windows and are never shown to the AI or put in a shared copy.';
   renderPhoneBox(); renderShareBox();
+}
+/* L23: lessons learned across projects */
+async function renderLessons(items) {
+  if (!items) { try { items = (await api('/api/lessons')).items; } catch (e) { items = []; } }
+  $('lessonsCount').textContent = items.length ? `(${items.length})` : '(none yet)';
+  $('lessonsList').innerHTML = items.length ? items.map(i => `<div class="row" style="border-top:1px solid var(--line);padding:5px 0"><span style="flex:1">${esc(i.text)}</span><button type="button" class="ghost danger" data-del="${esc(i.id)}" title="Delete this lesson">✕</button></div>`).join('')
+    : '<p class="hint">Nothing learned yet.</p>';
+  $('lessonsList').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => renderLessons((await api('/api/lessons/delete', {id: b.dataset.del})).items));
 }
 /* L17: approvals and alerts on the phone (Telegram) */
 function renderPhoneBox() {

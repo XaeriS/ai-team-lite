@@ -3,13 +3,12 @@ the user approves the plan; then each iteration is built, tested, and committed 
 pass, before the next one starts."""
 from __future__ import annotations
 
-import os
 import re
 import subprocess
 import time
 from pathlib import Path
 
-from . import paths, policy, projects, settings, usage
+from . import paths, policy, projectmap, projects, settings, testrun, usage
 
 STATUSES = ("planned", "building", "done")
 AFTER = ("continue", "pause")  # when an iteration is finished: go on to the next one, or wait for the user's release
@@ -133,8 +132,8 @@ def record_red(slug: str, n: int, test_command: str) -> dict:
     cmd = test_command.strip()
     if not cmd or policy.is_risky(cmd) or policy._abs_paths_outside(cmd, [str(folder), str(paths.bundled_python().parent)]):
         raise ValueError("test_command is missing or not allowed (it must only run the project's tests).")
-    ok, output = run_tests(cmd, folder)
-    it["red"] = {"time": time.time(), "failed": not ok, "command": cmd, "output": output[-1500:]}
+    ok, output = run_tests(cmd, folder, label=f"iteration-{n}-tests-first")
+    it["red"] = {"time": time.time(), "failed": not ok, "command": cmd, "output": output}
     _save(slug, its)
     return it["red"]
 
@@ -252,17 +251,14 @@ def start(slug: str, n: int, tasks=None) -> dict:
         it["tasks"] = normalize_tasks(tasks)
     _save(slug, its)
     refresh_plan_doc(slug)
+    projectmap.refresh(projects.project_dir(slug))   # L20: the workers start from an up-to-date map
     return it
 
 
-def run_tests(command: str, cwd: Path, timeout: int = 300) -> tuple[bool, str]:
-    env = {**os.environ, "PATH": paths.tool_path(), "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"}
-    try:
-        r = subprocess.run(command, cwd=str(cwd), shell=True, capture_output=True, text=True, timeout=timeout,
-                           env=env, creationflags=0x08000000 if paths.IS_WINDOWS else 0)
-        return r.returncode == 0, ((r.stdout or "") + (r.stderr or ""))[-3000:]
-    except subprocess.TimeoutExpired:
-        return False, f"Tests timed out after {timeout} s."
+def run_tests(command: str, cwd: Path, timeout: int = 300, label: str = "tests") -> tuple[bool, str]:
+    """Run the tests; returns (passed, compact summary for the AI). The full output is saved in reports/test-logs."""
+    ok, output = testrun.run(command, cwd, timeout)
+    return ok, testrun.summarize(output, ok, testrun.save_log(cwd, label, command, output))
 
 
 def _git(folder: Path, *args: str) -> subprocess.CompletedProcess:
@@ -286,7 +282,7 @@ def commit(slug: str, n: int, summary: str, test_command: str, light_cleanup: st
     cmd = test_command.strip()
     if not cmd or policy.is_risky(cmd) or policy._abs_paths_outside(cmd, [str(folder), str(paths.bundled_python().parent)]):
         raise ValueError("test_command is missing or not allowed (it must only run the project's tests).")
-    ok, output = run_tests(cmd, folder)
+    ok, output = run_tests(cmd, folder, label=f"iteration-{n}-before-commit")
     it["last_test"] = {"ok": ok, "time": time.time()}
     if not ok:
         _save(slug, its)
@@ -294,6 +290,7 @@ def commit(slug: str, n: int, summary: str, test_command: str, light_cleanup: st
     if not (folder / ".git").exists():
         _git(folder, "init", "-b", "main")
     projects.exclude_meta(folder)  # never commit AI Team Lite's own chat history
+    projectmap.refresh(folder)     # L20: the map is saved with the iteration that changed the files
     _git(folder, "add", "-A")
     message = f"Iteration {n}: {it['name']}\n\n{summary.strip()}\n\nRequirements: {', '.join(it.get('requirements') or []) or '-'}" \
               "\nTests: passed"

@@ -41,6 +41,7 @@ try:
         page.click("#settingsBtn")
         page.click(".stab[data-s=brains]")
         check("no brain modes or gateway", page.locator("input[name=bmode], #modeOmni").count() == 0)
+        page.wait_for_function("document.querySelectorAll('#bProv option').length > 0", timeout=8000)  # loads async
         check("only the free providers", page.locator("#bProv option").count() == 2)
 
         # --- per-provider account instructions + free hint

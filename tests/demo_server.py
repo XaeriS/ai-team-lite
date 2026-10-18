@@ -438,6 +438,8 @@ def _demo_v100(hub):
     hub.publish(_p.SETUP_SLUG, {"type": "telegram", "id": "tg1", "state": "linking", "bot": "my_ai_team_bot",
                                 "url": "https://t.me/my_ai_team_bot", "code": "482913"})
     hub.publish(slug, {"type": "message", "role": "fred", "speaker": "Fred", "text": "Iteration 3 is under way: the Developer is building the Excel export."})
+    from app import lessons as _lessons
+    _lessons.add("On this PC, run the tests with the bundled Python, not py.")
     # L11: a stand-in microphone for the "Test microphone" dialog
     from app import voice as _voice
     import numpy as _np

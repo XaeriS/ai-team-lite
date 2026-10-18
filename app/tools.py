@@ -15,7 +15,8 @@ from claude_agent_sdk import create_sdk_mcp_server, tool
 
 from . import challenge, tracking
 
-from . import brains, council, github, iterations, models, paths, projects, secrets_store, settings, usage, winhelpers
+from . import (brains, council, github, iterations, models, paths, policy, projects, secrets_store, settings, testrun,
+               usage, winhelpers)
 
 if TYPE_CHECKING:
     from .engine import Session
@@ -410,7 +411,25 @@ def build_server(session: "Session"):
             return text("Recorded: the new tests fail before the code exists, as they should. Now build task by task "
                         "until they pass.")
         return text("The tests PASS already, so they do not check this iteration's new behaviour. Have the Tester write "
-                    "tests for the acceptance criteria that fail now, then record again.\n" + red["output"][-800:], True)
+                    "tests for the acceptance criteria that fail now, then record again.\n" + red["output"], True)
+
+    @tool("run_tests", "Run the project's tests and get a SHORT result (totals and only the failures; the full log is "
+          "saved in reports/test-logs). Use this instead of running the tests in the shell. scope='affected' (while "
+          "building): only the tests related to the files changed; scope='all': the whole suite (always before you "
+          "report an iteration as done). test_command: e.g. \"python -m pytest -q\".",
+          {"test_command": str, "scope": str})
+    async def run_tests(args):
+        folder = projects.project_dir(slug)
+        cmd = str(args.get("test_command") or "").strip()
+        if not cmd or policy.is_risky(cmd) or policy._abs_paths_outside(cmd, [str(folder), str(paths.bundled_python().parent)]):
+            return text("test_command is missing or not allowed (it must only run the project's tests).", True)
+        note = "all tests"
+        if str(args.get("scope") or "affected").lower() != "all":
+            cur = iterations.current(slug)
+            cmd, note = await session.run_blocking(testrun.affected, folder, cmd, (cur or {}).get("started"))
+        ok, summary = await session.run_blocking(iterations.run_tests, cmd, folder, 300,
+                                                 "affected" if note != "all tests" else "all")
+        return text(f"Ran {note}.\n{summary}", not ok)
 
     @tool("commit_iteration", "Finish the current iteration: the app runs test_command and commits everything to Git "
           "ONLY if the tests pass. If they fail, nothing is committed: fix and call again.",
@@ -431,7 +450,7 @@ def build_server(session: "Session"):
             session.hub.publish(slug, {"type": "activity", "who": "Fred",
                                        "text": f"iteration {n}: tests failed, nothing committed"})
             return text(f"Tests FAILED, so iteration {n} was NOT committed. Fix the problems and call commit_iteration "
-                        f"again. Test output:\n{result['output'][-2000:]}", True)
+                        f"again.\n{result['output']}", True)
         session.hub.publish(slug, {"type": "iteration", "n": n, "name": it["name"], "status": "done",
                                    "commit": result["commit"], "summary": it.get("summary", ""), "total": len(its)})
         session.hub.publish(slug, {"type": "project_list", "transient": True})
@@ -692,6 +711,18 @@ def build_server(session: "Session"):
         return text(f"Linked: the user's phone now gets approvals and alerts from @{info['bot']} (a confirmation "
                     "message was sent). High-risk approvals stay at the PC unless they change it in Settings.")
 
+    @tool("record_lesson", "Keep ONE plain sentence the team learned the hard way (an environment quirk, a library "
+          "gotcha, a fix that took several tries), so future projects on this PC avoid it. No secrets, no personal "
+          "data, no project details. Example: 'On this PC, tests must be run with the bundled Python, not py.'",
+          {"lesson": str})
+    async def record_lesson(args):
+        from . import lessons
+        try:
+            item = lessons.add(str(args.get("lesson", "")), slug)
+        except ValueError as e:
+            return text(str(e), True)
+        return text(f"Lesson kept: {item['text']}")
+
     setup_tools = [check_environment, save_setting, request_secret, ask_folder, ask_choice, github_check, finish_setup,
                    connect_phone]
     project_tools = [check_environment, save_setting, request_secret, ask_choice, github_check, github_create_repo,
@@ -699,7 +730,8 @@ def build_server(session: "Session"):
                      record_test_result, start_iteration, commit_iteration]
     project_tools += [handoff_to_architect, complete_task, record_red_tests, record_prior_art, ask_council,
                       record_change_request, run_security_test,
-                      record_problem, record_challenge_review, record_diagram, record_questions]
+                      record_problem, record_challenge_review, record_diagram, record_questions, run_tests,
+                      record_lesson]
     architect_tools = [check_environment, ask_choice, request_architecture_approval, return_to_fred,
                        ask_council]
     chosen = setup_tools if session.kind == "setup" else (architect_tools if session.persona == "Mat" else project_tools)

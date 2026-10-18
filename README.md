@@ -55,6 +55,9 @@ Big decisions: the council
 
 Everything else is set up for you
 - Claude chooses the right model for each step (the most capable one only where it is needed).
+- Built to save time and tokens: a project map (PROJECT_MAP.md) so the team opens the right file first, short test
+  results for the AI (full logs kept in reports/test-logs), only the related tests while building (the full suite
+  before every save), and lessons learned on earlier projects (Settings > General) passed on to new ones.
 - Python with everything included; Git, the diagram tool and the speech model are bundled or installed for you.
 - Talk instead of typing: click the microphone and speak; say "copy" or pause to send.
   If it cannot hear you, it says why (no microphone, Windows privacy settings, microphone busy) and offers a

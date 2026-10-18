@@ -343,6 +343,9 @@ def make_handler(app: App):
                 if path == "/api/work":
                     return self._json({"rows": app.engine.work_overview(), "running": app.engine.running_count(),
                                        "max_parallel": int(settings.load().get("max_parallel") or 2)})
+                if path == "/api/lessons":   # L23
+                    from . import lessons
+                    return self._json({"items": sorted(lessons.load(), key=lambda i: -i.get("time", 0))})
                 if path == "/api/brains":
                     return self._json(brains.summary())
                 if path == "/api/pipeline":
@@ -836,6 +839,10 @@ def make_handler(app: App):
                 else:
                     settings.save({"telegram_high_risk_on_phone": bool(body.get("high_risk_on_phone"))})
                 return self._json(app.state())
+            if path == "/api/lessons/delete":   # L23: the user removes a lesson
+                from . import lessons
+                lessons.delete(str(body.get("id", "")))
+                return self._json({"items": sorted(lessons.load(), key=lambda i: -i.get("time", 0))})
             if path == "/api/voice/test":   # L11: "Test microphone" with a live level bar
                 slug = str(body.get("slug") or projects.SETUP_SLUG)
                 if not voice.packages_available():

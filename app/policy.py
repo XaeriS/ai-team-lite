@@ -28,6 +28,7 @@ ALWAYS_ALLOW = {
     "mcp__aiteam__run_security_test",
     "mcp__aiteam__record_diagram", "mcp__aiteam__record_problem", "mcp__aiteam__record_challenge_review",
     "mcp__aiteam__record_questions", "mcp__aiteam__connect_phone",
+    "mcp__aiteam__run_tests", "mcp__aiteam__record_lesson",   # run_tests checks itself that the command only runs the project's tests
 }
 # helpers that only read, search the web or draw diagrams: they may start before a plan is approved
 EARLY_WORKERS = {"scout", "challenger", "diagrammer"}

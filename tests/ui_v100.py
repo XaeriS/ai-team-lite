@@ -103,6 +103,12 @@ try:
         # L11 + L12: microphone test and the name in Settings > General
         page.click("#settingsBtn")
         check("name editable in Settings > General", page.locator("#setName").input_value() == "Fred")
+        page.click("#lessonsBox summary")
+        expect(page.locator("#lessonsList")).to_contain_text("bundled Python", timeout=5000)
+        check("lessons listed in Settings", "(1)" in page.locator("#lessonsCount").inner_text())
+        page.locator("#lessonsList [data-del]").first.click()
+        expect(page.locator("#lessonsList")).to_contain_text("Nothing learned yet", timeout=5000)
+        check("a lesson can be deleted", "(none yet)" in page.locator("#lessonsCount").inner_text())
         page.click("#setMicTest")
         expect(page.locator("#micResult")).to_contain_text("The microphone works", timeout=8000)
         check("device name shown", "Demo USB microphone" in page.locator("#micDev").inner_text())

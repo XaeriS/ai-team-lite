@@ -68,66 +68,120 @@ def screenshot_url(url: str, out: Path, width: int = 1280, height: int = 800, wa
 
 
 # ---------------------------------------------------------------------------- window screenshots
-def _windows_of_pid_tree(pid: int) -> list[int]:
-    """Top-level visible windows belonging to pid or its children (Windows only)."""
-    user32 = ctypes.windll.user32
+def _descendants(pid: int) -> set[int]:
+    """pid and every process it started, however deep (run.bat -> cmd -> python -> app)."""
     pids = {pid}
     try:
         out = subprocess.run(["powershell", "-NoProfile", "-Command",
-                              f"Get-CimInstance Win32_Process | Where-Object {{$_.ParentProcessId -eq {pid}}} | "
-                              "Select-Object -ExpandProperty ProcessId"], capture_output=True, text=True,
-                             timeout=20, creationflags=NO_WINDOW).stdout
-        pids |= {int(x) for x in out.split() if x.isdigit()}
-    except Exception:
+                              "Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId) $($_.ParentProcessId)\" }"],
+                             capture_output=True, text=True, timeout=20, creationflags=NO_WINDOW).stdout
+        parent = {}
+        for line in out.splitlines():
+            parts = line.split()
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                parent[int(parts[0])] = int(parts[1])
+        grew = True
+        while grew:
+            grew = False
+            for child, par in parent.items():
+                if par in pids and child not in pids:
+                    pids.add(child)
+                    grew = True
+    except Exception:  # noqa: BLE001
         pass
-    found: list[int] = []
+    return pids
+
+
+def _visible_windows() -> list[tuple[int, int]]:
+    """(window handle, process id) of every visible top-level window with a title (Windows only)."""
+    user32 = ctypes.windll.user32
+    found: list[tuple[int, int]] = []
     PROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
 
     def cb(hwnd, _):
         if user32.IsWindowVisible(hwnd) and user32.GetWindowTextLengthW(hwnd) > 0:
             owner = ctypes.c_ulong()
             user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
-            if owner.value in pids:
-                found.append(hwnd)
+            found.append((hwnd, owner.value))
         return True
 
     user32.EnumWindows(PROC(cb), 0)
     return found
 
 
-def screenshot_command(command: str, cwd: Path, out: Path, wait_seconds: float = 4.0) -> Path:
-    """Start a program, wait, capture its window (or the screen), then close the program."""
-    from PIL import ImageGrab
+def find_app_window(pid: int, before: set[int]) -> int | None:
+    """The started program's window: one owned by its process tree, else a window that appeared after the launch."""
+    wins = _visible_windows()
+    tree = _descendants(pid)
+    own = [h for h, owner in wins if owner in tree]
+    if own:
+        return own[0]
+    new = [h for h, _owner in wins if h not in before]
+    return new[0] if len(new) == 1 else None
 
+
+def capture_window(hwnd: int):
+    """An image of that one window's own content (PrintWindow, full content): other windows on top of it or on other
+    screens never appear. Returns a PIL image."""
+    import ctypes.wintypes as wt
+
+    from PIL import Image
+
+    user32, gdi32 = ctypes.windll.user32, ctypes.windll.gdi32
+    rect = wt.RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+    w, h = rect.right - rect.left, rect.bottom - rect.top
+    if w <= 0 or h <= 0:
+        raise RuntimeError("The app's window has no size (it may be minimised).")
+    hdc = user32.GetWindowDC(hwnd)
+    mem = gdi32.CreateCompatibleDC(hdc)
+    bmp = gdi32.CreateCompatibleBitmap(hdc, w, h)
+    gdi32.SelectObject(mem, bmp)
+    try:
+        if not user32.PrintWindow(hwnd, mem, 2):   # 2 = PW_RENDERFULLCONTENT
+            raise RuntimeError("Windows could not draw the app's window.")
+
+        class BITMAPINFOHEADER(ctypes.Structure):
+            _fields_ = [("biSize", wt.DWORD), ("biWidth", wt.LONG), ("biHeight", wt.LONG), ("biPlanes", wt.WORD),
+                        ("biBitCount", wt.WORD), ("biCompression", wt.DWORD), ("biSizeImage", wt.DWORD),
+                        ("biXPelsPerMeter", wt.LONG), ("biYPelsPerMeter", wt.LONG), ("biClrUsed", wt.DWORD),
+                        ("biClrImportant", wt.DWORD)]
+        bi = BITMAPINFOHEADER(ctypes.sizeof(BITMAPINFOHEADER), w, -h, 1, 32, 0, 0, 0, 0, 0, 0)
+        buf = ctypes.create_string_buffer(w * h * 4)
+        gdi32.GetDIBits(mem, bmp, 0, h, buf, ctypes.byref(bi), 0)
+        return Image.frombuffer("RGB", (w, h), buf, "raw", "BGRX", 0, 1)
+    finally:
+        gdi32.DeleteObject(bmp)
+        gdi32.DeleteDC(mem)
+        user32.ReleaseDC(hwnd, hdc)
+
+
+class NoWindow(RuntimeError):
+    """The started program showed no window AI Team Lite could recognise: no picture is taken (L19)."""
+
+
+def screenshot_command(command: str, cwd: Path, out: Path, wait_seconds: float = 4.0) -> Path:
+    """Start a program, wait, capture ONLY its window, then close the program. Never captures the whole desktop:
+    other screens (a film, mail, anything private) must never end up in a screenshot that the AI also sees (L19)."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    proc = subprocess.Popen(command, cwd=str(cwd), shell=True, creationflags=NEW_CONSOLE if paths.IS_WINDOWS else 0)
+    if not paths.IS_WINDOWS:
+        raise NoWindow("Window screenshots are only available on Windows.")
+    ctypes.windll.user32.SetProcessDPIAware()
+    before = {h for h, _ in _visible_windows()}
+    proc = subprocess.Popen(command, cwd=str(cwd), shell=True, creationflags=NEW_CONSOLE)
     try:
         time.sleep(max(1.0, min(wait_seconds, 30)))
-        bbox = None
-        if paths.IS_WINDOWS:
-            ctypes.windll.user32.SetProcessDPIAware()
-            wins = _windows_of_pid_tree(proc.pid)
-            if wins:
-                hwnd = wins[0]
-                ctypes.windll.user32.SetForegroundWindow(hwnd)
-                time.sleep(0.6)
-                import ctypes.wintypes as wt
-
-                rect = wt.RECT()
-                ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect))
-                bbox = (rect.left, rect.top, rect.right, rect.bottom)
-        img = ImageGrab.grab(bbox=bbox, all_screens=paths.IS_WINDOWS)
-        img.save(out)
-        if proc.poll() is not None and proc.returncode not in (0, None):
-            raise RuntimeError(f"The program exited with code {proc.returncode} before the screenshot.")
+        hwnd = find_app_window(proc.pid, before)
+        if hwnd is None:
+            if proc.poll() is not None and proc.returncode not in (0, None):
+                raise RuntimeError(f"The program exited with code {proc.returncode} before the screenshot.")
+            raise NoWindow("I couldn't find the app's window, so no screenshot was taken (your screens are never "
+                           "captured as a whole). Check that the command opens a window, or give it more wait_seconds.")
+        capture_window(hwnd).save(out)
         return out
     finally:
         if proc.poll() is None:
-            if paths.IS_WINDOWS:
-                subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True,
-                               creationflags=NO_WINDOW)
-            else:
-                proc.kill()
+            subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True, creationflags=NO_WINDOW)
 
 
 # ---------------------------------------------------------------------------- launching

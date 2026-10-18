@@ -39,8 +39,9 @@ try:  # background-task lifecycle messages (Claude Agent SDK 0.2.150+); older en
 except ImportError:  # pragma: no cover
     TaskNotificationMessage = TaskProgressMessage = TaskStartedMessage = TaskUpdatedMessage = type("_Never", (), {})
 
-from . import (auth, brains, challenge, iterations, journal, languages, models, paths, policy, projects, prompts, risk,
-               secrets_store, settings, skills as skills_mod, timeline, tooling, tracking, tools, usage)
+from . import (auth, brains, challenge, iterations, journal, languages, lessons as lessons_mod, models, paths, policy,
+               projectmap, projects, prompts, risk, secrets_store, settings, skills as skills_mod, timeline, tooling,
+               tracking, tools, usage)
 from .events import EventHub
 
 AGENT_TOOLS = {"Agent", "Task"}
@@ -54,7 +55,8 @@ CARD_TOOLS = {f"mcp__aiteam__{n}" for n in ("request_plan_approval", "ask_folder
                                             "handoff_to_architect", "request_architecture_approval", "record_problem",
                                             "record_challenge_review", "record_diagram",
                                             "return_to_fred", "record_prior_art", "ask_council",
-                                            "record_change_request", "run_security_test", "record_questions", "connect_phone")}
+                                            "record_change_request", "run_security_test", "record_questions", "connect_phone",
+                                            "record_lesson")}
 WORKER_LABELS = {"developer": "Developer", "tester": "Tester", "reviewer": "Reviewer", "scout": "Scout",
                  "challenger": "Challenger", "diagrammer": "Diagrammer"}
 ROLES = ["Fred", "Mat", "Developer", "Tester", "Reviewer"]
@@ -126,6 +128,8 @@ def describe_tool(name: str, inp: dict, root: Path) -> str:
         return "updating the to-do list"
     if name in QUIET_TOOLS:
         return "getting ready"
+    if name == "mcp__aiteam__run_tests":
+        return "running the full test suite" if str(inp.get("scope", "")).lower() == "all" else "running the related tests"
     if name.startswith("mcp__aiteam__"):
         return name.removeprefix("mcp__aiteam__").replace("_", " ")
     return name
@@ -355,6 +359,8 @@ class Session:
         conv = languages.conventions()
         if self.kind != "setup":
             skills_mod.install_into(self.folder)
+            projectmap.refresh(self.folder)   # L20
+        learned = lessons_mod.note()           # L23: lessons from earlier projects
         if self.kind == "setup":
             system = prompts.render(prompts.SETUP, workspace=str(paths.default_workspace()))
             agents = None
@@ -375,21 +381,22 @@ class Session:
                                     iterations=iterations_note(self.slug),
                                     models=models.guide(), language="Python", conventions=conv,
                                     challenge=challenge.level_text()) \
-                + skills_mod.note_for("Fred", project, self.folder)
+                + skills_mod.note_for("Fred", project, self.folder) + learned
             agents = {
                 "developer": AgentDefinition(description="Builds and fixes the software from Fred's brief.",
                                              prompt=prompts.render(prompts.DEVELOPER, conventions=conv)
-                                             + skills_mod.note_for("Developer", project, self.folder),
+                                             + skills_mod.note_for("Developer", project, self.folder) + learned,
                                              model=models.for_role("Developer")),
                 "tester": AgentDefinition(description="Writes and runs tests and takes screenshots as proof.",
                                           prompt=prompts.render(prompts.TESTER, conventions=conv)
-                                          + skills_mod.note_for("Tester", project, self.folder),
+                                          + skills_mod.note_for("Tester", project, self.folder) + learned,
                                           model=models.for_role("Tester")),
                 "reviewer": AgentDefinition(description="Reviews the work against the requirements; read-only.",
                                             prompt=prompts.render(prompts.REVIEWER)
-                                            + skills_mod.note_for("Reviewer", project, self.folder),
+                                            + skills_mod.note_for("Reviewer", project, self.folder) + learned,
                                             model=models.for_role("Reviewer"),
-                                            tools=["Read", "Glob", "Grep", "Write", "Bash", "PowerShell"]),
+                                            tools=["Read", "Glob", "Grep", "Write", "Bash", "PowerShell",
+                                                   "mcp__aiteam__run_tests"]),
                 "challenger": AgentDefinition(  # item 79: independent devil's advocate, never saw the chat
                     description="Reads the problem and requirements cold and returns objections, contradictions, "
                                 "unconfirmed assumptions and vague points as JSON. Read-only.",
