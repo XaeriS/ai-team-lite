@@ -460,7 +460,7 @@ function onEvent(ev) {
   if (ev.type === 'voice') { onVoice(ev); return; }
   if (ev.type === 'update') { applyUpdate(ev); return; }
   if (!view) { early.push(ev); return; }  // still loading this project: open() adds it after the history
-  if (items.some(x => x.seq === ev.seq)) return;
+  if (items.some(x => x.seq === ev.seq && x.ts === ev.ts)) return;  // a true duplicate: same number and same moment (L26)
   items.push(ev); $('msgs').querySelector('.typing')?.remove();
   $('msgs').appendChild(renderEvent(ev)); groupActivities();
   if (busy) $('msgs').appendChild(typingEl());

@@ -40,6 +40,13 @@ try:
               and card.locator("button", has_text="Stop and restart this step").count() == 1)
         check("plan room warning in the chat", page.locator(".itcard", has_text="18% of your 5-hour limit").count() == 1)
         page.screenshot(path=OUT / "v100-chat.png")
+        # L26: an event reusing an old number (from an earlier run) is still shown; a true duplicate is not
+        n = page.evaluate("""(() => { const old = items.find(x => x.type === 'message');
+          const ev = {type: 'approval', id: 'l26card', status: 'pending', title: 'Run a command', who: 'Diagrammer',
+                      slug: cur, seq: old.seq, ts: old.ts + 3600};
+          onEvent(ev); onEvent({...ev}); return document.querySelectorAll('#msgs .card').length; })()""")
+        check("card with a reused number is shown once", page.locator(".card", has_text="Run a command").count() >= 1
+              and page.evaluate("items.filter(x => x.id === 'l26card').length") == 1, n)
         # L25: a limit with no known reset time says it keeps checking, and can be cancelled
         lim = page.evaluate("(() => { const n = limitCard({status: 'waiting', checking: true, auto: false, label: 'This week'}); return {t: n.innerText, c: n.querySelectorAll('[data-a=cancel]').length}; })()")
         check("limit card: checks every 15 minutes", "every 15 minutes" in lim["t"] and "this week limit" in lim["t"] and lim["c"] == 1, lim)

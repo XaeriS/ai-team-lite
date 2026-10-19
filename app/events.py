@@ -16,7 +16,10 @@ class EventHub:
         self._history_file = history_file
         self._cond = threading.Condition()
         self._events: list[dict] = []
-        self._seq = 0
+        # L26: numbers never repeat across runs. They start from the current time in milliseconds, so they are always
+        # higher than the numbers saved in a project's history by an earlier run (the screen uses them to skip
+        # events it already has; restarting at 0 made new cards collide with old ones and vanish).
+        self._seq = int(time.time() * 1000)
 
     def publish(self, slug: str, event: dict) -> dict:
         with self._cond:

@@ -1064,3 +1064,17 @@ def test_l25_weekly_limit_named_from_the_error(isolated):
     assert "week" in card["label"].lower()
     eng.cancel_auto_continue(p["slug"])
     eng.shutdown()
+
+
+# ---------------------------------------------------------------- L26: cards vanished after a restart
+def test_l26_event_numbers_never_repeat_after_a_restart(isolated):
+    p = projects.create("Long project")
+    first = EventHub(projects.history_file)
+    old = [first.publish(p["slug"], {"type": "message", "role": "fred", "text": f"old {i}"})["seq"] for i in range(5)]
+    time.sleep(0.01)
+    second = EventHub(projects.history_file)           # the app starts again
+    card = second.publish(p["slug"], {"type": "approval", "id": "abc", "status": "pending", "title": "Run a command"})
+    assert card["seq"] > max(old)
+    seqs = [e["seq"] for e in second.history(p["slug"])]
+    assert len(seqs) == len(set(seqs)) and seqs[-1] == card["seq"]
+    assert second.wait(card["seq"] - 1, timeout=0.1)[0]["id"] == "abc"   # the live stream still delivers it

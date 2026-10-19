@@ -2,6 +2,10 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.2.2 (2026-10-19)
+- **No more hidden cards after a restart.** In long projects, an approval or question could fail to appear in the
+  chat after the app had been restarted, so the work waited without you knowing. Every card now shows.
+
 ## 1.2.1 (2026-10-18)
 - **Automatic restart after a plan limit works again.** When your Claude plan's 5-hour or weekly limit is reached,
   the work continues by itself once the limit resets. If the reset time isn't known, the app checks your plan every

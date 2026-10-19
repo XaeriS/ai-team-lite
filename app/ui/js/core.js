@@ -117,7 +117,7 @@ async function open(slug) {
   } }
   renderHeader(); renderAll();
   // the history was read at one moment: add what arrived while it loaded (e.g. Fred's first greeting)
-  const have = new Set(items.map(x => x.seq)), late = early.filter(e => e.slug === cur && !have.has(e.seq)); early = [];
+  const have = new Set(items.map(x => x.seq + ':' + x.ts)), late = early.filter(e => e.slug === cur && !have.has(e.seq + ':' + e.ts)); early = [];
   late.forEach(onEvent);
   renderSide(); loadState();
   $('input').focus();
