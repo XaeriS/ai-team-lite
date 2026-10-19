@@ -1,0 +1,61 @@
+name: Release
+
+# Publishes a new version: when VERSION changes on main (or on demand), run the tests, build the Windows installer,
+# tag the version (v<VERSION>) and create the GitHub release with the installer and the notes from CHANGELOG.md.
+# Nothing happens if that version is already released.
+
+on:
+  push:
+    branches: [main]
+    paths: [VERSION, .github/workflows/release.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="$(tr -d '[:space:]' < VERSION)"
+          grep -q "__version__ = \"$v\"" app/__init__.py || { echo "VERSION ($v) and app/__init__.py disagree"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if gh release view "v$v" >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-python@v5
+        if: steps.v.outputs.exists == 'false'
+        with:
+          python-version: "3.12"
+
+      - name: Tests
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          pip install -r requirements-dev.txt
+          python -m pytest -q
+
+      - name: Build the installer
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq nsis
+          BUILD="$RUNNER_TEMP/build" bash installer/build.sh
+          cd "$RUNNER_TEMP/build" && sha256sum "AI-Team-Lite-Setup-${{ steps.v.outputs.version }}.exe" > SHA256SUMS.txt
+
+      - name: Publish the release
+        if: steps.v.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${{ steps.v.outputs.version }}"
+          awk -v h="## $v " 'index($0, h) == 1 {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
+          printf '\n**Install:** download `AI-Team-Lite-Setup-%s.exe` below and run it. Windows may say it does not recognise the app, because the installer is not signed: click "More info", then "Run anyway".\n' "$v" >> notes.md
+          gh release create "v$v" --target "$GITHUB_SHA" --title "AI Team Lite $v" --notes-file notes.md \
+            "$RUNNER_TEMP/build/AI-Team-Lite-Setup-$v.exe" "$RUNNER_TEMP/build/SHA256SUMS.txt"
