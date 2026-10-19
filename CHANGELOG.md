@@ -1,0 +1,35 @@
+# What changed
+
+Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
+
+## 1.2.1 (2026-10-18)
+- **Automatic restart after a plan limit works again.** When your Claude plan's 5-hour or weekly limit is reached,
+  the work continues by itself once the limit resets. If the reset time isn't known, the app checks your plan every
+  15 minutes and carries on as soon as there is room. The weekly limit is named correctly.
+
+## 1.2.0 (2026-10-18)
+- **Private screenshots:** a screenshot of a desktop app now shows only that app's window, never your other screens.
+- **Faster and cheaper projects:** a project map so the team finds the right file first, short test results for
+  the AI, only the related tests while building (the full suite still runs before saving), lessons learned carried
+  across projects, and instructions arranged so Claude can reuse them.
+
+## 1.1.1 (2026-10-17)
+- Removed the orange "no tokens used for N minutes" warning, which fired during long but normal work such as test
+  runs. The watchdog from 1.0.0 still tells you when something is really stuck.
+
+## 1.1.0 (2026-10-15)
+- **Approve from your phone:** with Telegram, approval cards reach your phone and you can answer them there, plus
+  alerts when work is stuck or hits your plan's limit. Setup asks before installing anything.
+
+## 1.0.1 (2026-10-14)
+- Clean-up: unused code and repetition removed. No change in what the app does.
+
+## 1.0.0 (2026-10-14)
+- Never stuck silently: a watchdog checks quiet work and tells you what is happening, with a button to wake the team.
+- Usage in plain words: cost per project and per finished iteration, by agent and by phase, time spent per phase,
+  and how much of your Claude plan is left.
+- "Why Fred asked this" under each challenge question, and a summary of the questions that changed your project.
+- Paste or drop screenshots into the message box; a microphone test in Settings.
+
+## 0.9.0 (2026-10-14)
+- First version: the simple version of AI Team for people who don't write code.

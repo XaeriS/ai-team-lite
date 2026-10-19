@@ -1,9 +1,11 @@
 AI Team Lite by Fred
 ====================
 
+[![Tests](https://github.com/XaeriS/ai-team-lite/actions/workflows/tests.yml/badge.svg)](https://github.com/XaeriS/ai-team-lite/actions/workflows/tests.yml)
+
 **[⬇ Download AI Team Lite for Windows](https://github.com/XaeriS/ai-team-lite/releases/latest)** (the installer is
 under "Assets" on that page). Windows may say it does not recognise the app, because the installer is not signed:
-click "More info", then "Run anyway".
+click "More info", then "Run anyway". What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
 > **Prototype.** AI Team Lite is a personal project, not an audited product. Its AI agents write and run code on
 > your computer, and the web is not a safe place: downloaded code, packages and websites can be malicious, and an

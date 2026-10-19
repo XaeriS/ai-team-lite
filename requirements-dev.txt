@@ -1,0 +1,7 @@
+# What the automated tests need (the full app list is in requirements.txt; voice, tray and window packages are not
+# needed to run the tests).
+claude-agent-sdk==0.2.165
+keyring>=25
+pillow>=11
+numpy
+pytest
