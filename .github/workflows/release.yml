@@ -19,7 +19,7 @@ jobs:
   release:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Version
         id: v
@@ -31,7 +31,7 @@ jobs:
           echo "version=$v" >> "$GITHUB_OUTPUT"
           if gh release view "v$v" >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         if: steps.v.outputs.exists == 'false'
         with:
           python-version: "3.12"
@@ -40,6 +40,7 @@ jobs:
         if: steps.v.outputs.exists == 'false'
         run: |
           pip install -r requirements-dev.txt
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0   # lets headless Chrome run (web screenshot test)
           python -m pytest -q -rfE
 
       - name: Build the installer

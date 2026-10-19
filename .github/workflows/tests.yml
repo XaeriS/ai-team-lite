@@ -9,11 +9,13 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"   # the version bundled with the Windows installer
           cache: pip
           cache-dependency-path: requirements-dev.txt
       - run: pip install -r requirements-dev.txt
+      # Ubuntu 24.04 blocks Chrome's sandbox; the web screenshot test needs headless Chrome
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: python -m pytest -q -rfE
