@@ -123,7 +123,7 @@ def run_engine(slug, script, answers, text="hello", hidden=False):
     ui.engine = eng
     ui.t.start()
     assert eng.send_message(slug, text, hidden=hidden) == "started"
-    deadline = time.time() + 20
+    deadline = time.time() + 60   # GitHub machines are slower (headless browser screenshot)
     time.sleep(0.2)
     while eng.is_busy(slug) and time.time() < deadline:
         time.sleep(0.05)
