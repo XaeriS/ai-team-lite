@@ -16,7 +16,7 @@ import re
 import subprocess
 import threading
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from . import ledger, models, paths
@@ -65,11 +65,16 @@ def record_limit(info) -> dict:
         data = plan()
         old = data.get(kind) or {}
         if entry["percent"] is None and old.get("source") == "claude_usage" and entry["seen"] - (old.get("percent_at") or 0) < 900:
-            # a real figure from Claude's usage command is fresher than a status report without a percentage
-            old["seen"] = entry["seen"]
-            data[kind] = old
+            # a real figure from Claude's usage command is fresher than a status report without a percentage, but the
+            # report's exact reset time and a "limit reached" status are kept: they drive the automatic restart (L25)
+            merged = {**old, "seen": entry["seen"]}
+            if entry["resets_at"]:
+                merged["resets_at"] = entry["resets_at"]
+            if entry["status"] == "rejected":
+                merged.update(status="rejected", percent=max(float(old.get("percent") or 0), 100.0))
+            data[kind] = merged
             _plan_file().write_text(json.dumps(data, indent=2), encoding="utf-8")
-            return old
+            return merged
         same_window = not old.get("resets_at") or not entry["resets_at"] or abs(old["resets_at"] - entry["resets_at"]) < 120
         if not old.get("resets_at") and entry["resets_at"] and old.get("percent_at"):
             # the old figure had no reset time: it belongs to this window only if it was taken after the window
@@ -116,6 +121,45 @@ def parse_usage_text(text: str) -> dict:
     return out
 
 
+_MONTHS = {m: i for i, m in enumerate(("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov",
+                                          "dec"), 1)}
+_DAYS = {d: i for i, d in enumerate(("mon", "tue", "wed", "thu", "fri", "sat", "sun"))}
+_RESET = re.compile(r"^(?:(?P<mon>[a-z]{3})[a-z]*\.?\s+(?P<day>\d{1,2})(?:st|nd|rd|th)?,?\s+(?:at\s+)?)?"
+                    r"(?:(?P<wd>[a-z]{3})[a-z]*\.?,?\s+(?:at\s+)?)?"
+                    r"(?P<h>\d{1,2})(?::(?P<m>\d{2}))?\s*(?P<ap>am|pm)?", re.I)
+
+
+def reset_time(text: str, now: float | None = None) -> float | None:
+    """'7:30pm', 'Fri 8pm', 'Oct 16 at 8pm' (local time, as Claude's /usage prints it) -> the next such moment."""
+    m = _RESET.match(re.sub(r"^\s*resets?\s+", "", (text or "").strip(), flags=re.I))
+    if not m:
+        return None
+    h, mi = int(m.group("h")), int(m.group("m") or 0)
+    ap = (m.group("ap") or "").lower()
+    if ap == "pm" and h < 12:
+        h += 12
+    elif ap == "am" and h == 12:
+        h = 0
+    if h > 23 or mi > 59:
+        return None
+    base = datetime.fromtimestamp(now or time.time())
+    try:
+        if m.group("mon") and m.group("mon").lower() in _MONTHS:
+            cand = base.replace(month=_MONTHS[m.group("mon").lower()], day=int(m.group("day")), hour=h, minute=mi,
+                                second=0, microsecond=0)
+            if cand < base - timedelta(days=180):
+                cand = cand.replace(year=cand.year + 1)
+            return cand.timestamp()
+        cand = base.replace(hour=h, minute=mi, second=0, microsecond=0)
+        if m.group("wd") and m.group("wd").lower() in _DAYS:
+            cand += timedelta(days=(_DAYS[m.group("wd").lower()] - cand.weekday()) % 7)
+        if cand <= base - timedelta(minutes=1):
+            cand += timedelta(days=7 if m.group("wd") else 1)
+        return cand.timestamp()
+    except ValueError:
+        return None
+
+
 _last_failed = {"t": 0.0}
 
 
@@ -152,7 +196,8 @@ def fetch_plan(timeout: float = 40, force: bool = False) -> dict | None:
             status = "rejected" if v["percent"] >= 100 else "allowed_warning" if v["percent"] >= 80 else "allowed"
             data[kind] = {"type": kind, "label": LIMIT_LABELS.get(kind, v["label"]), "status": status,
                           "percent": v["percent"], "percent_at": now, "seen": now, "source": "claude_usage",
-                          "reset_text": v["reset_text"], "resets_at": old.get("resets_at") if old.get("source") == "claude_usage" else None}
+                          "reset_text": v["reset_text"],
+                          "resets_at": reset_time(v["reset_text"], now) or (old.get("resets_at") if old.get("source") == "claude_usage" else None)}
         _plan_file().write_text(json.dumps(data, indent=2), encoding="utf-8")
     return parsed
 

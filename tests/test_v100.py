@@ -950,3 +950,117 @@ def test_instructions_keep_the_fixed_part_first():
     assert a.rstrip().splitlines()[-3].startswith('Project: "Alpha"') or "## This project" in a[same - 200:]
     assert "run_tests" in prompts.PROJECT and "PROJECT_MAP.md" in prompts.DEVELOPER and "run_tests" in prompts.TESTER
     assert "record_lesson" in prompts.PROJECT and "PROJECT_MAP.md" in prompts.REVIEWER
+
+
+# ---------------------------------------------------------------- L25: automatic restart after a plan limit
+def _limit_info(kind, resets_at, status="rejected", utilization=None):
+    return type("I", (), {"rate_limit_type": kind, "status": status, "utilization": utilization, "resets_at": resets_at})()
+
+
+def test_l25_usage_reading_does_not_hide_the_limit_reached(isolated):
+    """A fresh /usage reading used to replace the engine's 'limit reached' report, losing its reset time."""
+    data = usage.plan()
+    data["five_hour"] = {"type": "five_hour", "label": "x", "status": "allowed_warning", "percent": 97.0,
+                         "percent_at": time.time(), "seen": time.time(), "source": "claude_usage",
+                         "reset_text": "7:30pm", "resets_at": None}
+    usage._plan_file().write_text(json.dumps(data), encoding="utf-8")
+    when = time.time() + 1800
+    entry = usage.record_limit(_limit_info("five_hour", when))
+    stored = usage.plan()["five_hour"]
+    assert entry["resets_at"] == when and stored["resets_at"] == when
+    assert stored["status"] == "rejected" and stored["percent"] >= 100
+
+
+def test_l25_reset_text_becomes_a_time():
+    from datetime import datetime
+    now = datetime(2026, 10, 14, 15, 0).timestamp()   # a Wednesday, 3pm
+    at = lambda t: datetime.fromtimestamp(usage.reset_time(t, now))
+    assert at("7:30pm") == datetime(2026, 10, 14, 19, 30)
+    assert at("resets 9am") == datetime(2026, 10, 15, 9, 0)
+    assert at("Fri 8pm") == datetime(2026, 10, 16, 20, 0)
+    assert at("Oct 16 at 8pm (Europe/Paris)") == datetime(2026, 10, 16, 20, 0)
+    assert at("Jan 2, 10am") == datetime(2027, 1, 2, 10, 0)
+    assert usage.reset_time("soon", now) is None and usage.reset_time("", now) is None
+
+
+def test_l25_rejected_event_after_reading_schedules_auto_continue(isolated):
+    _ready()
+    p = projects.create("Limit after reading")
+    data = usage.plan()
+    data["five_hour"] = {"type": "five_hour", "status": "allowed_warning", "percent": 99.0, "percent_at": time.time(),
+                         "seen": time.time(), "source": "claude_usage", "reset_text": "", "resets_at": None}
+    usage._plan_file().write_text(json.dumps(data), encoding="utf-8")
+    entry = usage.record_limit(_limit_info("five_hour", time.time() + 3600))
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    eng.on_limit(p["slug"], {**entry, "label": "Current session (5 hours)"})
+    card = next(e for e in hub.history(p["slug"]) if e["type"] == "limit")
+    assert card["auto"] and card["continue_at"] and card["resets_at"]
+    eng.cancel_auto_continue(p["slug"])
+    eng.shutdown()
+
+
+def test_l25_unknown_reset_time_checks_and_continues(isolated, monkeypatch):
+    _ready()
+    p = projects.create("Unknown reset")
+    monkeypatch.setattr(engine_mod, "LIMIT_CHECK_SECONDS", 0.2)
+    calls = []
+
+    def fake_fetch(force=False):
+        calls.append(force)
+        data = usage.plan()
+        full = len(calls) < 2
+        data["five_hour"] = {"type": "five_hour", "status": "rejected" if full else "allowed", "percent": 100.0 if full else 3.0,
+                             "percent_at": time.time(), "seen": time.time(), "source": "claude_usage", "resets_at": None}
+        usage._plan_file().write_text(json.dumps(data), encoding="utf-8")
+        return data
+    monkeypatch.setattr(usage, "fetch_plan", fake_fetch)
+
+    async def script(i, prompt, c):
+        yield say("Back at work.")
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, script))
+    eng.on_limit(p["slug"], {"type": "five_hour", "label": "Current session (5 hours)", "resets_at": None})
+    card = next(e for e in hub.history(p["slug"]) if e["type"] == "limit")
+    assert card["checking"] and not card["auto"]
+    assert _wait(lambda: any(e["type"] == "message" and "Back at work" in e.get("text", "") for e in hub.history(p["slug"])))
+    assert len(calls) >= 2 and all(calls)
+    card = next(e for e in hub.history(p["slug"]) if e["type"] == "limit")
+    assert card["status"] == "continued"
+    eng.shutdown()
+
+
+def test_l25_cancel_stops_the_checks(isolated, monkeypatch):
+    _ready()
+    p = projects.create("Cancel checks")
+    monkeypatch.setattr(engine_mod, "LIMIT_CHECK_SECONDS", 0.2)
+    calls = []
+    monkeypatch.setattr(usage, "fetch_plan", lambda force=False: calls.append(1) or {})
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    eng.on_limit(p["slug"], {"type": "five_hour", "label": "x", "resets_at": None})
+    time.sleep(0.05)
+    eng.cancel_auto_continue(p["slug"])
+    time.sleep(0.6)
+    assert not calls
+    card = next(e for e in hub.history(p["slug"]) if e["type"] == "limit")
+    assert card["status"] == "waiting" and not card["checking"]
+    eng.shutdown()
+
+
+def test_l25_weekly_limit_named_from_the_error(isolated):
+    _ready()
+    p = projects.create("Weekly")
+
+    class WeekClient(FakeClient):
+        async def receive_response(self):
+            yield ResultMessage(subtype="error", duration_ms=1, duration_api_ms=1, is_error=True, num_turns=1,
+                                session_id="s", result="You've hit your weekly usage limit", api_error_status=429)
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: WeekClient(o, None))
+    eng.send_message(p["slug"], "go on")
+    assert _wait(lambda: any(e["type"] == "limit" for e in hub.history(p["slug"])))
+    card = next(e for e in hub.history(p["slug"]) if e["type"] == "limit")
+    assert "week" in card["label"].lower()
+    eng.cancel_auto_continue(p["slug"])
+    eng.shutdown()

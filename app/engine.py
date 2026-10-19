@@ -69,6 +69,7 @@ QUIET_NOTE = 180        # L8: nothing new for 3 minutes while working -> a short
 QUIET_STUCK = 300       # L8: nothing at all for 5 minutes (no tokens, no tool running) -> say so and offer help
 COMMAND_STUCK = 1200    # a single command running for 20 minutes without any output is treated as stuck too
 WATCHDOG_TICK = 30
+LIMIT_CHECK_SECONDS = 900   # L25: reset time unknown -> look at the plan's figures again every 15 minutes
 PRIORITY_ORDER = {"high": 0, "normal": 1, "low": 2}
 PIPELINE_KICK_SECONDS = 1800   # never nudge the same iteration twice within this time
 PIPELINE_TICK = 60
@@ -817,9 +818,13 @@ class Session:
                               "Anthropic refused the API key. Open Settings and paste a new key.")
                 elif status == 429 or re.search(r"usage limit|rate limit|limit reached|out of (extra )?usage", str(detail), re.I):
                     if self.limit_hit is None:
-                        five = usage.plan().get("five_hour") or {}
-                        self.limit_hit = {"type": "five_hour", "label": "Current session (5 hours)",
-                                          "resets_at": five.get("resets_at"), "detail": str(detail)[:300]}
+                        pl = usage.plan()
+                        week = pl.get("seven_day") or {}
+                        weekly = week.get("status") == "rejected" or (week.get("percent") or 0) >= 100 \
+                            or bool(re.search(r"week", str(detail), re.I))
+                        kind = "seven_day" if weekly else "five_hour"
+                        self.limit_hit = {"type": kind, "label": usage.LIMIT_LABELS[kind],
+                                          "resets_at": (pl.get(kind) or {}).get("resets_at"), "detail": str(detail)[:300]}
                     return  # the limit card explains it (request F)
                 self.hub.publish(self.slug, {"type": "error", "text": str(detail)[:800]})
 
@@ -1324,11 +1329,11 @@ class Engine:
         when = (resets + stagger) if resets else None
         item_id = uuid.uuid4().hex[:12]
         self.hub.publish(slug, {"type": "limit", "id": item_id, "status": "waiting", "resets_at": resets,
-                                "continue_at": when, "auto": when is not None, "label": entry.get("label", ""),
-                                "detail": entry.get("detail", "")})
+                                "continue_at": when, "auto": when is not None, "checking": when is None,
+                                "label": entry.get("label", ""), "detail": entry.get("detail", "")})
         self.notify("limit", slug=slug, text="Your Claude plan's usage limit was reached, so the work stopped. " + (
             time.strftime("It continues by itself at %H:%M.", time.localtime(when)) if when else
-            "Continue it from the app when the limit resets."))
+            "AI Team Lite checks every 15 minutes and continues as soon as there is room again."))
         self.hub.publish(slug, {"type": "project_list", "transient": True})
         if when is not None:
             def schedule():
@@ -1336,8 +1341,37 @@ class Engine:
                                               lambda: self.limit_continue(slug, auto=True))
                 self.limit_timers[slug] = (item_id, handle, when)
             self.loop.call_soon_threadsafe(schedule)
-        else:
+        else:   # the reset time is unknown: look again every 15 minutes and continue as soon as there is room (L25)
             self.limit_timers[slug] = (item_id, None, 0)
+            self.loop.call_soon_threadsafe(lambda: self._schedule_limit_check(slug, item_id, entry.get("type") or "five_hour"))
+
+    def _schedule_limit_check(self, slug: str, item_id: str, kind: str) -> None:
+        def check():
+            entry = self.limit_timers.get(slug)
+            if not entry or entry[0] != item_id or entry[1] is None:
+                return   # continued by hand, paused or cancelled meanwhile
+            threading.Thread(target=self._limit_check, args=(slug, item_id, kind), daemon=True).start()
+        handle = self.loop.call_later(LIMIT_CHECK_SECONDS, check)
+        self.limit_timers[slug] = (item_id, handle, 0)
+
+    def _limit_check(self, slug: str, item_id: str, kind: str) -> None:
+        got = usage.fetch_plan(force=True)
+        v = usage.plan().get(kind) or {}
+        room = v.get("status") != "rejected" and v.get("percent") is not None and v["percent"] < 100
+        entry = self.limit_timers.get(slug)
+        if not entry or entry[0] != item_id or entry[1] is None:
+            return   # cancelled while Claude's figures were being read
+        if got and room:
+            self.limit_continue(slug, auto=True)
+        elif v.get("resets_at") and v["resets_at"] > time.time():   # now a time is known: wait for it exactly
+            when = v["resets_at"] + {0: 10, 1: 25, 2: 40}[self._priority(slug)]
+            self.hub.update(slug, item_id, resets_at=v["resets_at"], continue_at=when, auto=True)
+            def schedule():
+                handle = self.loop.call_later(max(1.0, when - time.time()), lambda: self.limit_continue(slug, auto=True))
+                self.limit_timers[slug] = (item_id, handle, when)
+            self.loop.call_soon_threadsafe(schedule)
+        else:
+            self.loop.call_soon_threadsafe(lambda: self._schedule_limit_check(slug, item_id, kind))
 
     def limit_continue(self, slug: str, auto: bool = False) -> str:
         entry = self.limit_timers.pop(slug, None)
@@ -1361,7 +1395,7 @@ class Engine:
         if handle:
             self.loop.call_soon_threadsafe(handle.cancel)
         self.limit_timers[slug] = (item_id, None, 0)
-        self.hub.update(slug, item_id, auto=False, continue_at=None,
+        self.hub.update(slug, item_id, auto=False, continue_at=None, checking=False,
                         note="Auto-continue cancelled." if note != "paused" else "Paused: continue from the Work queue.")
 
     # ------------------------------------------------------------------ overview for the Work queue screen

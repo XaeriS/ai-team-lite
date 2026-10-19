@@ -40,6 +40,9 @@ try:
               and card.locator("button", has_text="Stop and restart this step").count() == 1)
         check("plan room warning in the chat", page.locator(".itcard", has_text="18% of your 5-hour limit").count() == 1)
         page.screenshot(path=OUT / "v100-chat.png")
+        # L25: a limit with no known reset time says it keeps checking, and can be cancelled
+        lim = page.evaluate("(() => { const n = limitCard({status: 'waiting', checking: true, auto: false, label: 'This week'}); return {t: n.innerText, c: n.querySelectorAll('[data-a=cancel]').length}; })()")
+        check("limit card: checks every 15 minutes", "every 15 minutes" in lim["t"] and "this week limit" in lim["t"] and lim["c"] == 1, lim)
 
         # L6 / L9 / L13 / L14 / L15: the usage window
         page.click("#usageMeter")

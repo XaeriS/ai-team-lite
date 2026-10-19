@@ -209,7 +209,8 @@ function limitCard(ev) {
     <h4>⏸ Work stopped: plan usage limit reached ${waiting ? '' : statusPill(ev.status)}</h4>
     <div>Your Claude plan's ${esc((ev.label || 'usage').toLowerCase())} limit was reached, so Fred and the team stopped. ${ev.resets_at ? `It resets at <b>${fmt(ev.resets_at)}</b>.` : 'The reset time is not known.'}</div>
     ${waiting && ev.auto && ev.continue_at ? `<div class="hint" data-cd style="margin-top:4px"></div>` : ''}
-    ${waiting ? `<div class="acts"><button class="primary" data-a="go">Continue now</button>${ev.auto ? '<button data-a="cancel">Cancel auto-continue</button>' : ''}</div>` : ''}
+    ${waiting && ev.checking && !ev.continue_at ? `<div class="hint" style="margin-top:4px">AI Team Lite looks at your plan every 15 minutes and continues by itself as soon as there is room again.</div>` : ''}
+    ${waiting ? `<div class="acts"><button class="primary" data-a="go">Continue now</button>${ev.auto || ev.checking ? '<button data-a="cancel">Cancel auto-continue</button>' : ''}</div>` : ''}
     ${ev.note ? `<div class="hint">${esc(ev.note)}</div>` : ''}</div>`);
   if (waiting) {
     n.querySelector('[data-a=go]').onclick = () => api(`/api/projects/${cur}/limit-continue`, {});
