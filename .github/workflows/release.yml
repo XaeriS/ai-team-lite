@@ -40,7 +40,7 @@ jobs:
         if: steps.v.outputs.exists == 'false'
         run: |
           pip install -r requirements-dev.txt
-          python -m pytest -q
+          python -m pytest -q -rfE
 
       - name: Build the installer
         if: steps.v.outputs.exists == 'false'

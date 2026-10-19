@@ -5,3 +5,4 @@ keyring>=25
 pillow>=11
 numpy
 pytest
+pytest-github-actions-annotate-failures   # failing tests appear as annotations on GitHub
