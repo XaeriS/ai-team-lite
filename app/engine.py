@@ -68,6 +68,7 @@ WATCH_POLL = 30         # how often the listener re-checks while a background wo
 QUIET_NOTE = 180        # L8: nothing new for 3 minutes while working -> a short "still working" line
 QUIET_STUCK = 300       # L8: nothing at all for 5 minutes (no tokens, no tool running) -> say so and offer help
 COMMAND_STUCK = 1200    # a single command running for 20 minutes without any output is treated as stuck too
+AUTO_HELP_MAX = 3       # L27: automatic wake-ups / restarts per project per hour; after that the user decides
 WATCHDOG_TICK = 30
 LIMIT_CHECK_SECONDS = 900   # L25: reset time unknown -> look at the plan's figures again every 15 minutes
 PRIORITY_ORDER = {"high": 0, "normal": 1, "low": 2}
@@ -199,6 +200,7 @@ class Session:
         self.last_lead_t = 0.0                   # when the lead last said or did something
         self.open_tools: dict[str, dict] = {}    # tool calls started and not answered yet (a running command)
         self.watch = {"since": 0.0, "noted": 0.0, "stuck": None}  # watchdog state for the current quiet spell
+        self.auto_help = {"times": [], "wake_at": 0.0, "restart_at": 0.0}  # L27: what the watchdog did by itself
 
     # ------------------------------------------------------------------ team view
     def set_role(self, role: str, **changes) -> None:
@@ -213,17 +215,26 @@ class Session:
 
     def team_snapshot(self) -> list[dict]:
         now = time.time()
-        names = list(ROLES) + [brains.label(b) for b in brains.all_brains() if b.get("enabled")]
+        brain_names = [brains.label(b) for b in brains.all_brains() if b.get("enabled")]
+        names = list(ROLES) + brain_names
         names += [n for n in self.team if n not in names]
+        waiting = self.engine.waiting_user(self.slug)   # someone waits for the user: nobody is "stalled"
+        running = {t["who"] for t in self.open_tools.values()}   # a command still running is activity
         out = []
         for name in names:
             r = dict(self.team.get(name) or {"status": "idle", "task": "", "last": "", "last_time": 0, "recent": []})
-            if r["status"] == "working" and r.get("last_time") and now - r["last_time"] > STALL_SECONDS \
-                    and now - r.get("since", now) > STALL_SECONDS:
+            if r["status"] == "working" and not waiting and name not in running and r.get("last_time") \
+                    and now - r["last_time"] > STALL_SECONDS and now - r.get("since", now) > STALL_SECONDS:
                 r["stalled"] = True
             r["name"] = name
-            r["kind"] = LEADS.get(name) or ("worker" if name in ROLES else "brain")
+            # L27: every worker (Diagrammer, Scout, Challenger...) is a worker; only the council's brains are brains
+            r["kind"] = LEADS.get(name) or ("brain" if name in brain_names else "worker")
             out.append(r)
+        # the lead supervising a worker that is moving (or asking) is not stalled himself
+        if any(o["kind"] == "worker" and o["status"] in ("working", "question") and not o.get("stalled") for o in out):
+            for o in out:
+                if o["kind"] in ("lead", "architect"):
+                    o.pop("stalled", None)
         return out
 
     @property
@@ -335,10 +346,9 @@ class Session:
         said = (self.says_for_tool.pop(who, "") or self.last_text.pop(who, "")).strip()
         if said:
             card["says"] = said[-700:]
-        prev = (self.team.get(who) or {}).get("status", "idle")
         self.set_role(who, status="question", last=f"waiting for your approval: {card['title'].lower()}")
         answer = await self.ask_user("approval", card)
-        self.set_role(who, status=prev if prev != "question" else "working")
+        self.set_role(who, status="working")   # L27: approved or not, the agent carries on (it was shown idle before)
         if answer.get("interrupted"):
             return PermissionResultDeny(message=interrupted_text(answer))
         if answer.get("approved"):
@@ -998,19 +1008,40 @@ class Engine:
         stuck = (quiet >= QUIET_STUCK and not tools_running) or quiet >= COMMAND_STUCK
         if stuck:
             found["state"] = "stuck"
-            if not w["stuck"]:
+            first = not w["stuck"]
+            if not first and not (w.get("acted_at") and now - w["acted_at"] >= QUIET_STUCK):
+                return found   # one card per quiet spell; the next automatic step comes 5 minutes after the last one
+            minutes = int(quiet // 60)
+            action = self._auto_action(sess, now)   # L27: "wake", "restart" or None (the user decides)
+            found["auto"] = action
+            workers = [r["who"] for r in running if r["kind"] == "worker"]
+            if first:
                 w["since"] = sess.last_activity
                 card_id = self.new_id()
                 w["stuck"] = card_id
-                between = not sess.busy
-                text = (f"Nothing has moved for {int(quiet // 60)} minutes: no tokens used and no tool working. "
-                        + ("Fred was asked to check what is going on." if between else
-                           "Fred may be stuck. You can wake him up, or stop and restart this step."))
+                text = f"Nothing has moved for {minutes} minutes: no tokens used and no tool working. "
+                if action and not sess.busy:
+                    text += f"{sess.persona} was asked to check what is going on."
+                elif action:
+                    text += (f"AI Team Lite woke {sess.persona} up by itself"
+                             + (f" (the {', the '.join(workers)} had stopped moving)" if workers else "")
+                             + ". If nothing moves within 5 minutes, it restarts this step. You can also wake him up "
+                               "or restart this step yourself.")
+                else:
+                    text += (f"{sess.persona} may be stuck, and waking up or restarting did not help. You can wake "
+                             "him up, or stop and restart this step.")
                 self.hub.publish(slug, {"type": "stuck", "id": card_id, "status": "open", "text": text,
-                                        "minutes": int(quiet // 60), "running": [r["who"] for r in running]})
+                                        "minutes": minutes, "running": [r["who"] for r in running], "auto": action})
                 self.notify("stuck", slug=slug, card_id=card_id, text=text)
-                if between:   # Fred is between turns (e.g. waiting for a report that will not come): ask him now
-                    self.send_message(slug, self.wake_note(slug, int(quiet // 60), auto=True), hidden=True)
+            if action == "wake":
+                self._auto_wake(sess, minutes, workers, now)
+                w["since"] = w["acted_at"] = sess.last_activity = now   # not "moving again": only real activity is
+            elif action == "restart":
+                self._auto_restart(sess, now)
+            elif not first:
+                self.hub.update(slug, w["stuck"], text=f"Nothing has moved for {minutes} minutes, even after waking "
+                                f"{sess.persona} up and restarting. Please choose what to do.")
+                w["acted_at"] = 0.0
             return found
         if quiet >= QUIET_NOTE and (asked or now - (w["noted"] or 0) >= QUIET_NOTE):
             w["since"] = w["since"] or sess.last_activity
@@ -1018,6 +1049,36 @@ class Engine:
             found["state"] = "quiet"
             self.hub.publish(slug, {"type": "watch", "text": self.still_working_text(sess, quiet, running, now)})
         return found
+
+    def _auto_action(self, sess: "Session", now: float) -> str | None:
+        """L27 (owner's rule: after 5 minutes without activity, wake or restart the sub-agent by itself). First wake
+        Fred up; if nothing moved since, restart the step; if a restart did not help either, or after AUTO_HELP_MAX
+        automatic steps in an hour, leave it to the user so the app never loops."""
+        a = sess.auto_help
+        a["times"] = [t for t in a["times"] if now - t < 3600]
+        no_progress_since = lambda t: bool(t) and sess.last_activity <= t + 1
+        if len(a["times"]) >= AUTO_HELP_MAX or no_progress_since(a["restart_at"]):
+            return None
+        return "restart" if no_progress_since(a["wake_at"]) else "wake"
+
+    def _auto_wake(self, sess: "Session", minutes: int, workers: list[str], now: float) -> None:
+        sess.auto_help["times"].append(now)
+        sess.auto_help["wake_at"] = now
+        note = self.wake_note(sess.slug, minutes, auto=True, stalled=workers)
+        self._deliver_wake(sess, note, f"{sess.persona} was woken up automatically after {minutes} minutes without "
+                                       "activity." if sess.busy else "")
+
+    def _auto_restart(self, sess: "Session", now: float) -> None:
+        sess.auto_help["times"].append(now)
+        sess.auto_help["restart_at"] = now
+        if sess.watch["stuck"]:
+            self.hub.update(sess.slug, sess.watch["stuck"], status="resolved",
+                            note="Waking up did not help, so AI Team Lite restarted this step by itself.")
+            sess.watch["stuck"] = None
+        self.hub.publish(sess.slug, {"type": "notice", "text": "Nothing moved for 5 more minutes after waking "
+                                     f"{sess.persona} up: this step was restarted automatically."})
+        self.restart_step(sess.slug)
+        sess.last_activity = now
 
     def still_working_text(self, sess: "Session", quiet: float, running: list[dict], now: float) -> str:
         mins = lambda s: f"{max(1, int((now - s) // 60))} min so far"
@@ -1037,12 +1098,13 @@ class Engine:
                             note="Work started moving again." if moving else "The work stopped.")
         sess.watch = {"since": 0.0, "noted": 0.0, "stuck": None}
 
-    def wake_note(self, slug: str, minutes: int, auto: bool = False) -> str:
+    def wake_note(self, slug: str, minutes: int, auto: bool = False, stalled: list[str] | None = None) -> str:
         sess = self.sessions.get(slug)
         bg = ", ".join(i["label"] for i in sess.background.values()) if sess else ""
         return (f"[App] {'Nothing has happened' if auto else 'The user pressed Wake Fred up: nothing happened'} for "
                 f"{minutes} minutes while work is in progress." + (f" Still marked as working in the background: {bg}."
                                                                     if bg else "") +
+                (f" The {', the '.join(stalled)} stopped moving: start its step again." if stalled else "") +
                 " Check what is going on (is a worker or a command still running, did something hang?), tell the user "
                 "in one plain line what you found, then continue the work, starting again any step that hung. Do not "
                 "call TaskOutput (it does not exist); run workers in the foreground.")
@@ -1053,16 +1115,18 @@ class Engine:
         minutes = int((time.time() - sess.last_activity) // 60)
         self._watch_reset(sess, moving=True)
         sess.last_activity = time.time()
-        note = self.wake_note(slug, minutes)
+        return self._deliver_wake(sess, self.wake_note(slug, minutes), f"You woke {sess.persona} up.")
+
+    def _deliver_wake(self, sess: "Session", note: str, notice: str) -> str:
+        if notice:
+            self.hub.publish(sess.slug, {"type": "notice", "text": notice})
         if sess.busy:   # stuck inside a turn: interrupt it, the note follows straight after
             with self._send_lock:
-                self.queued.setdefault(slug, []).append(note)
+                self.queued.setdefault(sess.slug, []).append(note)
             if sess.client is not None:
                 self.loop.call_soon_threadsafe(lambda: self.loop.create_task(_quiet(sess.client.interrupt())))
-            self.hub.publish(slug, {"type": "notice", "text": f"You woke {sess.persona} up."})
             return "queued"
-        self.hub.publish(slug, {"type": "notice", "text": f"You woke {sess.persona} up."})
-        return self.send_message(slug, note, hidden=True)
+        return self.send_message(sess.slug, note, hidden=True)
 
     def restart_step(self, slug: str) -> str:
         """The user pressed "Stop and restart this step" (L8)."""

@@ -65,6 +65,24 @@ try:
         expect(page.locator("#input")).to_have_value("Hello pasted from the clipboard", timeout=3000)
         check("right-click Paste in the message box", True)
         page.fill("#input", "")
+        # L27: the team graph keeps every worker with the workers and inside the picture
+        g = page.evaluate("""(() => {
+          const r = (name, kind, status) => ({name, kind, status, task: '', last: '', recent: []});
+          view.team = [r('Fred', 'lead', 'working'), r('Mat', 'architect', 'idle'), r('Developer', 'worker', 'idle'),
+            r('Tester', 'worker', 'idle'), r('Reviewer', 'worker', 'idle'), r('Diagrammer', 'worker', 'question'),
+            r('Ollama · qwen3:8b', 'brain', 'idle'), r('Ollama · qwen2.5-coder:14b', 'brain', 'idle'),
+            r('Google Gemini · flash', 'brain', 'idle')];
+          document.querySelector('.tab[data-t=team]')?.click(); renderTeam();
+          const svg = document.querySelector('.team-svg'), vb = svg.viewBox.baseVal;
+          const box = n => document.querySelector(`.tnode[data-n="${n}"] rect`);
+          const inside = [...svg.querySelectorAll('.tnode rect')].every(b => +b.getAttribute('x') >= 0
+            && +b.getAttribute('x') + +b.getAttribute('width') <= vb.width && +b.getAttribute('y') + +b.getAttribute('height') <= vb.height);
+          return {inside, diag: +box('Diagrammer').getAttribute('y'), dev: +box('Developer').getAttribute('y'),
+                  brain: +box('Ollama · qwen3:8b').getAttribute('y')};
+        })()""")
+        check("team graph: every box inside the picture", g["inside"], g)
+        check("team graph: the Diagrammer sits with the workers, above the brains", g["dev"] < g["diag"] < g["brain"], g)
+        page.locator(".team-svg").screenshot(path=OUT / "v130-team-graph.png")
         # L26: an event reusing an old number (from an earlier run) is still shown; a true duplicate is not
         n = page.evaluate("""(() => { const old = items.find(x => x.type === 'message');
           const ev = {type: 'approval', id: 'l26card', status: 'pending', title: 'Run a command', who: 'Diagrammer',

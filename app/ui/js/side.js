@@ -71,11 +71,21 @@ function renderTeam() {
       <text x="${x + bw / 2}" y="${y + 19}" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1b1f24">${esc(shortName(r))}</text>
       <text x="${x + bw / 2}" y="${y + 34}" text-anchor="middle" font-size="10.5" fill="#495057">${esc(stalled ? 'no activity 5 min' : s.label)}</text>${badge(x + bw - 4, y + bh - 4, r.status)}</g>`;
   };
-  const fx = (W - bw) / 2, fy = 8, wy = 96, by = 186;
+  // L27: rows of three, so a fourth worker (e.g. the Diagrammer) no longer falls outside the picture
+  const fx = (W - bw) / 2, fy = 8, wy = 96, gap = 64;
+  const place = (i, n) => ({x: rowX(Math.min(n - Math.floor(i / 3) * 3, 3), i % 3), row: Math.floor(i / 3)});
+  const by = wy + Math.max(1, Math.ceil(workers.length / 3)) * gap + 26;
   let svg = '', lines = '';
-  workers.forEach((r, i) => { const x = rowX(workers.length, i); lines += `<path d="M${W / 2} ${fy + bh} C ${W / 2} ${wy - 20}, ${x + bw / 2} ${fy + bh + 20}, ${x + bw / 2} ${wy}" fill="none" stroke="${r.status === 'idle' ? 'var(--line)' : (ST[r.status] || ST.idle).c}" stroke-width="1.6"/>`; svg += node(r, x, wy); });
-  brainsN.forEach((r, i) => { const n = Math.min(brainsN.length, 3), x = rowX(n, i % 3), y = by + Math.floor(i / 3) * 60; lines += `<path d="M${W / 2} ${fy + bh} C ${W / 2 - 160} ${wy + 30}, ${x + bw / 2} ${y - 40}, ${x + bw / 2} ${y}" fill="none" stroke="var(--line)" stroke-width="1.2" stroke-dasharray="4 4"/>`; svg += node(r, x, y); });
-  const H = brainsN.length ? by + Math.ceil(brainsN.length / 3) * 60 : wy + bh + 10;
+  workers.forEach((r, i) => {
+    const row = Math.floor(i / 3), x = row ? rowX(3, i % 3) : place(i, workers.length).x, y = wy + row * gap;
+    const stroke = r.status === 'idle' ? 'var(--line)' : (ST[r.status] || ST.idle).c;
+    // first row: straight down from Fred; later rows: down the left side and into the box, never through another box
+    const d = row ? `M${fx + 10} ${fy + bh} C 2 ${fy + bh + 40}, 2 ${y + bh / 2}, ${x} ${y + bh / 2}`
+                  : `M${W / 2} ${fy + bh} C ${W / 2} ${y - 24}, ${x + bw / 2} ${fy + bh + 20}, ${x + bw / 2} ${y}`;
+    lines += `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.6"/>`; svg += node(r, x, y);
+  });
+  brainsN.forEach((r, i) => { const {x, row} = place(i, brainsN.length), y = by + row * gap; lines += `<path d="M${W / 2} ${fy + bh} C ${W / 2 - 160} ${wy + 30}, ${x + bw / 2} ${y - 40}, ${x + bw / 2} ${y}" fill="none" stroke="var(--line)" stroke-width="1.2" stroke-dasharray="4 4"/>`; svg += node(r, x, y); });
+  const H = brainsN.length ? by + Math.ceil(brainsN.length / 3) * gap : wy + Math.max(1, Math.ceil(workers.length / 3)) * gap - gap + bh + 10;
   let top = node(lead, fx, fy);
   if (arch) { const ax = W - bw - 4; lines += `<path d="M${fx + bw} ${fy + bh / 2} L${ax} ${fy + bh / 2}" stroke="${arch.status === 'idle' ? 'var(--line)' : (ST[arch.status] || ST.idle).c}" stroke-width="1.6" stroke-dasharray="5 3"/>`; top += node(arch, ax, fy); }
   svg = `<svg class="team-svg" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Team status">${lines}${top}${svg}</svg>`;

@@ -1078,3 +1078,117 @@ def test_l26_event_numbers_never_repeat_after_a_restart(isolated):
     seqs = [e["seq"] for e in second.history(p["slug"])]
     assert len(seqs) == len(set(seqs)) and seqs[-1] == card["seq"]
     assert second.wait(card["seq"] - 1, timeout=0.1)[0]["id"] == "abc"   # the live stream still delivers it
+
+
+# ---------------------------------------------------------------- L27: team graph and automatic wake-up
+def test_l27_wakes_by_itself_then_restarts_then_leaves_it_to_the_user(isolated, monkeypatch):
+    slug = _bg_project("Auto help")
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    restarts = []
+    monkeypatch.setattr(eng, "restart_step", lambda s: restarts.append(s) or "started")
+    sess = _busy_session(eng, slug)
+    sess.agents["t1"] = "Diagrammer"
+    sess.set_role("Diagrammer", status="working", task="Architecture diagram")
+    t0 = time.time()
+    sess.last_activity = t0 - 310
+    found = eng.watch_check(slug, now=t0)
+    assert found["auto"] == "wake"
+    card = [e for e in hub.history(slug) if e["type"] == "stuck"][-1]
+    assert "woke Fred up by itself (the Diagrammer had stopped moving)" in card["text"]
+    assert "The Diagrammer stopped moving: start its step again." in eng.queued[slug][-1]
+    assert eng.watch_check(slug, now=t0 + 60)["state"] != "stuck"   # the wake-up starts a new 5 minutes
+    assert len([e for e in hub.history(slug) if e["type"] == "stuck"]) == 1 and not restarts
+    # still nothing 5 minutes after the wake-up: the step is restarted by itself
+    found = eng.watch_check(slug, now=t0 + 310)
+    assert found["auto"] == "restart" and restarts == [slug]
+    card = next(e for e in hub.history(slug) if e["type"] == "stuck")
+    assert card["status"] == "resolved" and "restarted this step by itself" in card["note"]
+    # stuck again with no progress since the restart: no more automatic steps, the user decides
+    sess.last_activity = t0 + 310
+    found = eng.watch_check(slug, now=t0 + 640)
+    assert found["state"] == "stuck" and found["auto"] is None and restarts == [slug]
+    last = [e for e in hub.history(slug) if e["type"] == "stuck"][-1]
+    assert "waking up or restarting did not help" in last["text"]
+    eng.shutdown()
+
+
+def test_l27_real_activity_after_the_wake_up_means_no_restart(isolated, monkeypatch):
+    slug = _bg_project("Moves again")
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    restarts = []
+    monkeypatch.setattr(eng, "restart_step", lambda s: restarts.append(s))
+    sess = _busy_session(eng, slug)
+    t0 = time.time()
+    sess.last_activity = t0 - 310
+    assert eng.watch_check(slug, now=t0)["auto"] == "wake"
+    sess.last_activity = t0 + 30            # the team answered the wake-up
+    assert eng.watch_check(slug, now=t0 + 40)["state"] == "moving"
+    card = next(e for e in hub.history(slug) if e["type"] == "stuck")
+    assert card["status"] == "resolved" and "moving again" in card["note"]
+    sess.last_activity = t0 + 400            # a new quiet spell later on: wake up first again, never restart straight away
+    assert eng.watch_check(slug, now=t0 + 720)["auto"] == "wake" and not restarts
+    eng.shutdown()
+
+
+def test_l27_at_most_three_automatic_steps_per_hour(isolated, monkeypatch):
+    slug = _bg_project("No loop")
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    sess = _busy_session(eng, slug)
+    t0 = time.time()
+    sess.auto_help["times"] = [t0 - 600, t0 - 400, t0 - 200]
+    sess.last_activity = t0 - 310
+    assert eng.watch_check(slug, now=t0)["auto"] is None
+    sess.auto_help["times"] = [t0 - 4000] * 3   # older than an hour: they no longer count
+    eng._watch_reset(sess, moving=False)
+    assert eng.watch_check(slug, now=t0 + 1)["auto"] == "wake"
+    eng.shutdown()
+
+
+def test_l27_team_graph_groups_and_stall_flags(isolated):
+    slug = _bg_project("Graph")
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    sess = eng.session(slug)
+    old = time.time() - 900
+    for name in ("Fred", "Diagrammer", "Scout"):
+        sess.set_role(name, status="idle")
+    team = {r["name"]: r for r in sess.team_snapshot()}
+    assert team["Diagrammer"]["kind"] == "worker" and team["Scout"]["kind"] == "worker", "workers are not brains"
+    # Fred supervising a Diagrammer that is busy: Fred is not "no activity"
+    sess.team["Fred"].update(status="working", last_time=old, since=old)
+    sess.set_role("Diagrammer", status="working", last="reading ARCHITECTURE.md")
+    team = {r["name"]: r for r in sess.team_snapshot()}
+    assert not team["Fred"].get("stalled") and not team["Diagrammer"].get("stalled")
+    # the Diagrammer silent for 15 minutes: it is flagged (and so is Fred, nothing moves)
+    sess.team["Diagrammer"].update(last_time=old, since=old)
+    team = {r["name"]: r for r in sess.team_snapshot()}
+    assert team["Diagrammer"].get("stalled") and team["Fred"].get("stalled")
+    # ... but not while a command of its own is running, nor while someone waits for the user's answer
+    sess.open_tools["c"] = {"who": "Diagrammer", "line": "Running archify", "t": old}
+    assert not {r["name"]: r for r in sess.team_snapshot()}["Diagrammer"].get("stalled")
+    sess.open_tools.clear()
+    eng.pending["q"] = (None, slug, "approval")
+    assert not any(r.get("stalled") for r in sess.team_snapshot())
+    eng.pending.clear()
+    eng.shutdown()
+
+
+def test_l27_agent_is_working_again_after_an_approval(isolated):
+    slug = _bg_project("After approval")
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    sess = eng.session(slug)
+    sess.set_role("Developer", status="idle")
+    sess.agents["t1"] = "Developer"
+    ctx = type("C", (), {"agent_id": "a1"})()
+    fut = asyncio.run_coroutine_threadsafe(
+        sess.can_use_tool("PowerShell", {"command": "git push --force", "description": "Push"}, ctx), eng.loop)
+    assert _wait(lambda: sess.team["Developer"]["status"] == "question")
+    item = next(k for k, v in eng.pending.items() if v[1] == slug)
+    eng.respond(item, {"approved": True})
+    fut.result(5)
+    assert sess.team["Developer"]["status"] == "working"
+    eng.shutdown()
