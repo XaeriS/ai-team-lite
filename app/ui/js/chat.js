@@ -43,6 +43,7 @@ function userMsg(ev) {
   if (text) n.querySelector('.m').textContent = text;
   if (ev.queued) n.title = 'Delivered to Fred as soon as he finishes the current step';
   wireChips(n, true);
+  if (text) n.querySelector('.meta').append(copyButton(() => text));   // L28
   return n;
 }
 function fredMsg(ev) {
@@ -52,6 +53,7 @@ function fredMsg(ev) {
   let meta = when(ev.ts);
   if (!answered && lastUserTs) { meta += ` · replied after ${took(ev.ts - lastUserTs)}`; answered = true; }
   n.querySelector('.meta').textContent = meta;
+  n.querySelector('.meta').append(copyButton(() => n.querySelector('.m').innerText.trim()));   // L28
   return n;
 }
 

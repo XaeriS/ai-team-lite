@@ -170,3 +170,19 @@ def test_delete_attachment(srv):
     prompt = FakeClient.instances[-1].prompts[-1]
     assert "deleted the attached file inputs/bank.csv" in prompt and prompt.endswith("next")
     assert not srv.app.engine.notes.get(p["slug"])
+
+
+def test_l28_clipboard_read_route(srv, monkeypatch):
+    from app import winhelpers
+    monkeypatch.setattr(winhelpers, "read_clipboard", lambda: "pasted text é")
+    assert srv.call("POST", "/api/clipboard/read", {}) == (200, {"text": "pasted text é"})
+    assert srv.call("POST", "/api/clipboard/read", {}, token=False)[0] == 403
+    monkeypatch.setattr(winhelpers, "read_clipboard", lambda: (_ for _ in ()).throw(OSError("no powershell")))
+    status, body = srv.call("POST", "/api/clipboard/read", {})
+    assert status == 500 and "Ctrl+V" in body["error"]
+
+
+def test_l28_window_allows_selecting_text():
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent / "app" / "main.py").read_text(encoding="utf-8")
+    assert "text_select=True" in src   # pywebview's default (False) blocks selecting text in the chat

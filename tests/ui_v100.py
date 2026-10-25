@@ -21,7 +21,9 @@ def check(name, cond, extra=""):
     if not cond: fails.append(name)
 try:
     with sync_playwright() as pw:
-        b = pw.chromium.launch(); page = b.new_page(viewport={"width": 1440, "height": 950})
+        b = pw.chromium.launch()
+        ctx = b.new_context(viewport={"width": 1440, "height": 950}, permissions=["clipboard-read", "clipboard-write"])
+        page = ctx.new_page()
         page.on("pageerror", lambda e: errs.append(str(e)))
         page.on("dialog", lambda d: d.accept())
         page.goto(url)
@@ -40,6 +42,29 @@ try:
               and card.locator("button", has_text="Stop and restart this step").count() == 1)
         check("plan room warning in the chat", page.locator(".itcard", has_text="18% of your 5-hour limit").count() == 1)
         page.screenshot(path=OUT / "v100-chat.png")
+        # L28: text in the chat can be selected and copied; right-click menu in messages and in the message box
+        fred = page.locator(".m.fred").last
+        check("message text can be selected", page.evaluate("getComputedStyle(document.querySelector('.m.fred')).userSelect") != "none")
+        check("buttons are not selectable", page.evaluate("getComputedStyle(document.querySelector('#settingsBtn')).userSelect") == "none")
+        fred.hover()
+        copy = fred.locator("xpath=..").locator(".meta .copy")
+        copy.click()
+        expect(copy).to_have_text("Copied", timeout=3000)
+        check("Copy button puts the message on the clipboard",
+              page.evaluate("navigator.clipboard.readText()") == fred.inner_text().strip())
+        fred.click(button="right")
+        menu = page.locator(".ctxmenu")
+        check("right-click on a message offers Copy message", menu.locator("button", has_text="Copy message").count() == 1)
+        page.screenshot(path=OUT / "v130-copy-menu.png")
+        page.keyboard.press("Escape")
+        check("menu closes with Escape", menu.count() == 0)
+        page.evaluate("navigator.clipboard.writeText('pasted from the clipboard')")
+        page.fill("#input", "Hello ")
+        page.locator("#input").click(button="right")
+        menu.locator("button", has_text="Paste").click()
+        expect(page.locator("#input")).to_have_value("Hello pasted from the clipboard", timeout=3000)
+        check("right-click Paste in the message box", True)
+        page.fill("#input", "")
         # L26: an event reusing an old number (from an earlier run) is still shown; a true duplicate is not
         n = page.evaluate("""(() => { const old = items.find(x => x.type === 'message');
           const ev = {type: 'approval', id: 'l26card', status: 'pending', title: 'Run a command', who: 'Diagrammer',

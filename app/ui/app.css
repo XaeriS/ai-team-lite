@@ -211,3 +211,14 @@ table.dec th{font-size:12px;color:var(--mute);font-weight:600}
 .seg label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}.seg input{width:auto;margin-right:6px}
 .danger-zone{border:1px solid var(--bad);border-radius:10px;padding:10px 12px;margin-top:12px}
 .welcome h2{color:var(--ink)}
+
+/* L28: text can be selected in the chat and the side panel, not on buttons and labels; copy button and menu */
+button,nav,.pill,.state,.tabs,.stab,.who,.legend,.acts{user-select:none}
+.m,.card,.notice,.itcard,.doc,.hint,#side{user-select:text}
+.meta .copy{border:0;background:none;color:var(--mute);font-size:11.5px;padding:0 0 0 8px;opacity:0;transition:opacity .15s}
+.uwrap:hover .meta .copy,div:hover>.meta .copy,.meta .copy:focus-visible{opacity:1}
+.meta .copy:hover{color:var(--accent);text-decoration:underline}
+.ctxmenu{position:fixed;z-index:1000;min-width:150px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:4px;display:flex;flex-direction:column}
+.ctxmenu button{border:0;background:none;text-align:left;padding:6px 10px;border-radius:6px}
+.ctxmenu button:hover:not(:disabled){background:var(--accent-soft)}
+.ctxmenu button:disabled{color:var(--mute);cursor:default}

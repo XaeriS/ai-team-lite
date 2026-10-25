@@ -7,6 +7,7 @@ import json
 import mimetypes
 import re
 import secrets
+import subprocess
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -821,6 +822,11 @@ def make_handler(app: App):
 
         def _post_settings(self, path: str, body: dict):
             """Settings, secrets, voice, phone approvals, lessons and folder picking."""
+            if path == "/api/clipboard/read":   # L28: right-click > Paste in a text box
+                try:
+                    return self._json({"text": winhelpers.read_clipboard()})
+                except (OSError, subprocess.SubprocessError):
+                    return self._error(500, "Press Ctrl+V to paste.")
             if path == "/api/settings":
                 changes = {}
                 if body.get("approval_mode") in ("plan", "strict"):

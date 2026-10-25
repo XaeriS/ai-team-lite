@@ -218,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
             bridge = Bridge()
             app.bridge = bridge
             icon = paths.install_dir() / "app" / "ui" / "icon.ico"
-            bridge.window = webview.create_window(paths.APP_NAME, url, width=1360, height=880, min_size=(900, 600),
+            bridge.window = webview.create_window(paths.APP_NAME, url, width=1360, height=880, min_size=(900, 600), text_select=True,
                                                   background_color="#14171c")
 
             def instance_listener():

@@ -30,6 +30,17 @@ def start_voice_typing() -> bool:
     return True
 
 
+# ---------------------------------------------------------------------------- clipboard
+def read_clipboard() -> str:
+    """The text on the Windows clipboard (L28: right-click > Paste when the window may not read it itself)."""
+    if not paths.IS_WINDOWS:
+        return ""
+    out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                          "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Clipboard -Raw"],
+                         capture_output=True, timeout=10, creationflags=NO_WINDOW)
+    return out.stdout.decode("utf-8", errors="replace").removesuffix("\r\n")
+
+
 # ---------------------------------------------------------------------------- browsers
 def find_headless_browser() -> str | None:
     candidates = []
