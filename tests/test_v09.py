@@ -1,11 +1,9 @@
 """0.9.0: brain test-before-add + tiers, usage in/out split + cache savings, context cap, changes diff, updates."""
 import json
 import time
-from pathlib import Path
 
-import pytest
 
-from app import brains, engine as engine_mod, iterations, models, projects, secrets_store, settings, updates, usage
+from app import brains, engine as engine_mod, iterations, projects, secrets_store, settings, updates
 from app.events import EventHub
 from fakeclaude import FakeClient, say
 

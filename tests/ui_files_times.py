@@ -1,5 +1,5 @@
 """Browser test: delete attachments before/after sending; send and reply times on messages."""
-import json, os, subprocess, sys, tempfile
+import json, time, os, subprocess, sys, tempfile
 from pathlib import Path
 from playwright.sync_api import expect, sync_playwright
 
@@ -14,6 +14,14 @@ env = {**os.environ, "AITEAM_HOME": str(tmp / "d"), "AITEAM_SECRETS_FILE": str(t
 proc = subprocess.Popen([sys.executable, str(HERE / "demo_server.py")], env=env, stdout=subprocess.PIPE, text=True)
 url = proc.stdout.readline().strip()
 fails, errs = [], []
+def gone(path, secs=5.0):
+    """The app deletes files in the background: wait for it instead of checking once (the test failed at random)."""
+    end = time.time() + secs
+    while path.exists() and time.time() < end:
+        time.sleep(0.05)
+    return not path.exists()
+
+
 def check(name, cond):
     print(("PASS " if cond else "FAIL ") + name)
     if not cond: fails.append(name)
@@ -24,13 +32,14 @@ try:
         page.goto(url)
         page.click("#newBtn"); page.fill("#newName", "Budget"); page.click("#newForm button[type=submit]")
         expect(page.locator(".m.fred").first).to_contain_text("What would you like", timeout=10000)
-        check("Fred's greeting shows its time", page.locator(".m.fred").first.locator("xpath=..").locator(".meta").inner_text().strip() != "")
+        expect(page.locator(".m.fred").first.locator("xpath=..").locator(".meta")).not_to_be_empty()
+        check("Fred's greeting shows its time", True)
         # attach two files, remove one before sending
         page.set_input_files("#fileIn", [str(tmp / "bank-march.csv"), str(tmp / "layout.xlsx")])
         expect(page.locator("#chips .chip")).to_have_count(2)
         page.locator("#chips .chip", has_text="layout.xlsx").locator(".x").click()
         expect(page.locator("#chips .chip")).to_have_count(1)
-        check("removed file deleted from the project", not (tmp / "ws" / "budget" / "inputs" / "layout.xlsx").exists())
+        check("removed file deleted from the project", gone(tmp / "ws" / "budget" / "inputs" / "layout.xlsx"))
         page.fill("#input", "Here is my bank export")
         page.keyboard.press("Enter")
         user = page.locator(".uwrap").last
@@ -44,7 +53,7 @@ try:
         user.locator(".chip .x").click()
         expect(user.locator(".chip.gone")).to_have_count(1, timeout=5000)
         expect(page.locator(".notice", has_text="You deleted bank-march.csv")).to_be_visible()
-        check("file gone from disk", not (tmp / "ws" / "budget" / "inputs" / "bank-march.csv").exists())
+        check("file gone from disk", gone(tmp / "ws" / "budget" / "inputs" / "bank-march.csv"))
         page.reload()
         expect(page.locator(".uwrap .chip.gone")).to_have_count(1, timeout=10000)
         check("deleted state survives reload", True)

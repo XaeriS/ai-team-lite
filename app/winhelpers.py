@@ -195,8 +195,6 @@ def launch(command: str, cwd: Path) -> int:
 
 def launch_checked(command: str, cwd: Path, wait: float = 2.0) -> int:
     """Like launch, but reports an app that stops with an error straight away (missing file, crash on start)."""
-    import time
-
     flags = NEW_CONSOLE if paths.IS_WINDOWS else 0
     proc = subprocess.Popen(command, cwd=str(cwd), shell=True, creationflags=flags,
                             start_new_session=not paths.IS_WINDOWS)

@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from app import brains, engine as engine_mod, iterations, models, projects, secrets_store, settings, usage
+from app import engine as engine_mod, iterations, models, projects, secrets_store, settings, usage
 from app.events import EventHub
 from fakeclaude import FakeClient, say
 

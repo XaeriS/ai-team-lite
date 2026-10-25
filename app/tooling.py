@@ -223,7 +223,6 @@ def archify_works() -> bool:
         return False
     key = (node_exe(), str(archify_dir()))
     if key not in _archify_ok:
-        import tempfile
         ok = False
         try:
             ex = archify_dir() / "examples" / "checkout-platform.base.architecture.json"

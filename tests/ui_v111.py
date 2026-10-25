@@ -1,6 +1,10 @@
 """Browser test of 0.11.1: broken project fixable from the list (66), reload in the ⋯ menu, plan usage rows (61/62),
 Gemini add shows a counter and a clear result (63), recommendation reason (64), code graph viewer, tray option."""
-import json, os, shutil, subprocess, sys, tempfile
+import json
+import os
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 from playwright.sync_api import expect, sync_playwright
 

@@ -246,6 +246,9 @@ def _ollama_get_and_add(app, model):
         _brain_job.release()
 
 
+NO_ROUTE = object()   # a route group returns this when the path is not one of its own
+
+
 def make_handler(app: App):
     class Handler(BaseHTTPRequestHandler):
         server_version = "AITeamLite"
@@ -418,7 +421,7 @@ def make_handler(app: App):
                         self.wfile.write(f"data: {json.dumps(ev, ensure_ascii=False)}\n\n".encode("utf-8"))
                     self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError, OSError):
-                return
+                pass   # the window closed or reloaded
 
         # ---------------------------------------------------------------- POST
         def do_POST(self):
@@ -443,6 +446,16 @@ def make_handler(app: App):
                     app.engine.send_message(projects.SETUP_SLUG, SETUP_KICKOFF, hidden=True)
 
         def _post(self, path: str, body: dict):
+            """Every button press in the window arrives here; each group handles its own paths, in order."""
+            for group in (self._post_signin, self._post_projects, self._post_app, self._post_work, self._post_answers,
+                          self._post_settings):
+                result = group(path, body)
+                if result is not NO_ROUTE:
+                    return result
+            return self._error(404, "not found")
+
+        def _post_signin(self, path: str, body: dict):
+            """Sign-in: API key and Claude subscription."""
             if path == "/api/onboarding/key":
                 key = str(body.get("key", "")).strip()
                 if not key.startswith("sk-ant-"):
@@ -473,6 +486,10 @@ def make_handler(app: App):
                 if auth.mode() == "subscription":
                     settings.save({"auth_mode": "api_key" if secrets_store.has("anthropic_api_key") else ""})
                 return self._json(app.state())
+            return NO_ROUTE
+
+        def _post_projects(self, path: str, body: dict):
+            """Creating projects, attachments, releases and launching the app."""
             if path == "/api/projects":
                 if not settings.load()["setup_complete"]:
                     return self._error(400, "Finish the setup with Fred first.")
@@ -546,6 +563,10 @@ def make_handler(app: App):
                     threading.Timer(2.5, winhelpers.open_url, args=(info["url"],)).start()
                 app.hub.publish(slug, {"type": "notice", "text": f"You launched the project ({info.get('version') or info['command']})."})
                 return self._json({"ok": True, "pid": pid, **info})
+            return NO_ROUTE
+
+        def _post_app(self, path: str, body: dict):
+            """Sharing the app, requested features and the pipeline order."""
             if path == "/api/app/setup-sharing":
                 if not secrets_store.has("github_token"):
                     return self._error(400, "Connect GitHub first (Settings > Setup & connections).")
@@ -597,6 +618,10 @@ def make_handler(app: App):
                 settings.save({"pipeline_order": order})
                 threading.Thread(target=app.engine._start_next, daemon=True).start()
                 return self._json(app.engine.pipeline_overview())
+            return NO_ROUTE
+
+        def _post_work(self, path: str, body: dict):
+            """Work control: interrupted and broken projects, pause/resume, messages, usage refresh."""
             m = re.fullmatch(r"/api/interrupted/([a-z0-9-]+)/(resume|restart|dismiss)", path)
             if m:
                 slug, action = m.groups()
@@ -726,6 +751,10 @@ def make_handler(app: App):
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     dest.write_bytes(data)
                     return self._json({"ok": True, "path": f"inputs/{name}"})
+            return NO_ROUTE
+
+        def _post_answers(self, path: str, body: dict):
+            """Answers to cards and the council's brains."""
             if path == "/api/respond":
                 item_id = str(body.get("id", ""))
                 payload = {k: v for k, v in body.items() if k != "id"}
@@ -788,6 +817,10 @@ def make_handler(app: App):
                     return self._json(brains.summary())
                 except brains.BrainError as e:
                     return self._error(400, f"Could not reach the provider: {e}")
+            return NO_ROUTE
+
+        def _post_settings(self, path: str, body: dict):
+            """Settings, secrets, voice, phone approvals, lessons and folder picking."""
             if path == "/api/settings":
                 changes = {}
                 if body.get("approval_mode") in ("plan", "strict"):
@@ -872,7 +905,7 @@ def make_handler(app: App):
             if path == "/api/pick-folder":
                 chosen = app.bridge.pick_folder(body.get("start", "")) if app.bridge else None
                 return self._json({"path": chosen})
-            return self._error(404, "not found")
+            return NO_ROUTE
 
     return Handler
 
