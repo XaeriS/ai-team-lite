@@ -171,14 +171,17 @@ def test_limit_stops_and_auto_continues(isolated):
     from claude_agent_sdk import ResultMessage
 
     async def script(i, prompt, c):
-        if i == 0:
+        if "usage limit has reset" not in prompt:
             yield say("Working on it")
             return
         yield say("Resuming where I stopped.")
 
+    refused = []
+
     class LimitClient(FakeClient):
         async def receive_response(self):
-            if len(self.prompts) == 1:
+            if not refused:   # only the first message hits the limit (L30: the continue uses a fresh connection)
+                refused.append(1)
                 yield say("Starting the build")
                 yield ResultMessage(subtype="error", duration_ms=1, duration_api_ms=1, is_error=True, num_turns=1,
                                     session_id="s", result="Claude usage limit reached", api_error_status=429)

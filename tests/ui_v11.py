@@ -42,6 +42,7 @@ try:
         page.click("#settingsBtn")
         page.click(".stab[data-s=brains]")
 
+        page.wait_for_function("document.querySelectorAll('#bProv option').length > 0", timeout=8000)   # filled in async
         provs = page.locator("#bProv option").all_inner_texts()
         check("council providers: Gemini and Ollama only", len(provs) == 2 and not any("omniroute" in p.lower() for p in provs), provs)
 

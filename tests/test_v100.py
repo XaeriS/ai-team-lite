@@ -166,6 +166,7 @@ def test_prompt_never_asks_for_taskoutput():
 def _busy_session(eng, slug):
     sess = eng.session(slug)
     sess.busy = True
+    sess.turn_started = time.time()   # a turn that is really running (L30: busy without a turn means it never started)
     return sess
 
 
@@ -1191,4 +1192,76 @@ def test_l27_agent_is_working_again_after_an_approval(isolated):
     eng.respond(item, {"approved": True})
     fut.result(5)
     assert sess.team["Developer"]["status"] == "working"
+    eng.shutdown()
+
+
+# ---------------------------------------------------------------- L30: no restart after the plan limit
+def test_l30_limit_is_registered_at_once_so_the_master_plan_waits(isolated):
+    _ready()
+    p = projects.create("Limit at once")
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    eng.on_limit(p["slug"], {"type": "five_hour", "label": "Current session (5 hours)", "resets_at": time.time() + 3600})
+    assert p["slug"] in eng.limit_timers, "known before the timer is set, so no second turn can start in between"
+    assert eng.pipeline_continue() == []
+    eng.cancel_auto_continue(p["slug"])
+    eng.shutdown()
+
+
+def _hung_engine(name):
+    """A project whose turn hangs before doing anything, as seen on 2026-10-25 after a 4-hour limit wait."""
+    _ready()
+    p = projects.create(name)
+    connections = []
+
+    async def script(i, prompt, c):
+        yield say("Back at work: " + prompt[:80])
+
+    class HangsFirst(FakeClient):
+        async def query(self, prompt):
+            if len(connections) == 1:      # the first connection never answers (a dead or stuck connection)
+                await asyncio.sleep(3600)
+            await super().query(prompt)
+
+    def factory(o):
+        connections.append(1)
+        return HangsFirst(o, script)
+
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=factory)
+    eng.send_message(p["slug"], "build it")
+    assert _wait(lambda: eng.is_busy(p["slug"]) and connections)
+    time.sleep(0.2)
+    return p["slug"], hub, eng, connections
+
+
+def _back(hub, slug):
+    return _wait(lambda: any(e["type"] == "message" and "Back at work" in e.get("text", "") for e in hub.history(slug)))
+
+
+def test_l30_continue_after_the_limit_gets_past_a_hung_turn(isolated):
+    slug, hub, eng, connections = _hung_engine("Hung after limit")
+    eng.on_limit(slug, {"type": "five_hour", "label": "Current session (5 hours)", "resets_at": None})
+    assert eng.limit_continue(slug, auto=True) == "started"
+    assert _back(hub, slug), "the continue used to queue behind the hung turn and never run"
+    assert len(connections) == 2, "a fresh connection, same conversation"
+    msg = next(e for e in hub.history(slug) if e["type"] == "message" and "Back at work" in e.get("text", ""))
+    assert "usage limit has reset" in msg["text"]
+    eng.shutdown()
+
+
+def test_l30_restart_step_gets_past_a_hung_turn(isolated):
+    slug, hub, eng, connections = _hung_engine("Hung restart")
+    eng.restart_step(slug)
+    assert _back(hub, slug) and len(connections) == 2
+    assert not projects.load(slug).get("pipeline_hold")
+    eng.shutdown()
+
+
+def test_l30_wake_gets_past_a_turn_that_never_started(isolated):
+    slug, hub, eng, connections = _hung_engine("Never started")
+    sess = eng.session(slug)
+    sess.turn_started = None          # claimed, but the turn never got going
+    assert eng.wake(slug) == "started"
+    assert _back(hub, slug) and len(connections) == 2
     eng.shutdown()

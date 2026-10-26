@@ -622,8 +622,8 @@ class Session:
         if t is not None and not t.done() and t is not asyncio.current_task():
             t.cancel()
             try:
-                await t
-            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                await asyncio.wait_for(t, 5)   # L30: a listener stuck on a dead connection must not hold up the turn
+            except (asyncio.CancelledError, asyncio.TimeoutError, Exception):  # noqa: BLE001
                 pass
 
     async def _listen(self) -> None:
@@ -1120,6 +1120,8 @@ class Engine:
     def _deliver_wake(self, sess: "Session", note: str, notice: str) -> str:
         if notice:
             self.hub.publish(sess.slug, {"type": "notice", "text": notice})
+        if sess.busy and sess.turn_started is None:   # L30: the turn never really started: begin again
+            return self.fresh_start(sess.slug, note)
         if sess.busy:   # stuck inside a turn: interrupt it, the note follows straight after
             with self._send_lock:
                 self.queued.setdefault(sess.slug, []).append(note)
@@ -1134,7 +1136,11 @@ class Engine:
         self._watch_reset(sess, moving=True)
         sess.last_activity = time.time()
         self.stop(slug)
-        return self.resume(slug, restart=True)
+        projects.update(slug, paused=False, pipeline_hold=False)
+        self.hub.publish(slug, {"type": "project_list", "transient": True})
+        # L30: a fresh start, so a turn that hung cannot swallow the restart (it used to wait behind it forever)
+        return self.fresh_start(slug, "[App] The user restarted the work: start the current step again from the "
+                                      "beginning.")
 
     def session(self, slug: str) -> Session:
         if slug not in self.sessions:
@@ -1399,6 +1405,8 @@ class Engine:
             time.strftime("It continues by itself at %H:%M.", time.localtime(when)) if when else
             "AI Team Lite checks every 15 minutes and continues as soon as there is room again."))
         self.hub.publish(slug, {"type": "project_list", "transient": True})
+        # L30: known at once, so the master plan cannot start more work in the moment before the timer is set
+        self.limit_timers[slug] = (item_id, None, when or 0)
         if when is not None:
             def schedule():
                 handle = self.loop.call_later(max(1.0, when - time.time()),
@@ -1449,7 +1457,37 @@ class Engine:
             return "paused"
         if auto:
             self.notify("resumed", slug=slug, text="The usage limit has reset: the work continues.")
-        return self.send_message(slug, CONTINUE_TEXT, hidden=True)
+        # L30: after hours of waiting the old turn or connection may have hung: continue on a fresh one
+        with self._send_lock:
+            held = self.queued.pop(slug, [])
+        return self.fresh_start(slug, "\n\n".join([CONTINUE_TEXT, *held]))
+
+    def fresh_start(self, slug: str, text: str) -> str:
+        """L30: start a turn even when the previous one hung (a turn that never really started, a dead connection
+        after a long wait). The hung turn is cancelled, the listener stopped and the connection dropped; the new
+        turn reconnects and resumes the same conversation, so Fred carries on where he stopped."""
+        sess = self.session(slug)
+
+        async def go():
+            task = self.tasks.get(slug)
+            if task is not None and not task.done() and task is not asyncio.current_task():
+                task.cancel()
+                try:
+                    await asyncio.wait_for(task, 10)
+                except (asyncio.CancelledError, asyncio.TimeoutError, Exception):  # noqa: BLE001
+                    pass
+            await sess.stop_listening()
+            try:
+                await asyncio.wait_for(sess._drop_client(), 10)
+            except (asyncio.TimeoutError, Exception):  # noqa: BLE001
+                sess.client = None
+            with self._send_lock:
+                sess.busy = False
+                sess.turn_started = None
+            self.send_message(slug, text, hidden=True)
+
+        self.loop.call_soon_threadsafe(lambda: self.loop.create_task(go()))
+        return "started"
 
     def cancel_auto_continue(self, slug: str, note: str = "") -> None:
         entry = self.limit_timers.get(slug)
