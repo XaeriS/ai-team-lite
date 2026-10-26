@@ -2,6 +2,12 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.3.1 (2026-10-25)
+- **Work restarts by itself after the plan limit, for real.** After a long wait, the work could stay stuck behind a
+  step that never got going, and waking Fred up did not help. Continuing after the limit, "Restart this step" and
+  waking Fred up now start cleanly on a fresh connection, in the same conversation. The limit is also registered at
+  once, so no second "limit reached" card appears.
+
 ## 1.3.0 (2026-10-25)
 - **Work keeps moving by itself.** After 5 minutes without any activity, AI Team Lite wakes Fred up and tells him
   which worker stopped; 5 minutes later it restarts the step. If that does not help, you choose. It never does this
