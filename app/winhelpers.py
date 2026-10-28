@@ -30,6 +30,137 @@ def start_voice_typing() -> bool:
     return True
 
 
+# ---------------------------------------------------------------------------- no flashing windows (L32)
+CREATE_NO_WINDOW = 0x08000000
+
+
+def hide_engine_console(force: bool = False) -> bool:
+    """Start Claude's engine (claude.exe) without a console window. The app itself has no console (pythonw), so
+    without this every command the engine runs (PowerShell, git, the tests) could open its own console box that
+    flashes on screen; with it they share one invisible console. The engine is started through anyio, so the flag is
+    added there; nothing else in the app uses anyio to start programs. Returns True when installed."""
+    if not (paths.IS_WINDOWS or force):
+        return False
+    import anyio
+    original = anyio.open_process
+    if getattr(original, "hides_console", False):
+        return True
+
+    async def open_process(*args, **kwargs):
+        kwargs["creationflags"] = int(kwargs.get("creationflags") or 0) | CREATE_NO_WINDOW
+        return await original(*args, **kwargs)
+
+    open_process.hides_console = True
+    anyio.open_process = open_process
+    return True
+
+
+TEST_DESKTOP = "AITeamLiteTests"
+
+
+def run_on_hidden_desktop(command: str, cwd: Path, env: dict, timeout: int) -> tuple[int, str] | None:
+    """L32: run a test command on a second Windows desktop that is never shown, so the windows a test opens (the
+    prototype's own screens, console boxes) appear there instead of over the user's work. Returns (exit code, output)
+    with exit code -1 on timeout, or None when Windows does not allow it, so the caller runs the command the normal way.
+    Everything the command starts stays in a job object and is closed with it, also on timeout."""
+    if not paths.IS_WINDOWS:
+        return None
+    import msvcrt
+    import tempfile
+    from ctypes import wintypes as wt
+
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+    class STARTUPINFOW(ctypes.Structure):
+        _fields_ = [("cb", wt.DWORD), ("lpReserved", wt.LPWSTR), ("lpDesktop", wt.LPWSTR), ("lpTitle", wt.LPWSTR),
+                    ("dwX", wt.DWORD), ("dwY", wt.DWORD), ("dwXSize", wt.DWORD), ("dwYSize", wt.DWORD),
+                    ("dwXCountChars", wt.DWORD), ("dwYCountChars", wt.DWORD), ("dwFillAttribute", wt.DWORD),
+                    ("dwFlags", wt.DWORD), ("wShowWindow", wt.WORD), ("cbReserved2", wt.WORD),
+                    ("lpReserved2", ctypes.c_void_p), ("hStdInput", wt.HANDLE), ("hStdOutput", wt.HANDLE),
+                    ("hStdError", wt.HANDLE)]
+
+    class PROCESS_INFORMATION(ctypes.Structure):
+        _fields_ = [("hProcess", wt.HANDLE), ("hThread", wt.HANDLE), ("dwProcessId", wt.DWORD),
+                    ("dwThreadId", wt.DWORD)]
+
+    class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                    ("LimitFlags", wt.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                    ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wt.DWORD),
+                    ("Affinity", ctypes.c_size_t), ("PriorityClass", wt.DWORD), ("SchedulingClass", wt.DWORD)]
+
+    class IO_COUNTERS(ctypes.Structure):
+        _fields_ = [(n, ctypes.c_uint64) for n in ("r", "w", "o", "rb", "wb", "ob")]
+
+    class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION), ("IoInfo", IO_COUNTERS),
+                    ("ProcessMemoryLimit", ctypes.c_size_t), ("JobMemoryLimit", ctypes.c_size_t),
+                    ("PeakProcessMemoryUsed", ctypes.c_size_t), ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+    user32.CreateDesktopW.restype = wt.HANDLE
+    user32.CreateDesktopW.argtypes = [wt.LPCWSTR, wt.LPCWSTR, ctypes.c_void_p, wt.DWORD, wt.DWORD, ctypes.c_void_p]
+    kernel32.CreateJobObjectW.restype = wt.HANDLE
+    kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wt.LPCWSTR]
+    kernel32.CreateProcessW.argtypes = [wt.LPCWSTR, wt.LPWSTR, ctypes.c_void_p, ctypes.c_void_p, wt.BOOL, wt.DWORD,
+                                        ctypes.c_void_p, wt.LPCWSTR, ctypes.POINTER(STARTUPINFOW),
+                                        ctypes.POINTER(PROCESS_INFORMATION)]
+    kernel32.WaitForSingleObject.argtypes = [wt.HANDLE, wt.DWORD]
+    kernel32.WaitForSingleObject.restype = wt.DWORD
+
+    desk = user32.CreateDesktopW(TEST_DESKTOP, None, None, 0, 0x10000000, None)   # GENERIC_ALL; opens it if it exists
+    if not desk:
+        return None
+    fd, log_path = tempfile.mkstemp(prefix="aiteam-tests-", suffix=".log")
+    out_handle = msvcrt.get_osfhandle(fd)
+    os.set_handle_inheritable(out_handle, True)
+    null = open(os.devnull, "rb")   # noqa: SIM115  (closed below)
+    in_handle = msvcrt.get_osfhandle(null.fileno())
+    os.set_handle_inheritable(in_handle, True)
+    job = kernel32.CreateJobObjectW(None, None)
+    info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+    info.BasicLimitInformation.LimitFlags = 0x2000   # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    kernel32.SetInformationJobObject(job, 9, ctypes.byref(info), ctypes.sizeof(info))
+    si = STARTUPINFOW()
+    si.cb = ctypes.sizeof(si)
+    si.lpDesktop = "WinSta0\\" + TEST_DESKTOP
+    si.dwFlags = 0x100 | 0x1   # STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW
+    si.wShowWindow = 0         # SW_HIDE
+    si.hStdInput, si.hStdOutput, si.hStdError = in_handle, out_handle, out_handle
+    pi = PROCESS_INFORMATION()
+    block = "".join(f"{k}={v}\0" for k, v in env.items()) + "\0"
+    env_buf = ctypes.create_unicode_buffer(block, len(block))
+    cmdline = ctypes.create_unicode_buffer(f'cmd.exe /d /s /c "{command}"')
+    flags = 0x4 | 0x400 | CREATE_NO_WINDOW   # CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | no console window
+    code = None
+    try:
+        if not kernel32.CreateProcessW(None, cmdline, None, None, True, flags, env_buf, str(cwd), ctypes.byref(si),
+                                       ctypes.byref(pi)):
+            return None
+        if job:
+            kernel32.AssignProcessToJobObject(job, pi.hProcess)
+        kernel32.ResumeThread(pi.hThread)
+        if kernel32.WaitForSingleObject(pi.hProcess, int(timeout * 1000)) == 0x102:   # WAIT_TIMEOUT
+            kernel32.TerminateJobObject(job, 1) if job else kernel32.TerminateProcess(pi.hProcess, 1)
+            code = -1
+        else:
+            exit_code = wt.DWORD()
+            kernel32.GetExitCodeProcess(pi.hProcess, ctypes.byref(exit_code))
+            code = int(exit_code.value)
+    finally:
+        for h in (pi.hThread, pi.hProcess, job):
+            if h:
+                kernel32.CloseHandle(h)
+        user32.CloseDesktop(desk)
+        null.close()
+        os.close(fd)
+    try:
+        output = Path(log_path).read_text(encoding="utf-8", errors="replace")
+    finally:
+        Path(log_path).unlink(missing_ok=True)
+    return code, output
+
+
 # ---------------------------------------------------------------------------- clipboard
 def read_clipboard() -> str:
     """The text on the Windows clipboard (L28: right-click > Paste when the window may not read it itself)."""

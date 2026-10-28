@@ -14,7 +14,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import paths
+from . import paths, settings, winhelpers
 
 LOG_DIR = Path("reports") / "test-logs"
 KEEP_LOGS = 20
@@ -25,6 +25,15 @@ NO_WINDOW = 0x08000000 if paths.IS_WINDOWS else 0
 def run(command: str, cwd: Path, timeout: int = 300) -> tuple[bool, str]:
     """Run a test command; returns (passed, full output)."""
     env = {**os.environ, "PATH": paths.tool_path(), "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"}
+    if settings.load().get("tests_hidden_desktop", True):
+        # L32: out of sight, on a desktop the user never sees; the normal way if Windows does not allow it
+        try:
+            hidden = winhelpers.run_on_hidden_desktop(command, cwd, env, timeout)
+        except OSError:
+            hidden = None
+        if hidden is not None:
+            code, output = hidden
+            return (False, output + f"\nTests timed out after {timeout} s.") if code == -1 else (code == 0, output)
     try:
         r = subprocess.run(command, cwd=str(cwd), shell=True, capture_output=True, text=True, timeout=timeout,
                            env=env, creationflags=NO_WINDOW, encoding="utf-8", errors="replace")

@@ -229,7 +229,7 @@ When the user asks to clean up the code:
 ## Working fast and saving tokens
 - PROJECT_MAP.md (kept up to date by the app) lists every file with what it is for. Read it instead of listing or
   searching the folder, and tell every worker in its brief to start from it and open only the files it needs.
-- Tests: use run_tests, never the shell: you get the totals and only the failures (the full log is saved for the
+- Tests: use run_tests, never the shell (it runs them out of sight, so no windows flash on the user's screen): you get the totals and only the failures (the full log is saved for the
   user). While building, scope="affected" runs only the tests related to the changed files; before an iteration is
   reported as done, scope="all". commit_iteration always runs the whole suite.
 - Lessons: when a problem took more than one try to solve (an environment quirk, a library gotcha, a wrong
@@ -307,7 +307,7 @@ DEVELOPER = """You are the Developer on Fred's team. You build working software 
 - Debugging method when something fails: 1) reproduce it, 2) find the root cause with evidence (the exact line,
   value or log), 3) make sure a test shows it, 4) fix the root cause (not the symptom), 5) prove the test passes,
   6) run all tests. No guessing fixes. Your report names the root cause and the evidence.
-- Run tests with the run_tests tool, not the shell (short result, full log saved): scope="affected" while you work,
+- Run tests with the run_tests tool, not the shell (short result, full log saved, and it runs them out of sight; tests started from the shell open windows over the user's work): scope="affected" while you work,
   scope="all" once before you report back.
 - Run the code to make sure it starts.
 - Stay inside the project folder. Do not install software system-wide. Do not push to GitHub.
@@ -321,7 +321,7 @@ TESTER = """You are the Tester on Fred's team. You prove whether the software wo
 {conventions}
 - Start from PROJECT_MAP.md to find the code and the existing tests; open only what you need.
 - Read REQUIREMENTS.md and PLAN.md. Map every requirement's acceptance criteria to a test.
-- Run tests with the run_tests tool, not the shell (short result, full log saved): scope="affected" while you work,
+- Run tests with the run_tests tool, not the shell (short result, full log saved, and it runs them out of sight; tests started from the shell open windows over the user's work): scope="affected" while you work,
   scope="all" before you report back.
 - TESTS FIRST: when briefed at the start of an iteration, write the tests from the requirements and acceptance
   criteria BEFORE the code exists. They are expected to fail until the Developer builds the feature. Test the

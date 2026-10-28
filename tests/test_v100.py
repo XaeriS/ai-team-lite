@@ -1265,3 +1265,70 @@ def test_l30_wake_gets_past_a_turn_that_never_started(isolated):
     assert eng.wake(slug) == "started"
     assert _back(hub, slug) and len(connections) == 2
     eng.shutdown()
+
+
+# ---------------------------------------------------------------- L31: no raw engine code after a pause
+def test_l31_engine_interruption_code_is_not_shown_as_an_error(isolated):
+    slug = _bg_project("Paused calmly")
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, None))
+    sess = eng.session(slug)
+    err = lambda text: ResultMessage(subtype="error_during_execution", duration_ms=1, duration_api_ms=1, is_error=True,
+                                     num_turns=1, session_id="s", result=text)
+    sess.handle(err("[ede_diagnostic] result_type=user last_content_type=n/a stop_reason=tool_use"))
+    sess.user_stopped = True
+    sess.handle(err("Request interrupted by user"))
+    assert not [e for e in hub.history(slug) if e["type"] == "error"]
+    sess.user_stopped = False
+    sess.handle(err("Something real went wrong"))   # a real error is still shown
+    assert [e["text"] for e in hub.history(slug) if e["type"] == "error"] == ["Something real went wrong"]
+    eng.pause(slug)
+    assert _wait(lambda: sess.user_stopped), "pausing marks the turn as stopped by the user"
+    eng.shutdown()
+
+
+# ---------------------------------------------------------------- L32: no windows flashing while the team works
+def test_l32_engine_starts_without_a_console_window(monkeypatch):
+    import anyio
+    from app import winhelpers
+    seen = {}
+
+    async def fake_open_process(cmd, **kwargs):
+        seen.update(kwargs, cmd=cmd)
+        return "process"
+
+    monkeypatch.setattr(anyio, "open_process", fake_open_process)
+    assert winhelpers.hide_engine_console(force=True)
+    assert winhelpers.hide_engine_console(force=True), "installing twice is harmless"
+    assert asyncio.run(anyio.open_process(["claude.exe"], stdin=-1, creationflags=0x200)) == "process"
+    assert seen["creationflags"] == 0x200 | winhelpers.CREATE_NO_WINDOW and seen["cmd"] == ["claude.exe"]
+    monkeypatch.setattr(winhelpers.paths, "IS_WINDOWS", False)
+    monkeypatch.setattr(anyio, "open_process", fake_open_process)
+    assert not winhelpers.hide_engine_console() and anyio.open_process is fake_open_process   # only on Windows
+
+
+def test_l32_test_runs_go_to_the_hidden_desktop_with_a_fallback(isolated, monkeypatch, tmp_path):
+    from app import testrun, winhelpers
+    calls = []
+
+    def hidden(result):
+        def run(command, cwd, env, timeout):
+            calls.append((command, timeout, env.get("PYTHONIOENCODING")))
+            return result
+        return run
+
+    monkeypatch.setattr(winhelpers, "run_on_hidden_desktop", hidden((0, "3 passed in 0.1s")))
+    assert testrun.run("pytest -q", tmp_path, 120) == (True, "3 passed in 0.1s")
+    assert calls[-1] == ("pytest -q", 120, "utf-8")
+    monkeypatch.setattr(winhelpers, "run_on_hidden_desktop", hidden((1, "1 failed in 0.1s")))
+    assert testrun.run("pytest -q", tmp_path) == (False, "1 failed in 0.1s")
+    monkeypatch.setattr(winhelpers, "run_on_hidden_desktop", hidden((-1, "partial")))
+    ok, out = testrun.run("pytest -q", tmp_path, 5)
+    assert not ok and "timed out after 5 s" in out
+    # Windows refuses the hidden desktop (or not on Windows): the normal way, still without a window
+    monkeypatch.setattr(winhelpers, "run_on_hidden_desktop", hidden(None))
+    assert testrun.run('python -c "print(42)"', tmp_path) == (True, "42\n")
+    # the setting switches it off
+    settings.save({"tests_hidden_desktop": False})
+    n = len(calls)
+    assert testrun.run('python -c "print(1)"', tmp_path)[0] and len(calls) == n

@@ -2,6 +2,13 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.3.2 (2026-10-28)
+- **No more windows flashing on your screen while the team works.** Claude's engine now runs with a hidden console,
+  so the commands it runs (tests, Git, installs) no longer pop up black boxes, and test runs happen on a separate,
+  invisible Windows desktop, so the prototype's own windows opened by tests stay out of your way. "Launch the
+  project" and the screenshots Fred shows you still appear on your screen as before.
+- No more red engine code (such as "[ede_diagnostic] ...") after you pause, stop or restart a project.
+
 ## 1.3.1 (2026-10-25)
 - **Work restarts by itself after the plan limit, for real.** After a long wait, the work could stay stuck behind a
   step that never got going, and waking Fred up did not help. Continuing after the limit, "Restart this step" and

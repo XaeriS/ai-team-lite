@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 import threading
 import time
@@ -41,8 +42,11 @@ except ImportError:  # pragma: no cover
 
 from . import (auth, brains, challenge, iterations, journal, languages, lessons as lessons_mod, models, paths, policy,
                projectmap, projects, prompts, risk, secrets_store, settings, skills as skills_mod, timeline, tooling,
-               tracking, tools, usage)
+               tracking, tools, usage, winhelpers)
 from .events import EventHub
+
+log = logging.getLogger(__name__)
+winhelpers.hide_engine_console()   # L32: no console boxes flashing while the team works
 
 AGENT_TOOLS = {"Agent", "Task"}
 QUIET_TOOLS = {"ToolSearch", "ListMcpResourcesTool", "ReadMcpResourceTool"}  # engine housekeeping, not shown
@@ -200,6 +204,7 @@ class Session:
         self.last_lead_t = 0.0                   # when the lead last said or did something
         self.open_tools: dict[str, dict] = {}    # tool calls started and not answered yet (a running command)
         self.watch = {"since": 0.0, "noted": 0.0, "stuck": None}  # watchdog state for the current quiet spell
+        self.user_stopped = False
         self.auto_help = {"times": [], "wake_at": 0.0, "restart_at": 0.0}  # L27: what the watchdog did by itself
 
     # ------------------------------------------------------------------ team view
@@ -483,6 +488,7 @@ class Session:
         async with self.lock:
             self.busy = True
             self.limit_hit = None
+            self.user_stopped = False   # L31: set when the user pauses, stops or restarts during this turn
             self.turn_started = time.time()
             self.last_activity = time.time()
             self.hub.publish(self.slug, {"type": "busy", "value": True})
@@ -836,6 +842,10 @@ class Session:
                         self.limit_hit = {"type": kind, "label": usage.LIMIT_LABELS[kind],
                                           "resets_at": (pl.get(kind) or {}).get("resets_at"), "detail": str(detail)[:300]}
                     return  # the limit card explains it (request F)
+                if self.user_stopped or "[ede_diagnostic]" in str(detail):
+                    # L31: the engine's answer to an interruption (pause / stop / restart): not an error for the user
+                    log.info("engine result after an interruption (%s): %s", self.slug, str(detail)[:300])
+                    return
                 self.hub.publish(self.slug, {"type": "error", "text": str(detail)[:800]})
 
 
@@ -1591,6 +1601,8 @@ class Engine:
                     fut.set_result({"cancelled": True, "approved": False})
                     self.hub.update(slug, item_id, status="cancelled")
             sess = self.sessions.get(slug)
+            if sess is not None:
+                sess.user_stopped = True   # L31
             if sess and (sess.background or sess.bg_reports):
                 sess.stop_background()
                 self.loop.create_task(sess.stop_listening())

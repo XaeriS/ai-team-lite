@@ -9,6 +9,7 @@ from . import paths
 
 DEFAULTS = {
     "setup_complete": False,
+    "tests_hidden_desktop": True,   # L32: test runs on a hidden Windows desktop, so their windows never flash on screen
     "workspace_dir": "",
     "approval_mode": "plan",   # "plan": after you approve a plan, agents may work inside the project freely
                                # "strict": every action outside reading files asks you first

@@ -95,6 +95,8 @@ per hour; and how much of your Claude plan is left.
   results for the AI (full logs kept in reports/test-logs), only the related tests while building (the full suite
   before every save), and lessons learned on earlier projects (Settings > General) passed on to new ones.
 - Python with everything included; Git, the diagram tool and the speech model are bundled or installed for you.
+- Out of your way: the team's commands run without console windows, and test runs happen on a separate, invisible
+  Windows desktop, so nothing flashes on your screen while you work on something else.
 - **Big decisions: the council.** Fred can ask extra AI brains for their own answer; they review each other
   anonymously and Fred decides as chairman. Add free brains in Settings > Council: Google Gemini's free tier
   (note: Google may use what is sent on its free tier) or Ollama, which runs on your PC.
