@@ -1,11 +1,10 @@
 """App settings, stored as JSON in the data folder. Secrets are NOT stored here (see secrets_store)."""
 from __future__ import annotations
 
-import json
 import threading
 from pathlib import Path
 
-from . import paths
+from . import paths, safefile
 
 DEFAULTS = {
     "setup_complete": False,
@@ -59,20 +58,15 @@ def _file() -> Path:
 
 
 def load() -> dict:
-    try:
-        data = json.loads(_file().read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        data = {}
-    return {**DEFAULTS, **data}
+    data = safefile.read_json(_file(), {})   # L34
+    return {**DEFAULTS, **(data if isinstance(data, dict) else {})}
 
 
 def save(changes: dict) -> dict:
     with _lock:
         data = load()
         data.update(changes)
-        tmp = _file().with_suffix(".tmp")
-        tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        tmp.replace(_file())
+        safefile.write_json(_file(), data)   # L34: retried if Windows briefly refuses the file
         return data
 
 

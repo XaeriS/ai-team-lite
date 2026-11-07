@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -11,7 +12,9 @@ import sys
 import time
 from pathlib import Path
 
-from . import paths, settings
+from . import paths, safefile, settings
+
+log = logging.getLogger(__name__)
 
 SETUP_SLUG = "setup"
 META = ".aiteam"
@@ -221,33 +224,29 @@ def history_file(slug: str) -> Path:
 def load(slug: str) -> dict | None:
     if slug == SETUP_SLUG:
         default = {"slug": SETUP_SLUG, "name": "Setup with Fred", "phase": "setup", "kind": "setup"}
-        try:
-            return {**default, **json.loads(meta_file(slug).read_text(encoding="utf-8"))}
-        except (OSError, ValueError):
-            return default
-    try:
-        return json.loads(meta_file(slug).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+        return {**default, **(safefile.read_json(meta_file(slug)) or {})}
+    return safefile.read_json(meta_file(slug))   # L34: never open while a save swaps the file
 
 
 def save(project: dict) -> None:
-    f = meta_file(project["slug"])
-    f.parent.mkdir(parents=True, exist_ok=True)
-    tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(project, indent=2), encoding="utf-8")
-    tmp.replace(f)
+    """L34: writers take turns and Windows' brief "Access is denied" is retried; if the file still cannot be saved,
+    the work carries on (the error is logged) instead of stopping the team's turn."""
+    try:
+        safefile.write_json(meta_file(project["slug"]), project)
+    except OSError as e:
+        log.warning("could not save %s: %s", project.get("slug"), e)
 
 
 def update(slug: str, **changes) -> dict:
-    p = load(slug)
-    if p is None:
-        if slug != SETUP_SLUG:  # deleted or removed project: never re-create it
-            return {}
-        p = {"slug": slug}
-    p.update(changes)
-    save(p)
-    return p
+    with safefile.lock_for(meta_file(slug)):   # L34: read, change and write as one step, so no change is lost
+        p = load(slug)
+        if p is None:
+            if slug != SETUP_SLUG:  # deleted or removed project: never re-create it
+                return {}
+            p = {"slug": slug}
+        p.update(changes)
+        save(p)
+        return p
 
 
 def slug_for_folder(path: Path) -> str | None:

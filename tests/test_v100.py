@@ -2,6 +2,7 @@
 "why Fred asked this" (L5), screenshots in the message box (L10), microphone diagnostics (L11), name (L12)."""
 import asyncio
 import json
+import os
 import time
 
 import pytest
@@ -1332,3 +1333,41 @@ def test_l32_test_runs_go_to_the_hidden_desktop_with_a_fallback(isolated, monkey
     settings.save({"tests_hidden_desktop": False})
     n = len(calls)
     assert testrun.run('python -c "print(1)"', tmp_path)[0] and len(calls) == n
+
+
+# ---------------------------------------------------------------- L34: project.json saved from several threads
+def test_l34_parallel_updates_keep_every_change(isolated):
+    import threading
+    p = projects.create("Busy file")
+
+    def worker(n):
+        for i in range(25):
+            projects.update(p["slug"], **{f"w{n}": i})
+
+    threads = [threading.Thread(target=worker, args=(n,)) for n in range(6)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    saved = projects.load(p["slug"])
+    assert all(saved[f"w{n}"] == 24 for n in range(6)), "no thread's change is lost"
+    assert not list(projects.meta_file(p["slug"]).parent.glob("*.tmp")), "no temporary copies left behind"
+
+
+def test_l34_access_denied_is_retried_and_never_stops_the_work(isolated, monkeypatch):
+    from app import safefile
+    p = projects.create("Antivirus")
+    real, refusals = os.replace, []
+
+    def flaky(src, dst):
+        if len(refusals) < 3:   # Windows refuses the swap a few times (another thread, antivirus, indexer)
+            refusals.append(dst)
+            raise PermissionError(5, "Access is denied")
+        return real(src, dst)
+
+    monkeypatch.setattr(safefile.os, "replace", flaky)
+    projects.update(p["slug"], status="building")
+    assert len(refusals) == 3 and projects.load(p["slug"])["status"] == "building"
+    # refused for longer than the retry time: logged, the caller carries on
+    monkeypatch.setattr(safefile, "RETRY_SECONDS", 0.1)
+    monkeypatch.setattr(safefile.os, "replace", lambda s, d: (_ for _ in ()).throw(PermissionError(5, "Access is denied")))
+    assert projects.update(p["slug"], status="testing")["status"] == "testing"   # no exception
+    assert not list(projects.meta_file(p["slug"]).parent.glob("*.tmp"))

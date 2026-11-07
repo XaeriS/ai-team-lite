@@ -6,13 +6,12 @@ listed as "interrupted" so the user can resume them, restart the step, or leave 
 """
 from __future__ import annotations
 
-import json
 import os
 import threading
 import time
 from pathlib import Path
 
-from . import iterations, paths, projects
+from . import iterations, paths, projects, safefile
 
 _lock = threading.Lock()
 
@@ -26,16 +25,15 @@ def _interrupted_file() -> Path:
 
 
 def _read(f: Path) -> dict:
-    try:
-        return json.loads(f.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
+    data = safefile.read_json(f, {})   # L34
+    return data if isinstance(data, dict) else {}
 
 
 def _write(f: Path, data: dict) -> None:
-    tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, indent=1), encoding="utf-8")
-    tmp.replace(f)
+    try:
+        safefile.write_json(f, data, indent=1)   # L34
+    except OSError:
+        pass   # the journal is a help after a crash, never a reason to stop the work
 
 
 def start() -> list[dict]:

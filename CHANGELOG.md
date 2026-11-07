@@ -2,6 +2,11 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.3.3 (2026-11-06)
+- **No more "Access is denied" on project.json stopping the work.** Parts of the app that save a project's status at
+  the same moment now take turns, a brief refusal by Windows (or an antivirus glancing at the file) is retried, and
+  if a save still fails the team carries on instead of stopping. No change to a project is lost when two saves cross.
+
 ## 1.3.2 (2026-10-28)
 - **No more windows flashing on your screen while the team works.** Claude's engine now runs with a hidden console,
   so the commands it runs (tests, Git, installs) no longer pop up black boxes, and test runs happen on a separate,
