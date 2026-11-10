@@ -17,7 +17,7 @@ if __package__ in (None, ""):  # started as a script: make "app" importable
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     __package__ = "app"
 
-from app import paths  # noqa: E402
+from app import __version__, paths  # noqa: E402
 
 INSTANCE_PORT = 47824  # AI Team (expert) uses 47823: both can run side by side
 
@@ -218,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
             bridge = Bridge()
             app.bridge = bridge
             icon = paths.install_dir() / "app" / "ui" / "icon.ico"
-            bridge.window = webview.create_window(paths.APP_NAME, url, width=1360, height=880, min_size=(900, 600), text_select=True,
+            bridge.window = webview.create_window(f"{paths.APP_NAME} {__version__}", url, width=1360, height=880, min_size=(900, 600), text_select=True,
                                                   background_color="#14171c")
 
             def instance_listener():

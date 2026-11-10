@@ -186,3 +186,9 @@ def test_l28_window_allows_selecting_text():
     from pathlib import Path
     src = (Path(__file__).resolve().parent.parent / "app" / "main.py").read_text(encoding="utf-8")
     assert "text_select=True" in src   # pywebview's default (False) blocks selecting text in the chat
+
+
+def test_l35_window_title_carries_the_version():
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent / "app" / "main.py").read_text(encoding="utf-8")
+    assert 'create_window(f"{paths.APP_NAME} {__version__}"' in src

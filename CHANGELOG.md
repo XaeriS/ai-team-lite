@@ -2,6 +2,10 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.3.4 (2026-11-10)
+- **The version is shown next to the app name** (top left), and in the window title, so you can see which version
+  you have at a glance, also in the taskbar.
+
 ## 1.3.3 (2026-11-06)
 - **No more "Access is denied" on project.json stopping the work.** Parts of the app that save a project's status at
   the same moment now take turns, a brief refusal by Windows (or an antivirus glancing at the file) is retried, and

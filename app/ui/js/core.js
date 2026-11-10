@@ -61,6 +61,7 @@ const resetOf = v => v.reset_text ? 'resets ' + v.reset_text : resetTxt(v.resets
 let USE_AT = Date.now();
 async function loadState() {
   S = await api('/api/state'); USE_AT = Date.now();
+  if (S.version) $('appVersion').textContent = 'v' + S.version;   // L35
   $('onboard').hidden = S.has_api_key;
   const ul = $('plist'); ul.innerHTML = '';
   if (!S.setup_complete) {

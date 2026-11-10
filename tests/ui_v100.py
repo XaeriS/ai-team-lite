@@ -31,6 +31,11 @@ try:
         page.locator("#plist li", has_text="Invoice tracker").click()
         expect(page.locator(".m.fred").last).to_contain_text("Iteration 3 is under way", timeout=8000)
 
+        # L35: the version next to the app name
+        __version__ = (HERE.parent / "VERSION").read_text().strip()
+        check("version shown next to the app name", page.locator(".brand #appVersion").inner_text() == "v" + __version__,
+              page.locator(".brand").inner_text())
+        page.locator(".brand").screenshot(path=OUT / "v134-brand.png")
         # L12: the name is a greeting, not part of the product name
         check("no 'with <name>' under the product name", "with Fred" not in page.locator(".brand").inner_text(),
               page.locator(".brand").inner_text())

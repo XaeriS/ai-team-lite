@@ -222,3 +222,6 @@ button,nav,.pill,.state,.tabs,.stab,.who,.legend,.acts{user-select:none}
 .ctxmenu button{border:0;background:none;text-align:left;padding:6px 10px;border-radius:6px}
 .ctxmenu button:hover:not(:disabled){background:var(--accent-soft)}
 .ctxmenu button:disabled{color:var(--mute);cursor:default}
+
+/* L35: the version next to the app name */
+.appver{font-size:11.5px;color:var(--mute);font-weight:400}
