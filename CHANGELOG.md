@@ -2,6 +2,11 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.3.5 (2026-11-10)
+- **Projects started in AI Team (or moved to another folder) work again.** Fred could answer every message with
+  "No conversation found with session ID ...". He now notices that his earlier chat is not available, catches up
+  from the project documents and carries on.
+
 ## 1.3.4 (2026-11-10)
 - **The version is shown next to the app name** (top left), and in the window title, so you can see which version
   you have at a glance, also in the taskbar.
