@@ -1371,3 +1371,32 @@ def test_l34_access_denied_is_retried_and_never_stops_the_work(isolated, monkeyp
     monkeypatch.setattr(safefile.os, "replace", lambda s, d: (_ for _ in ()).throw(PermissionError(5, "Access is denied")))
     assert projects.update(p["slug"], status="testing")["status"] == "testing"   # no exception
     assert not list(projects.meta_file(p["slug"]).parent.glob("*.tmp"))
+
+
+# ---------------------------------------------------------------- L36: saved conversation refused while connecting
+def test_l36_conversation_refused_at_connect_is_recovered(isolated):
+    _ready()
+    p = projects.create("Made in AI Team")
+    projects.update(p["slug"], session_id="9ae50e6f-5a05-4316-8837-09caadedec47")
+    opened = []
+
+    async def script(i, prompt, c):
+        yield say("Caught up: " + ("briefing" if "STATUS" in prompt or "briefing" in prompt.lower() else "plain"))
+
+    class RefusesOldConversation(FakeClient):
+        async def connect(self):
+            opened.append(self.options.resume)
+            if self.options.resume:   # Claude's engine refuses the resume while starting up
+                raise Exception("Claude Code returned an error result: No conversation found with session ID: "
+                                f"{self.options.resume} (exit code: 1)")
+            await super().connect()
+
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: RefusesOldConversation(o, script))
+    eng.send_message(p["slug"], "tell me how the app works and how can I test it")
+    assert _wait(lambda: any(e["type"] == "message" and "Caught up" in e.get("text", "") for e in hub.history(p["slug"])))
+    assert opened[0] == "9ae50e6f-5a05-4316-8837-09caadedec47" and opened[-1] is None
+    assert not [e for e in hub.history(p["slug"]) if e["type"] == "error"]
+    assert any("could not be found" in e.get("text", "") for e in hub.history(p["slug"]) if e["type"] == "notice")
+    assert projects.load(p["slug"]).get("session_id") != "9ae50e6f-5a05-4316-8837-09caadedec47"
+    eng.shutdown()

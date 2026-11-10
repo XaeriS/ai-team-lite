@@ -516,8 +516,10 @@ class Session:
                         if room:
                             self.hub.publish(self.slug, {"type": "headroom", "text": room})
                 for attempt in (1, 2):
-                    client = await self._ensure_client()
                     try:
+                        # L36: a refused resume is reported while connecting (e.g. a project started in AI Team, whose
+                        # conversation lives under AI Team's own Claude sign-in), so connecting is inside the guard too
+                        client = await self._ensure_client()
                         await client.query("\n".join(notes) + f"\n\n{text}" if notes else text)
                         async for msg in client.receive_response():
                             self.handle(msg)
