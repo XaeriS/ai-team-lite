@@ -46,7 +46,9 @@ jobs:
       - name: Build the installer
         if: steps.v.outputs.exists == 'false'
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq nsis
+          # Ubuntu's package mirrors sometimes fail for a moment (exit code 100): try a few times
+          for i in 1 2 3 4; do sudo apt-get update -qq && sudo apt-get install -y -qq nsis && break; echo "apt failed, retrying in 20 s"; sleep 20; done
+          command -v makensis
           BUILD="$RUNNER_TEMP/build" bash installer/build.sh
           cd "$RUNNER_TEMP/build" && sha256sum "AI-Team-Lite-Setup-${{ steps.v.outputs.version }}.exe" > SHA256SUMS.txt
 
