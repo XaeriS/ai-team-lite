@@ -467,6 +467,7 @@ def make_handler(app: App):
                 secrets_store.set_secret("anthropic_api_key", key)
                 settings.save({"auth_mode": "api_key"})
                 self._kickoff_setup()
+                app.engine.on_signed_in()   # L37
                 return self._json({"ok": True})
             if path == "/api/auth/subscription/start":
                 try:
@@ -480,6 +481,7 @@ def make_handler(app: App):
                 if st["signed_in"]:
                     settings.save({"auth_mode": "subscription"})
                     self._kickoff_setup()
+                    app.engine.on_signed_in()   # L37: work that stopped for the sign-in continues
                 return self._json(st)
             if path == "/api/auth/subscription/logout":
                 auth.subscription_logout()

@@ -138,6 +138,7 @@ function renderEvent(ev) {
     case 'error': node = el(`<div class="err"></div>`); node.textContent = '⚠ ' + ev.text; break;
     case 'notice': node = el(`<div class="notice">${esc(ev.text)}</div>`); break;
     case 'limit': node = limitCard(ev); break;
+    case 'signin': node = signinCard(ev); break;
     case 'watch': node = el(`<div class="notice watch">⏱ ${esc(ev.text)}</div>`); break;
     case 'headroom': node = el(`<div class="itcard" style="border-left-color:var(--warn)"><b>Your Claude plan:</b> ${esc(ev.text)} <a href="#" data-u>See usage</a></div>`);
       node.querySelector('[data-u]').onclick = e => { e.preventDefault(); UQ.scope = null; openUsage(); }; break;
@@ -203,6 +204,29 @@ function stuckCard(ev) {
     catch (e) { n.querySelectorAll('button').forEach(x => x.disabled = false); alertBox(e.message); }
   });
   return n;
+}
+function signinCard(ev) {   // L37: Claude refused the sign-in
+  const waiting = ev.status === 'waiting', key = ev.mode === 'api_key';
+  const n = el(`<div class="card ${waiting ? 'pending' : ''}" style="${waiting ? 'border-color:var(--warn);box-shadow:0 0 0 3px var(--warnbg)' : ''}">
+    <div class="row"><b>${key ? 'Anthropic refused the API key' : 'Your Claude sign-in has expired'}</b><span class="pill ${waiting ? 'warn' : 'ok'}">${waiting ? 'waiting for you' : 'signed in'}</span></div>
+    <div class="hint" style="margin-top:6px">${waiting ? (key ? 'Fred cannot think until a working key is saved. The work continues by itself after that.'
+      : 'Claude could not renew your sign-in, so the work stopped. Sign in again in your browser: the work then continues by itself.') : esc(ev.note || '')}</div>
+    ${waiting ? `<div class="acts"><button class="primary" data-a="go">${key ? 'Change the API key' : 'Sign in again'}</button></div><div class="hint" data-st style="margin-top:6px"></div>` : ''}</div>`);
+  const go = n.querySelector('[data-a=go]');
+  if (go) go.onclick = () => key ? ($('onboard').hidden = false, $('keyIn').focus()) : signInAgain(go, n.querySelector('[data-st]'));
+  return n;
+}
+async function signInAgain(btn, status) {
+  btn.disabled = true;
+  try { await api('/api/auth/subscription/start', {}); }
+  catch (e) { status.textContent = e.message; btn.disabled = false; return; }
+  status.innerHTML = '<span class="spin"></span> Finish signing in in your browser… (a small window also opened; leave it open)';
+  for (let i = 0; i < 100; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    let st = {}; try { st = await api('/api/auth/subscription/check', {}); } catch (e) {}
+    if (st.signed_in) { status.textContent = 'Signed in. The work continues.'; await loadState(); return; }
+  }
+  status.textContent = 'Not signed in yet. Click the button to try again.'; btn.disabled = false;
 }
 function limitCard(ev) {
   const fmt = s => new Date(s * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
@@ -468,7 +492,7 @@ function onEvent(ev) {
   if (busy) $('msgs').appendChild(typingEl());
   if (ev.type === 'screenshot' && tab === 'shots') renderSide();
   if (['setup_done', 'plan', 'iteration', 'handoff', 'architecture', 'release_wait'].includes(ev.type)) { loadState(); refreshDocs(); markSide(); }
-  scrollDown(['approval', 'secret', 'folder', 'plan', 'choice', 'limit', 'architecture', 'handoff', 'change', 'council', 'prior_art', 'challenge', 'stuck'].includes(ev.type));
+  scrollDown(['approval', 'secret', 'folder', 'plan', 'choice', 'limit', 'signin', 'architecture', 'handoff', 'change', 'council', 'prior_art', 'challenge', 'stuck'].includes(ev.type));
 }
 async function refreshView() { if (!cur) return; try { view = await api('/api/projects/' + cur); renderHeader(); renderSide(); } catch (e) {} }
 async function refreshDocs() { await refreshView(); }

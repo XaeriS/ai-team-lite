@@ -192,3 +192,17 @@ def test_l35_window_title_carries_the_version():
     from pathlib import Path
     src = (Path(__file__).resolve().parent.parent / "app" / "main.py").read_text(encoding="utf-8")
     assert 'create_window(f"{paths.APP_NAME} {__version__}"' in src
+
+
+def test_screen_scripts_have_no_syntax_errors():
+    """A broken line in one screen script stops the whole window (seen while making 1.3.6)."""
+    import shutil
+    import subprocess
+    from pathlib import Path
+    import pytest
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node.js not available")
+    for f in sorted((Path(__file__).resolve().parent.parent / "app" / "ui" / "js").glob("*.js")):
+        r = subprocess.run([node, "--check", str(f)], capture_output=True, text=True)
+        assert r.returncode == 0, f"{f.name}: {r.stderr[-400:]}"

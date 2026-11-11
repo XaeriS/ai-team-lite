@@ -498,6 +498,11 @@ class Session:
             if not hidden:
                 self.hub.publish(self.slug, {"type": "message", "role": "user", "text": text})
             try:
+                if not auth.ready() and self.slug in self.engine.signin_waiting:   # L37: the card says what to do
+                    self.hub.publish(self.slug, {"type": "notice", "text": "Fred will read this once you have "
+                                                 "signed in again (see the card above)."})
+                    self.engine.signin_messages.setdefault(self.slug, []).append(text)
+                    return
                 if not auth.ready():
                     raise RuntimeError("Fred is not connected to Claude yet (no API key saved and not signed in "
                                        "with a Claude subscription). Open Settings to connect.")
@@ -540,8 +545,13 @@ class Session:
                 self.hub.publish(self.slug, {"type": "notice", "text": "Stopped."})
                 await self._drop_client()
             except Exception as e:  # noqa: BLE001
-                self.hub.publish(self.slug, {"type": "error", "text": friendly_error(e)})
                 await self._drop_client()
+                if is_signin_lost(str(e)):            # L37: one clear card, not a red error per attempt
+                    self.engine.on_signin_lost(self.slug)
+                elif closed_by_windows(e) and not self.user_stopped:
+                    self.engine.on_engine_closed(self.slug)
+                else:
+                    self.hub.publish(self.slug, {"type": "error", "text": friendly_error(e)})
             finally:
                 timeline.record(self.slug, "lead", self.persona, self.turn_started or time.time(), time.time())
                 self.turn_ended = time.time()
@@ -830,10 +840,9 @@ class Session:
             if msg.is_error:
                 status = getattr(msg, "api_error_status", None)
                 detail = msg.result or "; ".join(map(str, getattr(msg, "errors", None) or [])) or msg.subtype
-                if status in (401, 403):
-                    detail = ("Your Claude sign-in has expired or was refused. Open Settings and sign in again."
-                              if auth.mode() == "subscription" else
-                              "Anthropic refused the API key. Open Settings and paste a new key.")
+                if status in (401, 403) or is_signin_lost(str(detail)):
+                    self.engine.on_signin_lost(self.slug)   # L37
+                    return
                 elif status == 429 or re.search(r"usage limit|rate limit|limit reached|out of (extra )?usage", str(detail), re.I):
                     if self.limit_hit is None:
                         pl = usage.plan()
@@ -938,6 +947,26 @@ def interrupted_text(answer: dict) -> str:
             "\". Answer their question first. Then, if it is still needed, ask again (call the same tool again).")
 
 
+_SIGNIN_LOST = re.compile(r"failed to authenticate|oauth (session|token)[^.]{0,60}(expired|refresh|revoked)|"
+                          r"authentication_error|not logged in|please run /login|invalid (x-)?api[ -]key|"
+                          r"\bauth login\b", re.I)
+WINDOWS_CLOSED = {0x40010004, 0xC000013A}   # Windows ended the program: restart, update, sign-out, Ctrl+Break
+
+
+def is_signin_lost(text: str) -> bool:
+    """L37: Claude refused the sign-in (expired subscription sign-in, refused API key)."""
+    return bool(_SIGNIN_LOST.search(text or ""))
+
+
+def closed_by_windows(e: Exception) -> bool:
+    """L37: Claude's engine was ended by Windows (exit code 1073807364 = 0x40010004), not by an error of its own."""
+    code = getattr(e, "exit_code", None)
+    if code is None:
+        m = re.search(r"exit code:? (-?\d+)", str(e))
+        code = int(m.group(1)) if m else None
+    return code is not None and (code & 0xFFFFFFFF) in WINDOWS_CLOSED
+
+
 def friendly_error(e: Exception) -> str:
     name = type(e).__name__
     text = str(e)
@@ -961,6 +990,9 @@ class Engine:
         self.waiting: list[dict] = []          # turns waiting for a free slot (max parallel projects)
         self.notes: dict[str, list[str]] = {}  # app notes for Fred, delivered with the next message
         self.limit_timers: dict[str, tuple[str, Any, float]] = {}  # slug -> (card id, timer, when)
+        self.signin_waiting: dict[str, str] = {}   # L37: slug -> its "sign in again" card
+        self.signin_messages: dict[str, list[str]] = {}   # L37: messages sent while signed out
+        self.closed_at: dict[str, float] = {}      # L37: when Windows last closed the engine, per project
         self.listeners: list[Callable[..., None]] = []  # e.g. the Telegram bridge (L17): notify(event, **details)
         self.telegram = None
         self._send_lock = threading.RLock()
@@ -1473,6 +1505,46 @@ class Engine:
         with self._send_lock:
             held = self.queued.pop(slug, [])
         return self.fresh_start(slug, "\n\n".join([CONTINUE_TEXT, *held]))
+
+    def on_signin_lost(self, slug: str) -> None:
+        """L37: Claude refused the sign-in. Mark it, so the master plan stops trying, and show one card per project
+        with a "Sign in again" button; the work continues by itself once signed in (on_signed_in)."""
+        if auth.mode() == "subscription":
+            settings.save({"subscription_signed_in": False})
+        if slug in self.signin_waiting:
+            return
+        card_id = self.new_id()
+        self.signin_waiting[slug] = card_id
+        self.hub.publish(slug, {"type": "signin", "id": card_id, "status": "waiting", "mode": auth.mode() or ""})
+        self.notify("signin", slug=slug, text="Your Claude sign-in has expired, so the work stopped. Sign in again "
+                                              "in AI Team Lite and it continues by itself.")
+        self.hub.publish(slug, {"type": "project_list", "transient": True})
+
+    def on_signed_in(self) -> list[str]:
+        """L37: signed in again: every project that stopped for it continues where it was."""
+        waiting, self.signin_waiting = self.signin_waiting, {}
+        for slug, card_id in waiting.items():
+            self.hub.update(slug, card_id, status="resolved", note="Signed in again: the work continues.")
+            held = self.signin_messages.pop(slug, [])
+            self.fresh_start(slug, "\n\n".join(["[App] The user signed in to Claude again after the sign-in had "
+                                                 "expired. Continue where you stopped; a step that was cut off may need "
+                                                 "to be started again." + (" Meanwhile the user wrote:" if held else ""),
+                                                 *held]))
+        return list(waiting)
+
+    def on_engine_closed(self, slug: str) -> None:
+        """L37: Windows ended Claude's engine (a restart or an update): say so plainly and continue once on a fresh
+        connection; a second close within 10 minutes is left to the user (no loop)."""
+        now = time.time()
+        if now - self.closed_at.get(slug, 0) < 600:
+            self.hub.publish(slug, {"type": "notice", "text": "Windows closed Claude's engine again. Send Fred a "
+                                                              "message to continue."})
+            return
+        self.closed_at[slug] = now
+        self.hub.publish(slug, {"type": "notice", "text": "Windows closed Claude's engine (probably a restart or an "
+                                                          "update). The work continues on a fresh connection."})
+        self.fresh_start(slug, "[App] Claude's engine was closed by Windows in the middle of your work. Continue "
+                               "where you stopped; check whether the last step finished before relying on it.")
 
     def fresh_start(self, slug: str, text: str) -> str:
         """L30: start a turn even when the previous one hung (a turn that never really started, a dead connection

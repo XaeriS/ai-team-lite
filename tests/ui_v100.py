@@ -88,6 +88,11 @@ try:
         check("team graph: every box inside the picture", g["inside"], g)
         check("team graph: the Diagrammer sits with the workers, above the brains", g["dev"] < g["diag"] < g["brain"], g)
         page.locator(".team-svg").screenshot(path=OUT / "v130-team-graph.png")
+        # L37: the expired sign-in card
+        page.evaluate("onEvent({type: 'signin', id: 'si1', status: 'waiting', mode: 'subscription', slug: cur, seq: Date.now(), ts: Date.now() / 1000})")
+        sc = page.locator(".card", has_text="Your Claude sign-in has expired")
+        check("sign-in card with a Sign in again button", sc.count() == 1 and sc.locator("button", has_text="Sign in again").count() == 1)
+        sc.screenshot(path=OUT / "v136-signin.png")
         # L26: an event reusing an old number (from an earlier run) is still shown; a true duplicate is not
         n = page.evaluate("""(() => { const old = items.find(x => x.type === 'message');
           const ev = {type: 'approval', id: 'l26card', status: 'pending', title: 'Run a command', who: 'Diagrammer',

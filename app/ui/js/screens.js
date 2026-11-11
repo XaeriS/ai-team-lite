@@ -312,7 +312,8 @@ $('newCancel').onclick = () => $('newDlg').close();
 $('newForm').onsubmit = async e => {
   e.preventDefault(); const name = $('newName').value.trim(), ex = newKind(), folder = $('newFolder').value.trim();
   if (ex ? !folder : !name) return;
-  try { const p = await api('/api/projects', ex ? {name, folder} : {name}); $('newDlg').close(); await loadState(); open(p.slug); } catch (err) { alertBox(err.message); }
+  // open the new project first: Fred's greeting may already be on its way (L33)
+  try { const p = await api('/api/projects', ex ? {name, folder} : {name}); $('newDlg').close(); await open(p.slug); } catch (err) { alertBox(err.message); }
 };
 $('hiddenBtn').onclick = () => { showHidden = !showHidden; loadState(); };
 $('menuBtn').onclick = () => {

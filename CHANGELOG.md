@@ -2,6 +2,13 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.3.6 (2026-11-11)
+- **An expired Claude sign-in is explained, not repeated as red errors.** One card says "Your Claude sign-in has
+  expired" with a **Sign in again** button; the team stops trying meanwhile, messages you send are kept for Fred, and
+  the work continues by itself once you are signed in. A phone alert is sent if you use phone approvals.
+- **When Windows closes Claude's engine** (a restart or an update), a plain note says so and the work continues on
+  a fresh connection, instead of an error with a long number.
+
 ## 1.3.5 (2026-11-10)
 - **Projects started in AI Team (or moved to another folder) work again.** Fred could answer every message with
   "No conversation found with session ID ...". He now notices that his earlier chat is not available, catches up

@@ -1400,3 +1400,75 @@ def test_l36_conversation_refused_at_connect_is_recovered(isolated):
     assert any("could not be found" in e.get("text", "") for e in hub.history(p["slug"]) if e["type"] == "notice")
     assert projects.load(p["slug"]).get("session_id") != "9ae50e6f-5a05-4316-8837-09caadedec47"
     eng.shutdown()
+
+
+# ---------------------------------------------------------------- L37: expired sign-in, engine closed by Windows
+def test_l37_recognises_signin_lost_and_windows_closing():
+    assert engine_mod.is_signin_lost("Failed to authenticate: OAuth session expired and could not be refreshed")
+    assert engine_mod.is_signin_lost("Not logged in · Please run /login")
+    assert not engine_mod.is_signin_lost("You've hit your session limit")
+    err = type("ProcessError", (Exception,), {})
+    e = err("Command failed with exit code 1073807364 (exit code: 1073807364)")
+    assert engine_mod.closed_by_windows(e)
+    e.exit_code = 1
+    assert not engine_mod.closed_by_windows(e)
+    assert engine_mod.closed_by_windows(type("X", (Exception,), {"exit_code": -1073741510})("ctrl-break"))
+
+
+def test_l37_expired_signin_one_card_master_plan_stops_and_continues_after(isolated):
+    _ready()
+    settings.save({"auth_mode": "subscription", "subscription_signed_in": True})
+    p = projects.create("Signed out")
+    expired = [True]
+
+    async def script(i, prompt, c):
+        yield say("Back: " + ("signed in again" if "signed in to Claude again" in prompt else "plain")
+                  + (" and read lol" if "lol" in prompt else ""))
+
+    class Expiring(FakeClient):
+        async def connect(self):
+            if expired[0]:
+                raise Exception("Claude Code returned an error result: Failed to authenticate: OAuth session expired "
+                                "and could not be refreshed (exit code: 1)")
+            await super().connect()
+
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: Expiring(o, script))
+    eng.send_message(p["slug"], "continue")
+    assert _wait(lambda: any(e["type"] == "signin" for e in hub.history(p["slug"])))
+    assert _wait(lambda: not eng.is_busy(p["slug"]))
+    eng.send_message(p["slug"], "lol")
+    assert _wait(lambda: not eng.is_busy(p["slug"]) and len([e for e in hub.history(p["slug"]) if e["type"] == "message"
+                                                             and e.get("role") == "user"]) == 2)
+    h = hub.history(p["slug"])
+    assert len([e for e in h if e["type"] == "signin"]) == 1, "one card, not an error per attempt"
+    assert not [e for e in h if e["type"] == "error"]
+    assert settings.load()["subscription_signed_in"] is False and eng.pipeline_continue() == []
+    expired[0] = False
+    settings.save({"subscription_signed_in": True})
+    assert eng.on_signed_in() == [p["slug"]]
+    assert _wait(lambda: any(e["type"] == "message" and "signed in again and read lol" in e.get("text", "")
+                             for e in hub.history(p["slug"]))), "the message sent while signed out reaches Fred"
+    assert next(e for e in hub.history(p["slug"]) if e["type"] == "signin")["status"] == "resolved"
+    eng.shutdown()
+
+
+def test_l37_engine_closed_by_windows_continues_once(isolated):
+    _ready()
+    p = projects.create("Restarted PC")
+    closes = [0]
+
+    async def script(i, prompt, c):
+        if "closed by Windows" not in prompt and closes[0] < 2:
+            closes[0] += 1
+            raise Exception("Command failed with exit code 1073807364 (exit code: 1073807364)")
+        yield say("Carrying on after the restart.")
+
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: FakeClient(o, script))
+    eng.send_message(p["slug"], "build iteration 3")
+    assert _wait(lambda: any("Carrying on" in e.get("text", "") for e in hub.history(p["slug"]) if e["type"] == "message"))
+    h = hub.history(p["slug"])
+    assert not [e for e in h if e["type"] == "error"]
+    assert any("Windows closed Claude's engine" in e.get("text", "") for e in h if e["type"] == "notice")
+    eng.shutdown()

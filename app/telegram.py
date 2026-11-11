@@ -223,7 +223,7 @@ class Bridge:
                             prefix=f"s:{slug}")
             if mid:
                 self.alerts[kw.get("card_id", "")] = mid
-        elif event == "limit":
+        elif event in ("limit", "signin"):   # L37: an expired sign-in is told like a limit
             self.send(f"⏸ {self._project(slug)}: {kw['text']}")
         elif event == "resumed":
             self.send(f"▶ {self._project(slug)}: {kw['text']}")
