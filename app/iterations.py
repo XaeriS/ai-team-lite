@@ -8,7 +8,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import paths, policy, projectmap, projects, settings, testrun, usage
+from . import paths, policy, projectmap, projects, settings, testrun, upkeep, usage
 
 STATUSES = ("planned", "building", "done")
 AFTER = ("continue", "pause")  # when an iteration is finished: go on to the next one, or wait for the user's release
@@ -156,6 +156,8 @@ def commit_checks(slug: str, n: int, light_cleanup: str = "") -> list[str]:
     open_tasks = [f"{i}. {t['title']}" for i, t in enumerate(it.get("tasks") or [], 1) if not t.get("done")]
     if open_tasks:
         problems.append("Tasks not finished: " + "; ".join(open_tasks) + ". Finish them (complete_task) first.")
+    if s.get("docs_fresh", True):   # L41: the documents follow the code
+        problems += upkeep.stale_docs(projects.project_dir(slug), it.get("started"))
     if s.get("light_cleanup", True) and not light_cleanup.strip():
         problems.append('Light clean-up: run the quick clean-up of the files changed in this iteration, then pass '
                         'light_cleanup="done" (or the reason it was skipped).')

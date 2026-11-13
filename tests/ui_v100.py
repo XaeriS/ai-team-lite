@@ -111,6 +111,10 @@ try:
         check("headline: what the prototype would cost over its finished iterations",
               "would cost" in body and "over 2 finished iterations" in body, body[:300])
         check("subscription: clearly not billed", "Not billed" in body)
+        # L45: the date the prices were last checked, with a warning when it is old
+        check("price check date shown", "Prices" in body and "checked on" in body, body[:400])
+        old = page.evaluate("(() => { const keep = USE.prices_checked; USE.prices_checked = '2025-01-01'; const t = costNote(); USE.prices_checked = keep; return t; })()")
+        check("old prices are flagged", "may be out of date" in old and "pricewarn" in old, old)
         check("plan room left from Claude", "5-hour limit" in body and "54% left" in body and "read from Claude" in body, body[:600])
         check("rest of the plan estimated", "The rest of the plan" in body)
         check("live activity charts", page.locator("#useBody .chartbox svg").count() == 2)

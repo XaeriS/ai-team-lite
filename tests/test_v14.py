@@ -178,3 +178,41 @@ def test_commit_flags_unproven_requirements(isolated, monkeypatch):
     finally:
         eng.shutdown()
 
+
+
+def test_l42_l43_finding_and_cleanup_tools(isolated):
+    """The team's tools for tracked findings and the clean-up before a version (from the independent review)."""
+    import threading
+    import time
+    hub = EventHub(projects.history_file)
+    eng = engine_mod.Engine(hub, client_factory=lambda o: None)
+    slug, s = _session(eng, "Tidy")
+    assert "Recorded as F-1" in _call(s, "record_finding", {"title": "Dependencies are not pinned", "severity": "medium"})
+    assert "Already known as F-1" in _call(s, "record_finding", {"title": "dependencies are not pinned"})
+    assert "needs the reason" in _call(s, "close_finding", {"id": "F-1", "status": "accepted"})
+    assert "F-1 is now accepted" in _call(s, "close_finding", {"id": "F-1", "status": "accepted", "reason": "personal tool"})
+    assert "do not report again): F-1" in _call(s, "run_security_test", {})
+    folder = projects.project_dir(slug)
+    assert "tidy" in _call(s, "clean_leftovers", {})
+    (folder / ".venv_old").mkdir()
+    (folder / ".venv_old" / "pyvenv.cfg").write_text("home = x")
+
+    def answer(value):
+        def run():
+            for _ in range(100):
+                card = next((e for e in hub.history(slug) if e["type"] == "choice" and e.get("status") == "pending"), None)
+                if card:
+                    eng.respond(card["id"], {"value": value})
+                    return
+                time.sleep(0.05)
+        threading.Thread(target=run, daemon=True).start()
+
+    run_tool = lambda: asyncio.run_coroutine_threadsafe(s.tool_handlers["clean_leftovers"]({}), eng.loop).result(10)["content"][0]["text"]
+    answer("Keep them")
+    assert "Nothing was deleted" in run_tool() and (folder / ".venv_old").exists()
+    answer("Remove them")
+    out = run_tool()
+    assert "Removed 1 of 1" in out and not (folder / ".venv_old").exists()
+    card = [e for e in hub.history(slug) if e["type"] == "choice"][-1]
+    assert ".venv_old: an old Python environment" in card["title"]
+    eng.shutdown()

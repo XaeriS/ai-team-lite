@@ -30,6 +30,10 @@ try:
         b = pw.chromium.launch(); page = b.new_page(viewport={"width": 1400, "height": 880})
         page.on("pageerror", lambda e: errs.append(str(e))); page.on("dialog", lambda d: d.accept())
         page.goto(url)
+        # L33: wait until the window finished starting; clicking earlier let the start-up reopen "no project" over
+        # the new one, so Fred's greeting never showed (the random failure of this test)
+        page.wait_for_function("typeof S === 'object' && S", timeout=8000)
+        page.wait_for_timeout(300)
         page.click("#newBtn"); page.fill("#newName", "Budget"); page.click("#newForm button[type=submit]")
         expect(page.locator(".m.fred").first).to_contain_text("What would you like", timeout=10000)
         expect(page.locator(".m.fred").first.locator("xpath=..").locator(".meta")).not_to_be_empty()

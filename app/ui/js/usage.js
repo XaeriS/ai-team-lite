@@ -45,7 +45,10 @@ let USE = null;
 const fmtTok = n => { n = n || 0; return n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + ' M' : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + ' k' : String(n); };
 let UQ = {scope: null, unit: 'week', split: 'agent', period: null, open: null};
 const isSub = () => (USE?.mode || S?.auth_mode) === 'subscription';
-const costNote = () => isSub() ? 'At Anthropic\'s API prices. Not billed: your Claude subscription covers it.' : 'At Anthropic\'s list prices; your Anthropic invoice has the exact figure.';
+const priceAge = () => { const d = USE?.prices_checked ? Math.floor((Date.now() - new Date(USE.prices_checked + 'T00:00:00')) / 864e5) : null; return {date: USE?.prices_checked, days: d, old: d !== null && d > 60}; };
+// L45: say when the prices were last checked, and warn when that is long ago
+const priceNote = () => { const a = priceAge(); return !a.date ? '' : a.old ? ` <span class="pricewarn">Prices last checked on ${a.date} (${a.days} days ago): the figures may be out of date; a newer version of AI Team Lite brings current prices.</span>` : ` Prices checked on ${a.date}.`; };
+const costNote = () => (isSub() ? 'At Anthropic\'s API prices. Not billed: your Claude subscription covers it.' : 'At Anthropic\'s list prices; your Anthropic invoice has the exact figure.') + priceNote();
 function barsSvg(vals, labels, w, h, opts = {}) {
   const max = Math.max(1, ...vals), n = vals.length, gap = 2, bw = Math.max(1, (w - gap * (n - 1)) / n);
   const bars = vals.map((v, i) => { const bh = v ? Math.max(2, (h - 14) * v / max) : 0, x = i * (bw + gap);

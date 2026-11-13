@@ -15,8 +15,8 @@ from claude_agent_sdk import create_sdk_mcp_server, tool
 
 from . import challenge, tracking
 
-from . import (brains, council, github, iterations, models, paths, policy, projects, secrets_store, settings, testrun,
-               usage, winhelpers)
+from . import (brains, council, github, iterations, models, paths, policy, projectmap, projects, secrets_store,
+               settings, testrun, upkeep, usage, winhelpers)
 
 if TYPE_CHECKING:
     from .engine import Session
@@ -681,7 +681,56 @@ def build_server(session: "Session"):
     async def run_security_test(args):
         return text("Security review: brief the Reviewer for a security review of the WHOLE codebase with the bundled "
                     "security-audit skill (.aiteam/skills/security-audit, guidance mode, ATTACK-CLASSES.md), writing "
-                    "reports/SECURITY_REVIEW.md. High findings become fix tasks before the version; tell the user the summary.")
+                    "reports/SECURITY_REVIEW.md. High findings become fix tasks before the version; tell the user the summary.\n"
+                    "Findings are tracked until closed (reports/FINDINGS.md). Known so far: " + upkeep.findings_brief(slug)
+                    + "\nGive this list to the Reviewer. Afterwards call record_finding for every NEW finding, and "
+                    "close_finding(id, \"fixed\") for each one fixed. A finding the user decides to live with is closed "
+                    "with close_finding(id, \"accepted\", reason) and is not reported again. Then call clean_leftovers().")
+
+    @tool("record_finding", "Keep a review finding (security or quality) until it is fixed or accepted. A finding "
+          "already known under the same title is not added twice.", {"title": str, "severity": str, "where": str})
+    async def record_finding(args):
+        try:
+            item, new = upkeep.record_finding(slug, str(args.get("title", "")), str(args.get("severity", "medium")),
+                                              str(args.get("where", "")))
+        except ValueError as e:
+            return text(str(e), True)
+        if new:
+            return text(f"Recorded as {item['id']} ({item['severity']}, open).")
+        if item["status"] == "accepted":
+            return text(f"Already known as {item['id']} and accepted by the user ({item['reason']}): do not report it again.")
+        return text(f"Already known as {item['id']} ({item['status']}): fix it, then close_finding(\"{item['id']}\", \"fixed\").")
+
+    @tool("close_finding", "Close a tracked finding: status \"fixed\" (after the fix is tested), or \"accepted\" with "
+          "the reason, when the USER decided to live with it.", {"id": str, "status": str, "reason": str})
+    async def close_finding(args):
+        try:
+            item = upkeep.close_finding(slug, str(args.get("id", "")), str(args.get("status", "")), str(args.get("reason", "")))
+        except ValueError as e:
+            return text(str(e), True)
+        left = [f["id"] for f in upkeep.findings(slug) if f["status"] == "open"]
+        return text(f"{item['id']} is now {item['status']}. Still open: {', '.join(left) or 'none'}.")
+
+    @tool("clean_leftovers", "Before a new version: look for leftovers in the project folder (old Python environments, "
+          "caches, backup copies), show them to the user and remove them only if the user agrees.", {})
+    async def clean_leftovers(args):
+        folder = projects.project_dir(slug)
+        found = await session.run_blocking(upkeep.leftovers, folder)
+        if not found:
+            return text("No leftovers found: the project folder is tidy.")
+        mb = lambda b: f"{b / 1e6:.0f} MB" if b >= 1e6 else f"{max(1, round(b / 1e3))} KB"
+        listing = "\n".join(f"- {x['path']}: {x['why']} ({mb(x['bytes'])})" for x in found)
+        total = mb(sum(x["bytes"] for x in found))
+        answer = await session.ask_user("choice", {
+            "title": f"Tidy up before the version? These leftovers take {total} and are not part of your app:\n{listing}",
+            "options": ["Remove them", "Keep them"]})
+        if interrupted(answer):
+            return interrupted(answer)
+        if not str(answer.get("value") or "").lower().startswith("remove"):
+            return text("The user chose to keep the leftovers. Nothing was deleted.")
+        removed = await session.run_blocking(upkeep.remove_leftovers, slug, [x["path"] for x in found])
+        projectmap.refresh(folder)
+        return text(f"Removed {len(removed)} of {len(found)} leftovers ({total}): {', '.join(removed) or 'none'}.")
 
     @tool("connect_phone", "Setup: after the user agreed and pasted their Telegram bot key (request_secret "
           "name=telegram_bot_token), link their phone: shows a code the user sends to their bot, waits until it "
@@ -729,7 +778,7 @@ def build_server(session: "Session"):
                      github_push, request_plan_approval, take_screenshot, show_image, launch_for_user,
                      record_test_result, start_iteration, commit_iteration]
     project_tools += [handoff_to_architect, complete_task, record_red_tests, record_prior_art, ask_council,
-                      record_change_request, run_security_test,
+                      record_change_request, run_security_test, record_finding, close_finding, clean_leftovers,
                       record_problem, record_challenge_review, record_diagram, record_questions, run_tests,
                       record_lesson]
     architect_tools = [check_environment, ask_choice, request_architecture_approval, return_to_fred,

@@ -1472,3 +1472,80 @@ def test_l37_engine_closed_by_windows_continues_once(isolated):
     assert not [e for e in h if e["type"] == "error"]
     assert any("Windows closed Claude's engine" in e.get("text", "") for e in h if e["type"] == "notice")
     eng.shutdown()
+
+
+# ---------------------------------------------------------------- L40-L45: from the independent review
+def test_l40_project_map_ignores_renamed_python_environments(isolated, tmp_path):
+    from app import projectmap
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "main.py").write_text('"""Starts the app."""\n')
+    for env in (".venv_old_312", "venv_moved_old"):
+        lib = tmp_path / env / "Lib" / "site-packages" / "requests"
+        lib.mkdir(parents=True)
+        (tmp_path / env / "pyvenv.cfg").write_text("home = x\n")
+        for i in range(40):
+            (lib / f"mod{i}.py").write_text("x = 1\n")
+    (tmp_path / "graphify-out").mkdir()
+    (tmp_path / "graphify-out" / "graph.json").write_text("{}")
+    text = projectmap.build(tmp_path)
+    assert "app/main.py" in text and "site-packages" not in text and "graphify-out" not in text and "venv" not in text
+
+
+def test_l41_documents_must_follow_the_iteration(tmp_path):
+    from app import upkeep
+    assert any("STATUS.md is missing" in p for p in upkeep.stale_docs(tmp_path, time.time()))
+    (tmp_path / "STATUS.md").write_text("old")
+    os.utime(tmp_path / "STATUS.md", (time.time() - 3600, time.time() - 3600))
+    assert any("not updated in this iteration" in p for p in upkeep.stale_docs(tmp_path, time.time() - 60))
+    (tmp_path / "STATUS.md").write_text("fresh")
+    assert upkeep.stale_docs(tmp_path, time.time() - 60) == []
+    (tmp_path / "run.bat").write_text("python main.py")
+    assert any("README.md is missing" in p for p in upkeep.stale_docs(tmp_path, time.time() - 60))
+
+
+def test_l42_findings_are_tracked_until_closed(isolated):
+    from app import upkeep
+    p = projects.create("Findings")
+    f1, new = upkeep.record_finding(p["slug"], "Dependencies are not pinned", "medium", "requirements.txt")
+    assert new and f1["id"] == "F-1" and f1["status"] == "open"
+    same, new = upkeep.record_finding(p["slug"], "dependencies are NOT pinned.", "high")
+    assert not new and same["id"] == "F-1", "the same finding is not added twice"
+    with pytest.raises(ValueError):
+        upkeep.close_finding(p["slug"], "F-1", "accepted")            # accepting needs the reason
+    upkeep.close_finding(p["slug"], "F-1", "accepted", "Personal tool, the user accepts it")
+    again, new = upkeep.record_finding(p["slug"], "Dependencies are not pinned")
+    assert again["status"] == "accepted", "an accepted finding stays accepted"
+    f2, _ = upkeep.record_finding(p["slug"], "SQL built by string concatenation", "high", "app/db.py")
+    upkeep.close_finding(p["slug"], "F-2", "fixed")
+    back, _ = upkeep.record_finding(p["slug"], "SQL built by string concatenation", "high")
+    assert back["status"] == "open", "a fixed finding that comes back is open again"
+    brief = upkeep.findings_brief(p["slug"])
+    assert "Open: F-2" in brief and "do not report again): F-1" in brief
+    report = (projects.project_dir(p["slug"]) / "reports" / "FINDINGS.md").read_text()
+    assert "accepted (Personal tool, the user accepts it)" in report
+
+
+def test_l43_leftovers_are_listed_and_removed_only_when_listed(isolated):
+    from app import upkeep
+    p = projects.create("Leftovers")
+    folder = projects.project_dir(p["slug"])
+    for env in (".venv", ".venv_old_312"):
+        (folder / env).mkdir()
+        (folder / env / "pyvenv.cfg").write_text("home = x")
+    (folder / "graphify-out").mkdir()
+    (folder / "data").mkdir()
+    (folder / "data" / "app.db").write_text("real data")
+    (folder / "data" / "app.db.bak").write_text("copy")
+    (folder / "main.py").write_text("print(1)")
+    found = {x["path"]: x["why"] for x in upkeep.leftovers(folder)}
+    assert set(found) == {".venv_old_312", "graphify-out", "data/app.db.bak"}
+    assert "old Python environment" in found[".venv_old_312"]
+    removed = upkeep.remove_leftovers(p["slug"], [".venv_old_312", "data/app.db.bak", "data/app.db", "main.py", "../x"])
+    assert sorted(removed) == [".venv_old_312", "data/app.db.bak"]
+    assert (folder / "data" / "app.db").exists() and (folder / "main.py").exists() and (folder / ".venv").exists()
+    assert (folder / "graphify-out").exists(), "only what was asked for is removed"
+
+
+def test_l44_team_is_told_how_to_name_tests_and_keep_files_small():
+    from app import prompts
+    assert "never after the iteration" in prompts.TESTER and "about 500 lines" in prompts.DEVELOPER

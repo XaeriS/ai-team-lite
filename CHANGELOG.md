@@ -2,6 +2,19 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.3.7 (2026-11-12)
+Improvements from an independent review of the app:
+- **The project map lists your project, not library files.** Old Python environments under any name are skipped, so
+  the team finds the right file faster and uses fewer tokens.
+- **Documents follow the code.** An iteration is only saved once STATUS.md was updated (and a README exists as soon
+  as the app can be started).
+- **Review findings are tracked until closed.** Each finding stays in reports/FINDINGS.md until it is fixed, or you
+  accept it with a reason; an accepted finding is not reported again.
+- **Tidy-up before a version.** Fred lists leftovers (old Python environments, caches, backup copies) with their size
+  and removes them only if you agree.
+- Tests are named after the feature they prove, source files are kept small, and the usage window says when the
+  model prices were last checked (with a warning when that is long ago).
+
 ## 1.3.6 (2026-11-11)
 - **An expired Claude sign-in is explained, not repeated as red errors.** One card says "Your Claude sign-in has
   expired" with a **Sign in again** button; the team stops trying meanwhile, messages you send are kept for Fred, and

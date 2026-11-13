@@ -15,7 +15,8 @@ from pathlib import Path
 NAME = "PROJECT_MAP.md"
 CACHE = Path(".aiteam") / "map-cache.json"
 SKIP_DIRS = {".git", ".aiteam", ".venv", "venv", "env", "node_modules", "__pycache__", "build", "dist", ".pytest_cache",
-             ".archify", "test-logs", "screenshots", ".mypy_cache", ".idea", ".vscode"}
+             ".archify", "test-logs", "screenshots", ".mypy_cache", ".idea", ".vscode", "site-packages", "graphify-out",
+             ".ruff_cache", "backups"}
 TEXT = {".py", ".md", ".txt", ".bat", ".cmd", ".ps1", ".toml", ".cfg", ".ini", ".json", ".yaml", ".yml", ".html",
         ".css", ".js", ".sql", ".csv"}
 MAX_FILES = 300
@@ -65,10 +66,13 @@ def build(folder: Path) -> str:
     except (OSError, ValueError):
         cache = {}
     rows, seen, total = [], {}, 0
+    # L40: a Python environment under any name (.venv_old_312, .venv_moved_old) is library code, not the project
+    envs = {cfg.parent.relative_to(folder).parts for cfg in folder.glob("*/pyvenv.cfg")} \
+        | {cfg.parent.relative_to(folder).parts for cfg in folder.glob("*/*/pyvenv.cfg")}
     for f in sorted(folder.rglob("*")):
         rel = f.relative_to(folder)
         if not f.is_file() or SKIP_DIRS & set(rel.parts) or f.suffix.lower() not in TEXT or f.name.startswith(".") \
-                or rel.as_posix() == NAME:
+                or rel.as_posix() == NAME or any(rel.parts[:len(e)] == e for e in envs):
             continue
         total += 1
         if len(rows) >= MAX_FILES:

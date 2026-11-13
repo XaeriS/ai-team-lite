@@ -250,6 +250,8 @@ async def script(i, prompt, c):
                                                             "test_name": "monthly total per category"})
     for x in m:
         yield x
+    (folder / "STATUS.md").write_text("Expenses can be added and listed; monthly totals are next.\n", encoding="utf-8")
+    (folder / "README.md").write_text("# Expenses\n\nDouble-click run.bat to start.\n", encoding="utf-8")
     _, _, m, _ = await use("mcp__aiteam__commit_iteration", {"n": 1, "summary": "Add and list expenses works; 3 tests run.",
                                                              "test_command": f'"{sys.executable}" -c "print(1)"'})
     for x in m:

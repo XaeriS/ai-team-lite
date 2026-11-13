@@ -8,6 +8,7 @@ from . import paths, safefile
 
 DEFAULTS = {
     "setup_complete": False,
+    "docs_fresh": True,   # L41: STATUS.md (and a README once the app runs) must follow each iteration
     "tests_hidden_desktop": True,   # L32: test runs on a hidden Windows desktop, so their windows never flash on screen
     "workspace_dir": "",
     "approval_mode": "plan",   # "plan": after you approve a plan, agents may work inside the project freely

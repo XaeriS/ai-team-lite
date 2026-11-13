@@ -109,6 +109,9 @@ def test_full_flow_with_fred(isolated):
             ok, res, msgs, _ = await c.use_tool("mcp__aiteam__start_iteration", {"n": 1})
             (folder / "app_mod.py").write_text("def total(xs):\n    return 0\n")
             ok, res, msgs, _ = await c.use_tool("mcp__aiteam__commit_iteration", {"n": 1, "summary": "s", "test_command": TEST_CMD})
+            out["stale_docs"] = res   # L41: STATUS.md must follow the iteration
+            (folder / "STATUS.md").write_text("Expenses can be added; totals are next.\n")
+            ok, res, msgs, _ = await c.use_tool("mcp__aiteam__commit_iteration", {"n": 1, "summary": "s", "test_command": TEST_CMD})
             out["failed_commit"] = res
             (folder / "app_mod.py").write_text("def total(xs):\n    return sum(xs)\n")
             ok, res, msgs, _ = await c.use_tool("mcp__aiteam__commit_iteration", {"n": 1, "summary": "Expenses work", "test_command": TEST_CMD})
@@ -130,6 +133,7 @@ def test_full_flow_with_fred(isolated):
     assert projects.load(p["slug"])["waiting_release"] == 2
     assert eng.project_state(p["slug"]) == "release"
     eng.shutdown()
+    assert "STATUS.md is missing" in out["stale_docs"]   # L41
     assert "split into iterations" in out["no_iterations"]
     assert "APPROVED" in out["approval"] and "start_iteration(1)" in out["approval"]
     assert "iteration 1 first" in out["out_of_order"]
