@@ -93,6 +93,24 @@ try:
         sc = page.locator(".card", has_text="Your Claude sign-in has expired")
         check("sign-in card with a Sign in again button", sc.count() == 1 and sc.locator("button", has_text="Sign in again").count() == 1)
         sc.screenshot(path=OUT / "v136-signin.png")
+        # L38: spelling help: typo chips under the message box, corrections by click and by right-click
+        page.fill("#input", "Please recieve teh invoices")
+        expect(page.locator("#spellBar .typo")).to_have_count(2, timeout=5000)
+        check("typos listed under the message box", page.locator("#spellBar .typo").all_inner_texts() == ["recieve", "teh"])
+        page.screenshot(path=OUT / "v140-spelling.png")
+        page.locator("#spellBar .typo", has_text="recieve").click()
+        page.locator(".ctxmenu button", has_text="receive").first.click()
+        expect(page.locator("#input")).to_have_value("Please receive teh invoices", timeout=3000)
+        expect(page.locator("#spellBar .typo")).to_have_count(1, timeout=5000)
+        page.evaluate("(() => { const f = document.getElementById('input'), i = f.value.indexOf('teh'); f.focus(); f.setSelectionRange(i + 1, i + 1); })()")
+        page.evaluate("document.getElementById('input').dispatchEvent(new MouseEvent('contextmenu', {clientX: 400, clientY: 500, bubbles: true, cancelable: true}))")
+        first = page.locator(".ctxmenu button").first.inner_text()
+        check("right-click on a typo offers corrections first", first == "the", first)
+        page.locator(".ctxmenu button", has_text="the").first.click()
+        expect(page.locator("#input")).to_have_value("Please receive the invoices", timeout=3000)
+        expect(page.locator("#spellBar")).to_be_hidden(timeout=5000)
+        check("message box asks for native spell check too", page.locator("#input").get_attribute("spellcheck") == "true")
+        page.fill("#input", "")
         # L26: an event reusing an old number (from an earlier run) is still shown; a true duplicate is not
         n = page.evaluate("""(() => { const old = items.find(x => x.type === 'message');
           const ev = {type: 'approval', id: 'l26card', status: 'pending', title: 'Run a command', who: 'Diagrammer',

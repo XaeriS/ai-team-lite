@@ -5,12 +5,12 @@
 async function send() {
   const t = $('input').value.trim(); if ((!t && !attachments.length) || !cur) return;
   const text = t + (attachments.length ? '\n\n' + attachments.map(a => `[Attached file: ${a}]`).join('\n') : '');
-  $('input').value = ''; autosize(); attachments = []; renderChips();
+  $('input').value = ''; autosize(); attachments = []; renderChips(); checkSpelling();
   try { await api(`/api/projects/${cur}/message`, {text}); } catch (e) { alertBox(e.message); $('input').value = t; }
 }
 function autosize() { const i = $('input'); i.style.height = 'auto'; i.style.height = Math.min(i.scrollHeight, 200) + 'px'; }
 function renderChips() { $('chips').innerHTML = attachments.map(a => chipHtml(a, false)).join(''); wireChips($('chips'), false); }
-$('input').addEventListener('input', e => { autosize(); if (e.isTrusted) voiceTalk = false; });
+$('input').addEventListener('input', e => { autosize(); if (e.isTrusted) voiceTalk = false; spellSoon(); });
 $('input').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
 $('sendBtn').onclick = send;
 $('stopBtn').onclick = () => cur && api(`/api/projects/${cur}/stop`, {});

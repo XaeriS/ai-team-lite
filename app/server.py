@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from . import (__version__, auth, brains, challenge, github, iterations, journal, paths, projects, secrets_store,
-               settings, skills as skills_mod, tooling, tracking, tools, features, updates, usage, voice, winhelpers)
+               settings, skills as skills_mod, spelling, tooling, tracking, tools, features, updates, usage, voice, winhelpers)
 from . import engine as engine_mod
 from . import telegram
 from .engine import Engine
@@ -154,7 +154,8 @@ class App:
                                            "pipeline_auto", "voice_end_word", "voice_silence_seconds", "voice_review",
                                            "voice_auto_listen", "voice_model", "voice_language", "auto_resume",
                                            "close_to_tray")}
-            | {"workspace_dir": str(settings.workspace())},
+            | {"workspace_dir": str(settings.workspace()), "spell_check": bool(s.get("spell_check", True)),
+               "spell_languages": spelling.languages(), "spell_all": spelling.LANGUAGES},
             "github_connected": secrets_store.has("github_token"),
             "broken": projects.broken(),
             "is_owner": updates.is_owner(),
@@ -824,6 +825,14 @@ def make_handler(app: App):
 
         def _post_settings(self, path: str, body: dict):
             """Settings, secrets, voice, phone approvals, lessons and folder picking."""
+            if path == "/api/spell":   # L38: spelling help for the message box
+                return self._json({"issues": spelling.check(str(body.get("text") or "")), "languages": spelling.languages()})
+            if path == "/api/spell/add":
+                try:
+                    spelling.add_word(str(body.get("word") or ""))
+                except ValueError as e:
+                    return self._error(400, str(e))
+                return self._json({"ok": True})
             if path == "/api/clipboard/read":   # L28: right-click > Paste in a text box
                 try:
                     return self._json({"text": winhelpers.read_clipboard()})
@@ -838,6 +847,10 @@ def make_handler(app: App):
                 for k in ("iteration_pause", "pipeline_auto", "close_to_tray"):
                     if isinstance(body.get(k), bool):
                         changes[k] = body[k]
+                if isinstance(body.get("spell_check"), bool):   # L38
+                    changes["spell_check"] = body["spell_check"]
+                if isinstance(body.get("spell_languages"), list):
+                    changes["spell_languages"] = [x for x in body["spell_languages"] if x in spelling.LANGUAGES]
                 if isinstance(body.get("user_name"), str):   # L12: changed in Settings > General
                     changes["user_name"] = " ".join(body["user_name"].split())[:40]
                 settings.save(changes)

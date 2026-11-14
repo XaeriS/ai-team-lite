@@ -2,6 +2,16 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.4.0 (2026-11-13)
+- **Works on half or a quarter of your screen.** The window can now be made much smaller (down to 480 x 400). In a
+  narrow window the project list and menu slide in from the ☰ button, the side panel (Team, Plan, Tests...) slides in
+  from its arrow, and the message box always stays in view. This also fixes the half-screen layout, where the side
+  panel dropped under the project list.
+- **Spelling help in the message box.** Possible typos are listed under what you type; click one (or right-click the
+  word) to pick a correction or add the word to your dictionary. Choose the languages in Settings > General (English,
+  French, Portuguese, Spanish, German, Italian, Dutch). Names, file names, links and code are left alone, and
+  nothing leaves your PC.
+
 ## 1.3.7 (2026-11-12)
 Improvements from an independent review of the app:
 - **The project map lists your project, not library files.** Old Python environments under any name are skipped, so

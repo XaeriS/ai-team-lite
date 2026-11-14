@@ -1549,3 +1549,26 @@ def test_l43_leftovers_are_listed_and_removed_only_when_listed(isolated):
 def test_l44_team_is_told_how_to_name_tests_and_keep_files_small():
     from app import prompts
     assert "never after the iteration" in prompts.TESTER and "about 500 lines" in prompts.DEVELOPER
+
+
+# ---------------------------------------------------------------- L38: spelling help in the message box
+def test_l38_spelling_flags_typos_and_leaves_names_code_and_links_alone(isolated):
+    from app import spelling
+    settings.save({"spell_languages": ["en", "fr"]})
+    text = ("Please recieve teh invoices from Methanex and chekc app/main.py, see https://exmaple.com or mail "
+            "joe@exmaple.com. Bonjour, la facture est prête. It's fine, don't wory. L'adresse est bonne. ZZTOP "
+            "run_tests file.xlsx")
+    issues = spelling.check(text)
+    assert [i["word"] for i in issues] == ["recieve", "teh", "chekc", "wory"]
+    assert all(text[i["start"]:i["end"]] == i["word"] for i in issues)
+    by = {i["word"]: i["suggestions"] for i in issues}
+    assert by["recieve"][0] == "receive" and by["teh"][0] == "the" and by["chekc"][0] == "check" and "worry" in by["wory"]
+    settings.save({"spell_languages": ["en"]})
+    assert "ordinateur" in [i["word"] for i in spelling.check("mon ordinateur")], "French words are typos in English only"
+    spelling.add_word("ordinateur")
+    assert "ordinateur" not in [i["word"] for i in spelling.check("mon ordinateur")]
+    with pytest.raises(ValueError):
+        spelling.add_word("two words")
+    settings.save({"spell_check": False})
+    assert spelling.check("teh wrod") == []
+

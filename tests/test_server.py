@@ -206,3 +206,17 @@ def test_screen_scripts_have_no_syntax_errors():
     for f in sorted((Path(__file__).resolve().parent.parent / "app" / "ui" / "js").glob("*.js")):
         r = subprocess.run([node, "--check", str(f)], capture_output=True, text=True)
         assert r.returncode == 0, f"{f.name}: {r.stderr[-400:]}"
+
+
+def test_l38_spelling_routes_and_settings(srv):
+    from app import settings as st
+    status, body = srv.call("POST", "/api/spell", {"text": "Please recieve teh file"})
+    assert status == 200 and [i["word"] for i in body["issues"]] == ["recieve", "teh"] and "en" in body["languages"]
+    assert srv.call("POST", "/api/spell", {"text": "x"}, token=False)[0] == 403
+    assert srv.call("POST", "/api/spell/add", {"word": "teh"}) == (200, {"ok": True})
+    assert [i["word"] for i in srv.call("POST", "/api/spell", {"text": "recieve teh"})[1]["issues"]] == ["recieve"]
+    status, state = srv.call("POST", "/api/settings", {"spell_languages": ["fr", "xx", "en"], "spell_check": True})
+    assert state["settings"]["spell_languages"] == ["fr", "en"] and st.load()["spell_languages"] == ["fr", "en"]
+    assert set(state["settings"]["spell_all"]) >= {"en", "fr", "pt"}
+    status, state = srv.call("POST", "/api/settings", {"spell_check": False})
+    assert state["settings"]["spell_check"] is False and srv.call("POST", "/api/spell", {"text": "teh"})[1]["issues"] == []

@@ -228,3 +228,53 @@ button,nav,.pill,.state,.tabs,.stab,.who,.legend,.acts{user-select:none}
 
 /* L45 */
 .pricewarn{color:var(--warn)}
+
+/* ------------------------------------------------------------------ L39: half and quarter of the screen */
+#navBtn,#navShade{display:none}
+@media(max-width:1180px){
+  #app{grid-template-columns:220px minmax(0,1fr)}
+  aside#side{display:none}
+  #app.sideover aside#side{display:flex;position:fixed;right:0;top:0;bottom:0;width:min(520px,calc(100vw - 24px));z-index:8;box-shadow:-8px 0 24px #0005}
+  #app.sideover #sideToggle{z-index:9}
+  #app.sideover #resizer{display:none}
+}
+@media(max-width:760px){
+  #app{grid-template-columns:minmax(0,1fr)}
+  nav{position:fixed;left:0;top:0;bottom:0;width:min(280px,86vw);z-index:10;transform:translateX(-102%);transition:transform .18s ease;box-shadow:8px 0 24px #0005;overflow-y:auto}
+  #app.navopen nav{transform:none}
+  #app.navopen #navShade{display:block;position:fixed;inset:0;z-index:9;background:#0006}
+  #navBtn{display:inline-flex;flex:none;padding:6px 9px;font-size:16px}
+  header.top{padding:8px 10px;gap:6px}
+  header.top h2{flex:1 1 80px;font-size:15px}
+  #pauseBtn,#folderBtn{font-size:0;padding:7px 9px}#pauseBtn::first-letter,#folderBtn::first-letter{font-size:15px}
+  #launchBtn{padding:6px 9px}
+  #msgs{padding:10px 10px 6px;gap:10px}
+  #composer{padding:6px 10px 10px}
+  .m,.uwrap,.card{max-width:100%}
+  .card{padding:12px}
+  .card table,.doc table,.m table{display:block;overflow-x:auto;max-width:100%}
+  .card pre,.m pre,.doc pre{max-width:100%;overflow-x:auto}
+  dialog{min-width:0;width:calc(100vw - 20px);max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);overflow:auto;padding:14px}
+  #input::placeholder{font-size:13px}
+}
+@media(max-height:560px){
+  header.top{padding-top:6px;padding-bottom:6px}
+  #cost{display:none}
+  #msgs{padding-top:8px}
+  #composer{padding-top:4px;padding-bottom:8px}
+  .cbox{padding:5px}
+  #input{max-height:72px}
+  .brand{padding:8px 12px 4px}
+  .navfoot{padding:6px;gap:0}.navfoot button{padding:4px 10px}
+  nav{overflow-y:auto}#plist{flex:none;max-height:none;overflow:visible}
+  .meter{padding:5px 8px;margin-bottom:3px}
+  dialog{max-height:calc(100vh - 12px);overflow:auto}
+}
+
+/* settings labels on their own line (they ran into the field in a narrow window) */
+[data-sp]>label.hint{display:block}
+
+/* L38: possible typos under the message box */
+#spellBar{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding:2px 6px 4px}
+#spellBar .typo{padding:1px 8px;border-radius:99px;font-size:12.5px;border-color:transparent;background:var(--warnbg);color:var(--warn);text-decoration:underline wavy;text-underline-offset:3px}
+#spellBar .typo:hover{border-color:var(--warn)}

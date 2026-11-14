@@ -72,6 +72,8 @@ Want to carry on with something that already exists? **+ New project > Continue 
   itself once the limit resets.
 - **The Team panel** shows who is working, who has a question for you and who is idle, live.
 - **The Pipeline** shows every project's progress; you can let several projects work in turn.
+- **Fits beside your other work:** the window works on half or a quarter of the screen; in a narrow window the
+  project list and the side panel slide in when you ask for them.
 
 ## Talking with Fred
 
@@ -79,6 +81,8 @@ Want to carry on with something that already exists? **+ New project > Continue 
   microphone, Windows privacy settings, microphone busy) and offers a "Test microphone" button (also in Settings >
   General).
 - Paste a screenshot (Win+Shift+S, then Ctrl+V) or drop files straight into the message box.
+- Spelling help: possible typos are listed under the message box; click one, or right-click the word, for
+  corrections. Languages are chosen in Settings > General.
 - Copy anything from the chat: select text, or use the **Copy** button under a message, or right-click (Copy, and
   Paste in the message box).
 

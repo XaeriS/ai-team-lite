@@ -5,3 +5,4 @@ pillow>=11
 faster-whisper>=1.2,<2
 sounddevice>=0.5
 pystray>=0.19.5
+pyspellchecker>=0.8,<1

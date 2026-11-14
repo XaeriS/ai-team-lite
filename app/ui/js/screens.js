@@ -163,6 +163,13 @@ function applyLayout() {
   t.title = shown ? 'Hide the side panel' : 'Show the side panel' + (sideBadge ? ' (something new)' : '');
   if (shown) sideBadge = false;
 }
+/* L39: in a narrow window (a quarter of the screen) the project list slides in from the left behind the ☰ button */
+const closeNav = () => $('app').classList.remove('navopen');
+$('navBtn').onclick = () => $('app').classList.toggle('navopen');
+$('navShade').onclick = closeNav;
+document.querySelector('nav').addEventListener('click', e => { if (e.target.closest('#plist li, .navfoot button, #newBtn, #usageMeter')) closeNav(); });
+addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
+addEventListener('resize', () => { if (innerWidth > 760) closeNav(); applyLayout(); });
 $('sideToggle').onclick = () => {
   if (innerWidth <= 1180) sideOver = !sideOver; else { sideHidden = !sideHidden; LS.set('aiteam.sideHidden', sideHidden ? '1' : '0'); }
   if (!sideHidden || sideOver) sideBadge = false;
@@ -367,6 +374,9 @@ $('settingsBtn').onclick = () => {
   $('setMode').value = S.settings.approval_mode; $('setPar').value = String(S.max_parallel || 2); $('setIterPause').checked = !!S.settings.iteration_pause;
   $('setPipeAuto').checked = S.settings.pipeline_auto !== false; $('setTray').checked = !!S.settings.close_to_tray;
   $('setName').value = S.settings.user_name || '';
+  $('setSpell').checked = !!S.settings.spell_check;   // L38
+  $('setSpellLangs').innerHTML = Object.entries(S.settings.spell_all || {}).map(([k, n]) =>
+    `<label class="hint"><input type="checkbox" value="${k}" ${(S.settings.spell_languages || []).includes(k) ? 'checked' : ''}> ${esc(n)}</label>`).join('');
   renderLessons();
   const onTab = document.querySelector('.stab.on')?.dataset.s;
   if (onTab === 'brains') renderBrains();
@@ -377,8 +387,9 @@ $('setCancel').onclick = () => { $('setDlg').close(); renderSide(); };
 $('setSave').onclick = async e => {
   e.preventDefault();
   const body = {approval_mode: $('setMode').value, max_parallel: parseInt($('setPar').value), iteration_pause: $('setIterPause').checked,
-    pipeline_auto: $('setPipeAuto').checked, close_to_tray: $('setTray').checked, user_name: $('setName').value.trim()};
-  try { await api('/api/settings', body); $('setDlg').close(); await loadState(); renderSide(); } catch (err) { alertBox(err.message); }
+    pipeline_auto: $('setPipeAuto').checked, close_to_tray: $('setTray').checked, user_name: $('setName').value.trim(),
+    spell_check: $('setSpell').checked, spell_languages: [...$('setSpellLangs').querySelectorAll('input:checked')].map(x => x.value)};
+  try { await api('/api/settings', body); $('setDlg').close(); await loadState(); renderSide(); checkSpelling(); } catch (err) { alertBox(err.message); }
 };
 /* ---------------------------------------------- Setup & connections tab */
 function renderSetupTab() {

@@ -34,6 +34,7 @@ let ctxMenu = null;
 function closeCtx() { ctxMenu?.remove(); ctxMenu = null; }
 function openCtx(x, y, entries) {
   closeCtx();
+  x = Number.isFinite(x) ? x : 8; y = Number.isFinite(y) ? y : 8;
   if (!entries.length) return;
   ctxMenu = el('<div class="ctxmenu" role="menu"></div>');
   entries.forEach(([label, run, disabled]) => {
@@ -54,7 +55,8 @@ document.addEventListener('contextmenu', e => {
   if (field) {
     e.preventDefault();
     const picked = field.value.slice(field.selectionStart, field.selectionEnd), secret = field.type === 'password';
-    openCtx(e.clientX, e.clientY, [
+    const typo = field.id === 'input' ? spellIssueAt(field.selectionStart) : null;   // L38: corrections first
+    openCtx(e.clientX, e.clientY, [...(typo ? spellEntries(typo) : []),
       ['Cut', async () => { if (await copyText(picked)) pasteInto(field, ''); }, !picked || secret],
       ['Copy', () => copyText(picked), !picked || secret],
       ['Paste', async () => { const t = await readClipboard(); if (t === null) alertBox('Press Ctrl+V to paste.'); else pasteInto(field, t); }],
