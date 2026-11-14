@@ -47,6 +47,10 @@ tests it in small steps, and starts it for you to try. All you need is a Windows
 5. Each iteration: tests written first, then the code, then a review; it is saved (Git) only when the tests pass.
 6. When it is ready, "Launch the project" starts it for you to try. Diagrams show how it works.
 
+Every finished iteration is a checkpoint: **What changed** shows, in plain words, which requirement it serves and
+which files were added, changed or removed, and **Go back to this point** returns the project to that iteration
+(nothing is deleted, and you can undo it).
+
 Want to carry on with something that already exists? **+ New project > Continue an existing folder**: Fred reads it
 (read-only) and carries on as if the team had built it.
 

@@ -40,7 +40,7 @@ try:  # background-task lifecycle messages (Claude Agent SDK 0.2.150+); older en
 except ImportError:  # pragma: no cover
     TaskNotificationMessage = TaskProgressMessage = TaskStartedMessage = TaskUpdatedMessage = type("_Never", (), {})
 
-from . import (auth, brains, challenge, iterations, journal, languages, lessons as lessons_mod, models, paths, policy,
+from . import (auth, brains, challenge, checkpoints, iterations, journal, languages, lessons as lessons_mod, models, paths, policy,
                projectmap, projects, prompts, risk, secrets_store, settings, skills as skills_mod, timeline, tooling,
                tracking, tools, usage, winhelpers)
 from .events import EventHub
@@ -1372,6 +1372,51 @@ class Engine:
         self.hub.publish(slug, {"type": "project_list", "transient": True})
         return self.send_message(slug, f"[App] The user released iteration {n} ({it['name']}). Start it now with "
                                        f"start_iteration({n}), then build, test and commit it.", hidden=True)
+
+    def go_back(self, slug: str, n: int) -> dict:
+        """L48: put the project back as it was at iteration n (nothing is lost; it can be undone)."""
+        self._quiet_for_checkpoint(slug)
+        r = checkpoints.go_back(slug, n)
+        projects.update(slug, pipeline_hold=True)   # nothing is rebuilt until the user says what they want
+        card = self.new_id()
+        self.hub.publish(slug, {"type": "wentback", "id": card, "status": "done", "n": n, "name": r["name"],
+                                "undone": r["undone"], "kept_unsaved": r["kept_unsaved"]})
+        projects.update(slug, went_back={**(projects.load(slug) or {}).get("went_back", {}), "card": card})
+        self.hub.publish(slug, {"type": "project_list", "transient": True})
+        names = ", ".join(f"{x['n']} ({x['name']})" for x in r["undone"]) or "none"
+        self.send_message(slug, f"[App] The user went back to the end of iteration {n} ({r['name']}): the project's "
+                          f"files are now exactly as they were then. Iterations planned again: {names}. Their work is "
+                          "kept in the Git history, not deleted. What you remember building after that point is no "
+                          "longer in the files: read PLAN.md and STATUS.md again before relying on it, and bring "
+                          "STATUS.md in line. Do NOT rebuild anything yet: tell the user in two sentences where the "
+                          "project stands now and ask what they want to change before the team continues.", hidden=True)
+        return r
+
+    def _quiet_for_checkpoint(self, slug: str) -> None:
+        """The files must not change under the team's hands: stop what it is doing first (its work so far is kept in
+        the safety copy), and wait until it has really stopped."""
+        if not self.is_busy(slug):
+            return
+        self.stop(slug)
+        deadline = time.time() + 20
+        while self.is_busy(slug) and time.time() < deadline:
+            time.sleep(0.1)
+        if self.is_busy(slug):
+            raise checkpoints.CheckpointError("The team could not be stopped right now. Wait a moment and try again.")
+
+    def undo_go_back(self, slug: str) -> dict:
+        self._quiet_for_checkpoint(slug)
+        card = ((projects.load(slug) or {}).get("went_back") or {}).get("card")
+        r = checkpoints.undo_go_back(slug)
+        if card:
+            self.hub.update(slug, card, status="undone")
+        self.hub.publish(slug, {"type": "notice", "text": f"Going back to iteration {r['to']} was undone: everything is "
+                                                          "as it was before."})
+        self.hub.publish(slug, {"type": "project_list", "transient": True})
+        self.send_message(slug, "[App] The user undid going back: the project's files and the plan are again as they "
+                          "were before (all finished iterations are back). Read STATUS.md and PLAN.md, then tell the "
+                          "user in one sentence that everything is back and ask what they want next.", hidden=True)
+        return r
 
     def pipeline_overview(self) -> dict:
         rows = []

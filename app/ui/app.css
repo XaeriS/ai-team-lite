@@ -278,3 +278,13 @@ button,nav,.pill,.state,.tabs,.stab,.who,.legend,.acts{user-select:none}
 #spellBar{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding:2px 6px 4px}
 #spellBar .typo{padding:1px 8px;border-radius:99px;font-size:12.5px;border-color:transparent;background:var(--warnbg);color:var(--warn);text-decoration:underline wavy;text-underline-offset:3px}
 #spellBar .typo:hover{border-color:var(--warn)}
+
+/* L48: what changed / go back */
+.chgbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;display:flex;flex-direction:column;gap:4px}
+.chgbox.goback{margin-top:16px;display:block;border-color:var(--warn);background:var(--warnbg)}
+.chgfile{padding:5px 0;border-bottom:1px solid var(--line)}
+.chgfile .row{gap:8px;flex-wrap:wrap}
+.chgfile code{word-break:break-all}
+.chglines{margin:6px 0 2px;padding:8px;max-height:260px;overflow:auto;font-size:12px;border-radius:8px;background:var(--bg);border:1px solid var(--line);white-space:pre}
+.chglines .ladd{color:var(--ok)}.chglines .ldel{color:var(--bad)}.chglines .lhunk{color:var(--mute)}
+#chgBody{max-height:70vh;overflow:auto}

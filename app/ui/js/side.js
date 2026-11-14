@@ -27,7 +27,7 @@ function renderSide() {
   } else if (tab === 'plan') {
     const its = view.project.iterations || [];
     const list = its.length ? `<h4 style="margin:0 0 6px">Iterations ${view.project.plan_approved ? '' : '<span class="pill warn">waiting for your approval</span>'}</h4><div class="itlist">${its.map(it => `<div class="itrow"><div class="itnum ${esc(it.status)}">${it.status === 'done' ? '✓' : it.n}</div>
-      <div style="flex:1"><b>${esc(it.name)}</b> <span class="pill ${it.status === 'done' ? 'ok' : it.status === 'building' ? 'acc' : view.project.waiting_release === it.n ? 'warn' : ''}">${esc(it.status === 'building' ? 'in progress' : view.project.waiting_release === it.n ? 'waiting for release' : it.status)}</span>${it.commit ? ` <code class="hint">${esc(it.commit)}</code>` : ''}
+      <div style="flex:1"><b>${esc(it.name)}</b> <span class="pill ${it.status === 'done' ? 'ok' : it.status === 'building' ? 'acc' : view.project.waiting_release === it.n ? 'warn' : ''}">${esc(it.status === 'building' ? 'in progress' : view.project.waiting_release === it.n ? 'waiting for release' : it.status)}</span>${it.commit ? ` <code class="hint">${esc(it.commit)}</code> <button type="button" data-changes="${it.n}" style="padding:1px 9px;font-size:12.5px">What changed</button>` : ''}
       ${view.project.waiting_release === it.n ? ` <button type="button" class="primary" data-release="${it.n}" style="padding:2px 10px">Release</button>` : ''}
       <div class="hint">${esc(it.goal || '')}${(it.requirements || []).length ? ' · ' + esc(it.requirements.join(', ')) : ''}</div>
       ${it.status !== 'done' && it.n !== its[its.length - 1].n ? `<label class="hint">When finished: <select data-after="${it.n}" style="width:auto;padding:2px 6px"><option value="continue" ${it.after !== 'pause' ? 'selected' : ''}>continue automatically</option><option value="pause" ${it.after === 'pause' ? 'selected' : ''}>pause for my release</option></select></label>` : ''}</div></div>`).join('')}</div>` : '';
@@ -35,6 +35,7 @@ function renderSide() {
     const estLine = est.so_far || est.remaining ? `<p class="hint">💲 So far ${usd(est.so_far)}${est.remaining ? ` · rest of the plan about ${usd(est.remaining.low)}–${usd(est.remaining.high)}` : ''} at the providers' prices${S?.auth_mode === 'subscription' ? ' (not billed with your subscription)' : ''}.</p>` : '';
     p.innerHTML = view.docs.plan ? `${list}${estLine}<div class="doc">${md(its.length ? view.docs.plan.split('\n## Iterations\n')[0] : view.docs.plan)}</div>` : '<p class="empty">The plan, split into iterations, appears here once the requirements are agreed.</p>';
     p.querySelectorAll('[data-after]').forEach(sel => sel.onchange = () => api(`/api/projects/${cur}/iteration-after`, {n: +sel.dataset.after, after: sel.value}).then(refreshView).catch(e => alertBox(e.message)));
+    p.querySelectorAll('[data-changes]').forEach(b => b.onclick = () => showChanges(+b.dataset.changes));   // L48
     p.querySelectorAll('[data-release]').forEach(b => b.onclick = () => api(`/api/projects/${cur}/release`, {n: +b.dataset.release}).then(refreshView).catch(e => alertBox(e.message)));
   } else if (tab === 'diagrams') { renderDiagrams();
   } else { renderTests(); }

@@ -2,6 +2,15 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.5.0 (2026-11-14)
+- **See what each iteration changed, in plain words.** Every finished iteration has a "What changed" button (in the
+  Plan tab and on its card in the chat): the requirements it serves, then the files grouped as the app itself, tests,
+  documents and settings, each marked new, changed or removed, with the changed lines on request.
+- **Go back to an earlier iteration in one click.** "Go back to this point" puts the project's files back exactly as
+  they were at the end of that iteration; the later iterations become "planned" again and Fred waits for you to say
+  what to change. Nothing is deleted: work in progress is kept in a safety copy, everything stays in the project
+  history, and "Undo" brings it all back.
+
 ## 1.4.0 (2026-11-13)
 - **Works on half or a quarter of your screen.** The window can now be made much smaller (down to 480 x 400). In a
   narrow window the project list and menu slide in from the ☰ button, the side panel (Team, Plan, Tests...) slides in

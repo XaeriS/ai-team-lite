@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import (__version__, auth, brains, challenge, github, iterations, journal, paths, projects, secrets_store,
+from . import (__version__, auth, brains, challenge, checkpoints, github, iterations, journal, paths, projects, secrets_store,
                settings, skills as skills_mod, spelling, tooling, tracking, tools, features, updates, usage, voice, winhelpers)
 from . import engine as engine_mod
 from . import telegram
@@ -333,6 +333,18 @@ def make_handler(app: App):
                         raise KeyError(m.group(1))
                     return self._json({"items": diagrams.items(m.group(1)), "available": tooling.archify_ready(),
                                        "enabled": skills_mod.enabled().get("archify", True)})
+                m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/(changes|changes-file)", path)
+                if m:   # L48: what an iteration changed
+                    if not projects.load(m.group(1)):
+                        raise KeyError(m.group(1))
+                    q = self._query()
+                    try:
+                        n = int(q.get("n") or 0)
+                        if m.group(2) == "changes":
+                            return self._json(checkpoints.changes(m.group(1), n))
+                        return self._json(checkpoints.file_diff(m.group(1), n, q.get("path", "")))
+                    except (checkpoints.CheckpointError, ValueError) as e:
+                        return self._error(400, str(e))
                 m2 = re.fullmatch(r"/api/projects/([a-z0-9-]+)/(team|tests)", path)
                 if m2:
                     slug, what = m2.groups()
@@ -529,6 +541,17 @@ def make_handler(app: App):
                     app.engine.add_note(slug, f"[App] The user deleted the attached file {rel}. It no longer exists; "
                                               "do not use it or anything you read from it unless they say otherwise.")
                 return self._json({"ok": True, "existed": existed})
+            m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/(go-back|go-back-undo)", path)
+            if m:   # L48
+                slug, action = m.groups()
+                if not projects.load(slug) or slug == projects.SETUP_SLUG:
+                    raise KeyError(slug)
+                try:
+                    if action == "go-back":
+                        return self._json(app.engine.go_back(slug, int(body.get("n") or 0)))
+                    return self._json(app.engine.undo_go_back(slug))
+                except (checkpoints.CheckpointError, ValueError) as e:
+                    return self._error(400, str(e))
             m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/(release|iteration-after|launch)", path)
             if m:
                 slug, action = m.groups()

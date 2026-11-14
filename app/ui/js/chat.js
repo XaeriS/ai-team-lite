@@ -139,17 +139,19 @@ function renderEvent(ev) {
     case 'notice': node = el(`<div class="notice">${esc(ev.text)}</div>`); break;
     case 'limit': node = limitCard(ev); break;
     case 'signin': node = signinCard(ev); break;
+    case 'wentback': node = wentBackCard(ev); break;
     case 'watch': node = el(`<div class="notice watch">⏱ ${esc(ev.text)}</div>`); break;
     case 'headroom': node = el(`<div class="itcard" style="border-left-color:var(--warn)"><b>Your Claude plan:</b> ${esc(ev.text)} <a href="#" data-u>See usage</a></div>`);
       node.querySelector('[data-u]').onclick = e => { e.preventDefault(); UQ.scope = null; openUsage(); }; break;
     case 'stuck': node = stuckCard(ev); break;
     case 'telegram': node = phoneCard(ev); break;
     case 'iteration': node = ev.status === 'done'
-      ? el(`<div class="itcard done"><b>✅ Iteration ${ev.n}${ev.total ? ' of ' + ev.total : ''} committed:</b> ${esc(ev.name)} <span class="hint">· tests passed · commit <code>${esc(ev.commit || '')}</code></span>${ev.summary ? `<div class="hint">${esc(ev.summary)}</div>` : ''}</div>`)
+      ? el(`<div class="itcard done"><b>✅ Iteration ${ev.n}${ev.total ? ' of ' + ev.total : ''} committed:</b> ${esc(ev.name)} <span class="hint">· tests passed · commit <code>${esc(ev.commit || '')}</code></span>${ev.summary ? `<div class="hint">${esc(ev.summary)}</div>` : ''}<div><a href="#" data-changes="${ev.n}">What changed</a></div></div>`)
       : el(`<div class="itcard"><b>▶ Iteration ${ev.n}${ev.total ? ' of ' + ev.total : ''} started:</b> ${esc(ev.name)}${(ev.requirements || []).length ? ` <span class="hint">· ${esc(ev.requirements.join(', '))}</span>` : ''}</div>`); break;
     default: node = document.createComment(ev.type);
   }
   if (ev.via === 'phone' && node.querySelector) node.querySelector('h4')?.insertAdjacentHTML('beforeend', ' <span class="pill acc">📱 from your phone</span>');
+  node.querySelector?.('a[data-changes]')?.addEventListener('click', e => { e.preventDefault(); showChanges(+e.target.dataset.changes); });
   if (ev.id && node.dataset) node.dataset.id = ev.id;
   return node;
 }
@@ -492,7 +494,7 @@ function onEvent(ev) {
   if (busy) $('msgs').appendChild(typingEl());
   if (ev.type === 'screenshot' && tab === 'shots') renderSide();
   if (['setup_done', 'plan', 'iteration', 'handoff', 'architecture', 'release_wait'].includes(ev.type)) { loadState(); refreshDocs(); markSide(); }
-  scrollDown(['approval', 'secret', 'folder', 'plan', 'choice', 'limit', 'signin', 'architecture', 'handoff', 'change', 'council', 'prior_art', 'challenge', 'stuck'].includes(ev.type));
+  scrollDown(['approval', 'secret', 'folder', 'plan', 'choice', 'limit', 'signin', 'wentback', 'architecture', 'handoff', 'change', 'council', 'prior_art', 'challenge', 'stuck'].includes(ev.type));
 }
 async function refreshView() { if (!cur) return; try { view = await api('/api/projects/' + cur); renderHeader(); renderSide(); } catch (e) {} }
 async function refreshDocs() { await refreshView(); }

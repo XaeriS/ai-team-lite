@@ -215,6 +215,10 @@
   <div id="workBody"></div></div>
 </form></dialog>
 
+<dialog id="chgDlg" style="width:min(760px,94vw)"><form method="dialog">
+  <div class="row"><h3 style="margin:0" id="chgTitle">What changed</h3><span class="sp"></span><button type="submit">Close</button></div>
+  <div id="chgBody"></div>
+</form></dialog>
 <dialog id="useDlg"><form method="dialog">
   <div class="row"><h3 style="margin:0">Usage</h3><span class="hint" id="useChecked"></span><span class="sp"></span><button type="button" id="useRefresh" title="Refresh now (it also refreshes by itself every 2 minutes)">↻ Refresh</button><button type="submit">Close</button></div>
   <div id="useBody"></div>
@@ -244,6 +248,7 @@
 <script src="/ui/js/composer.js"></script>
 <script src="/ui/js/clipboard.js"></script>
 <script src="/ui/js/spelling.js"></script>
+<script src="/ui/js/checkpoints.js"></script>
 <script src="/ui/js/usage.js"></script>
 <script src="/ui/js/screens.js"></script>
 <script src="/ui/js/start.js"></script>
