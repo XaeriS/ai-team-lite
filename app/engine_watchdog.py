@@ -3,13 +3,11 @@
 Part of the Engine (app/engine.py), kept in its own file so each file has one job (L46)."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import logging
 import time
+from typing import TYPE_CHECKING
 
-from . import projects
-from . import engine_const as const
+from . import engine_const as const, projects
 from .engine_text import _quiet
 
 if TYPE_CHECKING:

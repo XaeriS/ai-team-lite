@@ -3,15 +3,13 @@ project's app, and recognising what an error from Claude means (L46)."""
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import re
+from typing import Any
 import urllib.error
 import urllib.request
-from pathlib import Path
-from typing import Any
 
-
-from . import (iterations, projects)
-from . import engine_const as const
+from . import engine_const as const, iterations, projects
 
 
 def validate_anthropic_key(key: str) -> tuple[bool, str]:

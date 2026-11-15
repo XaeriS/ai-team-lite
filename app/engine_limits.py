@@ -9,8 +9,7 @@ import threading
 import time
 import uuid
 
-from . import auth, projects, settings, usage
-from . import engine_const as const
+from . import auth, engine_const as const, projects, settings, usage
 
 log = logging.getLogger(__name__)
 

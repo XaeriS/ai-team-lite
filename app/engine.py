@@ -11,18 +11,17 @@ import asyncio
 import logging
 import threading
 import time
-import uuid
 from typing import Any, Callable
+import uuid
 
 from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
 
-from . import engine_const as const
-from . import engine_text, journal, projects, settings, timeline, tooling, tracking, winhelpers
+from . import engine_const as const, engine_text, journal, projects, settings, timeline, tooling, tracking, winhelpers
 from .engine_limits import LimitsMixin
 from .engine_pipeline import PipelineMixin
 from .engine_text import _quiet
-from .events import EventHub
 from .engine_watchdog import WatchdogMixin
+from .events import EventHub
 from .session import Session
 
 ClientFactory = Callable[[ClaudeAgentOptions], Any]
