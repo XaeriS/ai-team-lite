@@ -9,7 +9,9 @@ import pytest
 from claude_agent_sdk import (AssistantMessage, ResultMessage, TaskNotificationMessage, TaskProgressMessage,
                               TextBlock, ToolResultBlock, UserMessage)
 
-from app import engine as engine_mod, projects, prompts, secrets_store, settings, timeline, usage
+from pathlib import Path
+
+from app import engine as engine_mod, engine_const, projects, prompts, secrets_store, settings, timeline, usage
 from app.events import EventHub
 from fakeclaude import FakeClient, say
 
@@ -53,7 +55,7 @@ def _notification(tid, status="completed", summary="Agent finished"):
 def test_background_worker_wakes_fred_without_taskoutput(isolated, monkeypatch):
     """The 2026-10-14 case: the engine put the Reviewer in the background, Fred ended his turn waiting, and nothing
     happened until the user typed. Now the app waits for the worker itself and wakes Fred with its report."""
-    monkeypatch.setattr(engine_mod, "WAKE_GRACE", 0.2)
+    monkeypatch.setattr(engine_const, "WAKE_GRACE", 0.2)
     slug = _bg_project()
     seen = {"prompts": []}
 
@@ -101,7 +103,7 @@ def test_background_worker_wakes_fred_without_taskoutput(isolated, monkeypatch):
 
 def test_engine_wakes_fred_itself_no_double_turn(isolated, monkeypatch):
     """When the engine does wake Fred on its own, the app shows that turn live and does not wake him twice."""
-    monkeypatch.setattr(engine_mod, "WAKE_GRACE", 0.5)
+    monkeypatch.setattr(engine_const, "WAKE_GRACE", 0.5)
     slug = _bg_project("Self")
     seen = {"prompts": []}
 
@@ -545,7 +547,7 @@ def test_name_can_be_changed_in_settings(isolated):
                                  headers={"X-Token": app.token, "Content-Type": "application/json"})
     st = json.loads(urllib.request.urlopen(req).read())
     assert st["settings"]["user_name"] == "Anne"
-    ui = engine_mod.Path(__file__).resolve().parent.parent / "app" / "ui"
+    ui = Path(__file__).resolve().parent.parent / "app" / "ui"
     html = "\n".join(f.read_text() for f in [ui / "index.html", *sorted((ui / "js").glob("*.js"))])
     assert "'with ' + S.settings.user_name" not in html, "the name is not shown as part of the product name"
     httpd.shutdown()
@@ -1005,7 +1007,7 @@ def test_l25_rejected_event_after_reading_schedules_auto_continue(isolated):
 def test_l25_unknown_reset_time_checks_and_continues(isolated, monkeypatch):
     _ready()
     p = projects.create("Unknown reset")
-    monkeypatch.setattr(engine_mod, "LIMIT_CHECK_SECONDS", 0.2)
+    monkeypatch.setattr(engine_const, "LIMIT_CHECK_SECONDS", 0.2)
     calls = []
 
     def fake_fetch(force=False):
@@ -1035,7 +1037,7 @@ def test_l25_unknown_reset_time_checks_and_continues(isolated, monkeypatch):
 def test_l25_cancel_stops_the_checks(isolated, monkeypatch):
     _ready()
     p = projects.create("Cancel checks")
-    monkeypatch.setattr(engine_mod, "LIMIT_CHECK_SECONDS", 0.2)
+    monkeypatch.setattr(engine_const, "LIMIT_CHECK_SECONDS", 0.2)
     calls = []
     monkeypatch.setattr(usage, "fetch_plan", lambda force=False: calls.append(1) or {})
     hub = EventHub(projects.history_file)

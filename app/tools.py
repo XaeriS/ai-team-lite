@@ -19,12 +19,12 @@ from . import (brains, council, github, iterations, models, paths, policy, proje
                settings, testrun, upkeep, usage, winhelpers)
 
 if TYPE_CHECKING:
-    from .engine import Session
+    from .session import Session
 
 
 def interrupted(answer: dict) -> dict | None:
     if answer.get("interrupted"):
-        from .engine import interrupted_text
+        from .engine_text import interrupted_text
 
         return text(interrupted_text(answer))
     return None
