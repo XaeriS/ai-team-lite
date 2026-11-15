@@ -2,6 +2,10 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.5.1 (2026-11-15)
+- Housekeeping from the independent review: AI Team Lite's three biggest code files were split into smaller ones, each
+  with one job. Nothing changes in how the app looks or behaves; it makes future fixes safer and faster.
+
 ## 1.5.0 (2026-11-14)
 - **See what each iteration changed, in plain words.** Every finished iteration has a "What changed" button (in the
   Plan tab and on its card in the chat): the requirements it serves, then the files grouped as the app itself, tests,
