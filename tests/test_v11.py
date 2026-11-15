@@ -12,7 +12,8 @@ import http.client
 from app import brains, iterations, projects, settings, tooling, updates, usage
 from app import engine as engine_mod
 from app.events import EventHub
-from app.server import App, serve, _scan_text, EXISTING_KICKOFF
+from app.server import App, serve
+from app.server_common import _scan_text, EXISTING_KICKOFF
 from fakeclaude import FakeClient
 
 
