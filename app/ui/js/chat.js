@@ -140,6 +140,7 @@ function renderEvent(ev) {
     case 'limit': node = limitCard(ev); break;
     case 'signin': node = signinCard(ev); break;
     case 'wentback': node = wentBackCard(ev); break;
+    case 'scorecard': node = scorecardCard(ev); break;   // L49
     case 'watch': node = el(`<div class="notice watch">⏱ ${esc(ev.text)}</div>`); break;
     case 'headroom': node = el(`<div class="itcard" style="border-left-color:var(--warn)"><b>Your Claude plan:</b> ${esc(ev.text)} <a href="#" data-u>See usage</a></div>`);
       node.querySelector('[data-u]').onclick = e => { e.preventDefault(); UQ.scope = null; openUsage(); }; break;
@@ -173,6 +174,7 @@ function approvalCard(ev) {
     <div><span class="hint">${esc(ev.who || 'Fred')} wants to do this${ev.reason ? ' · ' + esc(ev.reason) : ''}</span></div>
     ${ev.what ? `<div class="what"><b>What this does:</b> ${esc(ev.what)}</div>` : ''}
     ${ev.risk_reason ? `<div class="what"><b>Risk:</b> ${esc(ev.risk_reason)}</div>` : ''}
+    ${ev.quality ? `<div class="what sc-warn"><b>⚠ Quality check:</b> ${esc(ev.quality)}</div>` : ''}
     ${ev.says ? `<div class="says doc"><span class="hint">${esc(ev.who || 'Fred')} explained:</span> ${md(ev.says)}</div>` : (ev.explanation ? `<div class="says">${inline(ev.explanation)}</div>` : '')}
     ${ev.details ? `<details ${pend ? 'open' : ''}><summary class="hint" style="cursor:pointer">Exact command / change</summary><pre></pre></details>` : ''}
     ${pend ? `<div class="acts"><button class="primary" data-a="yes">Approve</button><button data-a="no">Decline</button><input type="text" placeholder="Optional note for Fred" style="flex:1;min-width:160px"></div>` : (ev.note ? `<div class="hint">Your note: ${esc(ev.note)}</div>` : '')}

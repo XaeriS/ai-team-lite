@@ -288,3 +288,15 @@ button,nav,.pill,.state,.tabs,.stab,.who,.legend,.acts{user-select:none}
 .chglines{margin:6px 0 2px;padding:8px;max-height:260px;overflow:auto;font-size:12px;border-radius:8px;background:var(--bg);border:1px solid var(--line);white-space:pre}
 .chglines .ladd{color:var(--ok)}.chglines .ldel{color:var(--bad)}.chglines .lhunk{color:var(--mute)}
 #chgBody{max-height:70vh;overflow:auto}
+
+/* L49: quality scorecard */
+.sc-head{display:flex;gap:8px;align-items:center;margin:2px 0}
+.sc-dot{flex:none;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700;background:var(--code);color:var(--mute)}
+.sc-dot.good{background:var(--okbg);color:var(--ok)}.sc-dot.attention{background:var(--warnbg);color:var(--warn)}.sc-dot.problem{background:var(--badbg);color:var(--bad)}
+.sc-list{margin-top:6px}.sc-row{padding:6px 0;border-top:1px solid var(--line)}.sc-row .row{flex-wrap:wrap;gap:6px}
+.sc-title{flex:1;min-width:0}.sc-sum{margin:2px 0 0 28px}.sc-row details{margin:2px 0 0 28px}.sc-row summary{cursor:pointer}
+.sc-det{margin:4px 0;padding-left:18px;font-size:12.5px;word-break:break-word}
+.sc-card.good{border-color:var(--ok)}.sc-card.attention{border-color:var(--warn)}.sc-card.problem{border-color:var(--bad)}
+.sc-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:var(--panel)}
+.sc-box.good{border-color:var(--ok)}.sc-box.attention{border-color:var(--warn)}.sc-box.problem{border-color:var(--bad)}
+.sc-warn{border-left:3px solid var(--warn);padding-left:8px}

@@ -6,3 +6,4 @@ faster-whisper>=1.2,<2
 sounddevice>=0.5
 pystray>=0.19.5
 pyspellchecker>=0.8,<1
+pyflakes>=3.2,<5

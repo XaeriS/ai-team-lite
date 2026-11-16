@@ -60,7 +60,12 @@ Want to carry on with something that already exists? **+ New project > Continue 
 - **Only for big steps** (default): once you approve a plan, the team works inside that project's folder.
   Installing software, GitHub and anything outside the project folder always ask.
 - **Always**: every action asks. Change it in Settings > General.
-- Before each new version, the Reviewer runs a security review of the code.
+- Before each new version, the Reviewer runs a security review of the code, then a **quality scorecard** shows in
+  plain words what is proven and what still needs attention: each requirement proven by a test, the tests, a code
+  check, the packages (fixed versions, known security problems, checked with osv.dev: only package names and
+  versions are sent, and you can switch it off), keys or passwords left in the files, open review findings and
+  documents. It is also saved as reports/QUALITY.md, and the GitHub approval card reminds you of any point still
+  to fix.
 - **Approve from your phone** (optional): when the team waits for you while you are away, a Telegram message arrives
   with Approve / Decline buttons, plus alerts when work is stuck or hits your plan's limit. Fred asks your
   permission and sets it up with you (Settings > Setup & connections). Nothing is installed on the PC and no door

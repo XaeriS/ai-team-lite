@@ -11,7 +11,7 @@ import uuid
 
 from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
 
-from . import engine_const as const, models, paths, policy, projects, risk, settings, timeline
+from . import engine_const as const, models, paths, policy, projects, risk, scorecard, settings, timeline
 from .engine_text import approval_card, interrupted_text
 
 
@@ -95,6 +95,10 @@ class ApprovalsMixin:
         card["who"] = who
         card["reason"] = reason
         card.update(risk.explain(tool_name, tool_input or {}, self.folder, lambda p: projects.inside(self.slug, p)))
+        if tool_name == "mcp__aiteam__github_push":   # L49: red points of the scorecard are shown, not blocking
+            warn = scorecard.push_warning(self.slug)
+            if warn:
+                card["quality"] = warn
         said = (self.says_for_tool.pop(who, "") or self.last_text.pop(who, "")).strip()
         if said:
             card["says"] = said[-700:]

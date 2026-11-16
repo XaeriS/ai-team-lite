@@ -171,6 +171,8 @@
     <p class="hint">Extra projects wait in the Pipeline, highest priority first.</p>
     <div style="margin:10px 0 2px"><label><input type="checkbox" id="setSpell"> Point out possible typos in my messages to Fred, in:</label>
       <div id="setSpellLangs" class="row" style="flex-wrap:wrap;gap:4px 14px;margin:4px 0 0 24px"></div></div>
+    <div style="margin:10px 0 2px"><label><input type="checkbox" id="setScoreOnline"> Check the packages each project uses for known security problems</label>
+      <p class="hint" style="margin:2px 0 0 24px">Part of the quality check before each version. Only the package names and versions are sent to osv.dev (Google's free list of known problems).</p></div>
     <div class="row" style="margin:10px 0 4px;flex-wrap:wrap"><span class="hint">Microphone (for talking to Fred)</span><button type="button" id="setMicTest">🎙 Test microphone</button></div>
     <details id="lessonsBox" style="margin:10px 0 4px"><summary style="cursor:pointer"><b>Lessons the team learned</b> <span class="hint" id="lessonsCount"></span></summary>
       <p class="hint" style="margin:4px 0">When a problem took several tries to solve, Fred keeps one sentence so future projects avoid it. Delete any you don't want kept.</p>
@@ -249,6 +251,7 @@
 <script src="/ui/js/clipboard.js"></script>
 <script src="/ui/js/spelling.js"></script>
 <script src="/ui/js/checkpoints.js"></script>
+<script src="/ui/js/scorecard.js"></script>
 <script src="/ui/js/usage.js"></script>
 <script src="/ui/js/screens.js"></script>
 <script src="/ui/js/start.js"></script>

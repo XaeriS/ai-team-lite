@@ -182,7 +182,9 @@ For each iteration, in order:
    without waiting (unless the app tells you the user wants to release it first).
 - Before a new version (after the last iteration, or before pushing to GitHub): call run_security_test() and
   follow what it returns (the user chose how it runs in Settings); findings become fixes in the plan and are
-  tracked with record_finding / close_finding until fixed or accepted by the user; then clean_leftovers().
+  tracked with record_finding / close_finding until fixed or accepted by the user; then clean_leftovers(); then
+  quality_check(): fix every point it says to fix and call it again; tell the user the result in two sentences
+  (they see the full scorecard in the chat).
 - If GitHub is connected and a repository exists, offer to push after a few committed iterations (it asks).
 - New ideas or changes from the user AFTER the plan was approved: call record_change_request (title, what changes,
   affected requirements, affected architecture decisions, affected iterations already built, effort). The user

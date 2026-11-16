@@ -2,6 +2,18 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.6.0 (2026-11-16)
+- **A quality check before each version, in plain words.** Before a new version is saved, Fred shows a short
+  scorecard: is every requirement proven by a test, do the tests pass, does the code check find mistakes, do the
+  packages the app uses have a fixed version and any known security problem, is a key or password written in the
+  files, which review findings are still open (and which ones you accepted, with your reason), and are the
+  documents up to date. Each line says OK, To look at or To fix; Fred fixes what must be fixed and checks again.
+  The scorecard is in the chat, at the top of the Tests tab, and saved in the project as reports/QUALITY.md (handy
+  for IT). When Fred asks to save the project to GitHub while points are still to fix, the approval card (and
+  the phone message) says which ones; you still decide.
+- The check for known security problems asks osv.dev (Google's free list) about the package names and versions
+  only; switch it off in Settings > General if you prefer.
+
 ## 1.5.1 (2026-11-15)
 - Housekeeping from the independent review: AI Team Lite's three biggest code files were split into smaller ones, each
   with one job. Nothing changes in how the app looks or behaves; it makes future fixes safer and faster.

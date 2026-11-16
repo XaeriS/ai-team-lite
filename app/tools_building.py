@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from claude_agent_sdk import tool
 
-from . import iterations, paths, policy, projectmap, projects, testrun, tracking, upkeep, winhelpers
+from . import iterations, paths, policy, projectmap, projects, scorecard, testrun, tracking, upkeep, winhelpers
 
 if TYPE_CHECKING:
     from .session import Session
@@ -255,6 +255,18 @@ def make(session: "Session") -> dict:
         projectmap.refresh(folder)
         return text(f"Removed {len(removed)} of {len(found)} leftovers ({total}): {', '.join(removed) or 'none'}.")
 
+    @tool("quality_check", "Before a new version (after run_security_test and clean_leftovers): build the quality "
+          "scorecard (requirements proven by tests, tests, code check, packages and known vulnerabilities, secrets in "
+          "the files, review findings, documents). The user sees it; you get what to fix.", {})
+    async def quality_check(args):
+        try:
+            card = await session.run_blocking(scorecard.build, slug)
+        except KeyError:
+            return text("This project was not found.", True)
+        session.hub.publish(slug, {"type": "scorecard", **card})
+        session.hub.publish(slug, {"type": "tests_changed", "slug": slug, "transient": True})
+        return text(scorecard.brief(card))
+
     @tool("record_lesson", "Keep ONE plain sentence the team learned the hard way (an environment quirk, a library "
           "gotcha, a fix that took several tries), so future projects on this PC avoid it. No secrets, no personal "
           "data, no project details. Example: 'On this PC, tests must be run with the bundled Python, not py.'",
@@ -267,4 +279,4 @@ def make(session: "Session") -> dict:
             return text(str(e), True)
         return text(f"Lesson kept: {item['text']}")
 
-    return {"start_iteration": start_iteration, "complete_task": complete_task, "record_red_tests": record_red_tests, "run_tests": run_tests, "commit_iteration": commit_iteration, "take_screenshot": take_screenshot, "show_image": show_image, "launch_for_user": launch_for_user, "record_test_result": record_test_result, "record_diagram": record_diagram, "run_security_test": run_security_test, "record_finding": record_finding, "close_finding": close_finding, "clean_leftovers": clean_leftovers, "record_lesson": record_lesson}
+    return {"start_iteration": start_iteration, "complete_task": complete_task, "record_red_tests": record_red_tests, "run_tests": run_tests, "commit_iteration": commit_iteration, "take_screenshot": take_screenshot, "show_image": show_image, "launch_for_user": launch_for_user, "record_test_result": record_test_result, "record_diagram": record_diagram, "run_security_test": run_security_test, "record_finding": record_finding, "close_finding": close_finding, "clean_leftovers": clean_leftovers, "record_lesson": record_lesson, "quality_check": quality_check}

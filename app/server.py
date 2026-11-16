@@ -12,7 +12,7 @@ import time
 from urllib.parse import parse_qs, unquote, urlparse
 
 from . import (__version__, auth, brains, challenge, checkpoints, engine as engine_mod, features, iterations, journal,
-               paths, projects, routes_projects, routes_setup, routes_work, secrets_store, settings,
+               paths, projects, routes_projects, routes_setup, routes_work, scorecard, secrets_store, settings,
                skills as skills_mod, spelling, telegram, tooling, tools, tracking, updates, usage, voice)
 from .engine import Engine
 from .events import EventHub
@@ -88,7 +88,7 @@ class App:
             "settings": {k: s[k] for k in ("approval_mode", "user_name", "github_login", "iteration_pause", "voice_end_mode",
                                            "pipeline_auto", "voice_end_word", "voice_silence_seconds", "voice_review",
                                            "voice_auto_listen", "voice_model", "voice_language", "auto_resume",
-                                           "close_to_tray")}
+                                           "close_to_tray", "scorecard_online")}
             | {"workspace_dir": str(settings.workspace()), "spell_check": bool(s.get("spell_check", True)),
                "spell_languages": spelling.languages(), "spell_all": spelling.LANGUAGES},
             "github_connected": secrets_store.has("github_token"),
@@ -275,6 +275,11 @@ def make_handler(app: App):
                 if path == "/api/features":
                     return self._json({**features.summary(), "is_owner": updates.is_owner(),
                                        "can_manage": updates.can_manage_features()})
+                m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/scorecard", path)
+                if m:   # L49: the quality of the version
+                    if not projects.load(m.group(1)):
+                        raise KeyError(m.group(1))
+                    return self._json(scorecard.load(m.group(1)) or {"missing": True})
                 m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/traceability", path)
                 if m:
                     if not projects.load(m.group(1)):

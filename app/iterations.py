@@ -301,7 +301,7 @@ def commit(slug: str, n: int, summary: str, test_command: str, light_cleanup: st
         raise RuntimeError(f"Git could not commit: {(r.stderr or r.stdout).strip()[-400:]}")
     head = _git(folder, "rev-parse", "--short", "HEAD").stdout.strip()
     it.update(status="done", commit=head, summary=summary.strip()[:600], finished=time.time(),
-              light_cleanup=light_cleanup.strip()[:200])
+              light_cleanup=light_cleanup.strip()[:200], test_command=cmd[:300])
     _save(slug, its)
     refresh_plan_doc(slug)
     p = projects.load(slug) or {}

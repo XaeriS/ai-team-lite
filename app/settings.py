@@ -11,6 +11,7 @@ DEFAULTS = {
     "spell_check": True,       # L38: spelling help in the message box
     "spell_languages": None,   # None = English plus the language Windows is set to
     "spell_words": [],         # words the user added to their dictionary
+    "scorecard_online": True,   # L49: ask osv.dev about known problems in the packages a project uses
     "docs_fresh": True,   # L41: STATUS.md (and a README once the app runs) must follow each iteration
     "tests_hidden_desktop": True,   # L32: test runs on a hidden Windows desktop, so their windows never flash on screen
     "workspace_dir": "",

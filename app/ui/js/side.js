@@ -142,11 +142,12 @@ async function renderDiagrams() {
 async function renderTests() {
   const p = $('pane'); const slug = cur;
   let d; try { d = await api(`/api/projects/${slug}/tests`); } catch (e) { p.innerHTML = '<p class="empty">Could not load the tests.</p>'; return; }
+  const quality = await scorecardBlock(slug);   // L49
   if (slug !== cur || tab !== 'tests') return;
   const res = d.results.slice().reverse();
   const count = k => d.results.filter(r => r.status === k).length;
   const pill = s => `<span class="pill ${s === 'passed' ? 'ok' : s === 'failed' ? 'bad' : ''}">${esc(s)}</span>`;
-  let h = `<div class="row" style="margin-bottom:8px"><span class="pill ok">${count('passed')} passed</span><span class="pill bad">${count('failed')} failed</span><span class="sp"></span>
+  let h = quality + `<div class="row" style="margin-bottom:8px"><span class="pill ok">${count('passed')} passed</span><span class="pill bad">${count('failed')} failed</span><span class="sp"></span>
     <button type="button" id="openTests">📂 Open tests folder</button></div>`;
   h += res.length ? res.map(r => `<div class="trow-test"><div class="row">${pill(r.status)}<b style="flex:1">${esc(r.name || 'Test')}</b>${r.requirement ? `<span class="pill acc">${esc(r.requirement)}</span>` : ''}</div>
       <div class="hint">${r.time ? new Date(r.time * 1000).toLocaleString() : ''}${r.caption ? ' · ' + esc(r.caption) : ''}</div>
