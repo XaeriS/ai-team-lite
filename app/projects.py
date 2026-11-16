@@ -26,12 +26,25 @@ def slugify(name: str) -> str:
     return s[:40] or "project"
 
 
+def valid_slug(name: str) -> bool:
+    """A project id: lower-case letters, digits and dashes. A folder in the projects folder whose name is not one
+    (capitals, spaces...) is reached through the list of outside folders instead (L58)."""
+    return bool(re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", name or ""))
+
+
+def _same_folder(a: Path, b: Path) -> bool:
+    try:
+        return a.exists() and b.exists() and os.path.samefile(a, b)
+    except OSError:
+        return False
+
+
 def project_dir(slug: str) -> Path:
     if slug == SETUP_SLUG:
         d = paths.data_dir() / "setup"
         d.mkdir(parents=True, exist_ok=True)
         return d
-    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", slug):
+    if not valid_slug(slug):
         raise ValueError("Invalid project id")
     ext = external().get(slug)
     return Path(ext) if ext else settings.workspace() / slug
@@ -54,10 +67,13 @@ def _save_external(data: dict) -> None:
     _external_file().write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
-def _unique_slug(name: str) -> str:
+def _unique_slug(name: str, own: Path | None = None) -> str:
+    """A free project id from a name. `own` is the folder being added: on Windows "VLC-Multiplayer" and
+    "vlc-multiplayer" are the same folder, which must not count as taken (L58)."""
     base = slugify(name)
     slug, n = base, 2
-    while (settings.workspace() / slug).exists() or slug in external():
+    while slug in external() or ((settings.workspace() / slug).exists()
+                                 and not (own is not None and _same_folder(settings.workspace() / slug, own))):
         slug, n = f"{base}-{n}"[:40], n + 1
     return slug
 
@@ -108,8 +124,7 @@ def create_from_folder(folder: str, name: str = "") -> dict:
         return update(known, hidden=False, scan=scan_folder(path), reopened_at=time.time()) | {"reopened": True,
                                                                                                "adopted": True}
     ws = settings.workspace().resolve()
-    if path.parent == ws and re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", path.name) \
-            and not (path / META / "project.json").exists():
+    if path.parent == ws and valid_slug(path.name) and not (path / META / "project.json").exists():
         slug, old = path.name, {}   # already in the projects folder: it becomes an ordinary project
     elif (path / META / "project.json").exists():  # a project from an earlier install / another PC: adopt it
         try:
@@ -118,12 +133,12 @@ def create_from_folder(folder: str, name: str = "") -> dict:
             old = {}
         prev = str(old.get("slug") or "")
         # keep its own name when it is free, so everything stored under that name still matches
-        free = re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", prev) and prev not in external() and \
-            (not (ws / prev).exists() or (ws / prev).resolve() == path)
-        slug = prev if free else _unique_slug(old.get("name") or path.name)
+        free = valid_slug(prev) and prev not in external() and \
+            (not (ws / prev).exists() or _same_folder(ws / prev, path))
+        slug = prev if free else _unique_slug(old.get("name") or path.name, path)
     else:
-        old, slug = {}, _unique_slug(name or path.name)
-    if path != settings.workspace().resolve() / slug:
+        old, slug = {}, _unique_slug(name or path.name, path)
+    if not (path.parent == ws and path.name == slug):   # compare the names as text: Windows ignores capitals (L58)
         reg = external()
         reg[slug] = str(path)
         _save_external(reg)
@@ -253,7 +268,8 @@ def slug_for_folder(path: Path) -> str | None:
     """The project that already lives in this folder, if any."""
     path = Path(path).resolve()
     ws = settings.workspace().resolve()
-    if path.parent == ws and (path / META / "project.json").exists() and path.name not in external():
+    if path.parent == ws and valid_slug(path.name) and (path / META / "project.json").exists() \
+            and path.name not in external():
         return path.name
     for slug, other in external().items():
         try:
@@ -275,7 +291,7 @@ def repair() -> list[str]:
     if ws.exists():
         for d in ws.iterdir():
             f = d / META / "project.json"
-            if not f.exists() or d.name in reg:
+            if not f.exists() or d.name in reg or not valid_slug(d.name):
                 continue
             for slug, other in list(reg.items()):      # duplicate entry for a folder that is a normal project
                 try:
@@ -294,6 +310,27 @@ def repair() -> list[str]:
                 fixed.append(f"{p.get('slug')} -> {d.name}")
                 p["slug"] = d.name
                 p.pop("adopted", None)
+                f.write_text(json.dumps(p, indent=2), encoding="utf-8")
+    if ws.exists():
+        for d in ws.iterdir():                         # L58: a folder whose name is not a project id (capitals...)
+            f = d / META / "project.json"
+            if valid_slug(d.name) or not f.exists():
+                continue
+            if any(_same_folder(Path(other), d) for other in reg.values()):
+                continue
+            try:
+                p = json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                p = None
+            prev = str((p or {}).get("slug") or "")
+            free = valid_slug(prev) and prev not in reg and \
+                (not (ws / prev).exists() or _same_folder(ws / prev, d))
+            slug = prev if free else _unique_slug(d.name, d)
+            reg[slug] = str(d)
+            changed = True
+            fixed.append(f"{d.name} registered as {slug}")
+            if p is not None and p.get("slug") != slug:
+                p["slug"] = slug
                 f.write_text(json.dumps(p, indent=2), encoding="utf-8")
     seen = {}
     for slug, other in list(reg.items()):              # two entries for the same outside folder
@@ -338,7 +375,7 @@ def broken() -> list[dict]:
                     "folder_exists": folder.exists()})
     ws = settings.workspace()
     for d in ws.iterdir() if ws.exists() else []:
-        if d.name in external() or not (d / META / "project.json").exists():
+        if d.name in external() or not valid_slug(d.name) or not (d / META / "project.json").exists():
             continue
         if load(d.name) is None:
             out.append({"slug": d.name, "name": d.name, "path": str(d), "reason": "Its AI Team Lite record is damaged.",
@@ -379,17 +416,36 @@ def reload_broken(slug: str, folder: str = "") -> dict:
     return create_from_folder(str(target))
 
 
+def _load_quietly(slug: str) -> dict | None:
+    """One odd folder or record must never empty the whole list (L58)."""
+    try:
+        p = load(slug)
+    except (OSError, ValueError) as e:
+        log.warning("project %s skipped: %s", slug, e)
+        return None
+    if not isinstance(p, dict):
+        return None
+    if p.get("slug") != slug:   # the record names itself differently: the folder's id is the one that works
+        p = {**p, "slug": slug}
+    return p
+
+
 def list_projects(include_hidden: bool = True) -> list[dict]:
     ws = settings.workspace()
     out = []
-    for d in ws.iterdir() if ws.exists() else []:
-        if (d / META / "project.json").exists() and d.name not in external():
-            p = load(d.name)
+    try:
+        names = list(ws.iterdir()) if ws.exists() else []
+    except OSError as e:
+        log.warning("projects folder not readable: %s", e)
+        names = []
+    for d in names:
+        if valid_slug(d.name) and d.name not in external() and (d / META / "project.json").exists():
+            p = _load_quietly(d.name)
             if p:
                 out.append(p)
     for slug, path in external().items():
-        if (Path(path) / META / "project.json").exists():
-            p = load(slug)
+        if valid_slug(slug) and (Path(path) / META / "project.json").exists():
+            p = _load_quietly(slug)
             if p:
                 out.append(p)
     if not include_hidden:

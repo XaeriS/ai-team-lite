@@ -59,8 +59,15 @@ function planPct(v) {
 }
 const resetOf = v => v.reset_text ? 'resets ' + v.reset_text : resetTxt(v.resets_at);
 let USE_AT = Date.now();
+let stateRetry = null;
 async function loadState() {
-  S = await api('/api/state'); USE_AT = Date.now();
+  let fresh;
+  try { fresh = await api('/api/state'); } catch (e) {   // L58: say so instead of an empty window, and try again
+    if (!S) $('plist').innerHTML = `<li class="broken"><span class="nmw"><span class="nm">⚠ Projects not loaded</span><span class="sub">${esc(e.message || '')} · trying again…</span></span></li>`;
+    clearTimeout(stateRetry); stateRetry = setTimeout(loadState, 15000);
+    throw e;
+  }
+  S = fresh; USE_AT = Date.now();
   if (S.version) $('appVersion').textContent = 'v' + S.version;   // L35
   $('onboard').hidden = S.has_api_key;
   const ul = $('plist'); ul.innerHTML = '';

@@ -2,6 +2,14 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.6.1 (2026-11-16)
+- **Fixed: all projects disappeared** (with the setup guide, the Browse button and the token counts) after a folder
+  whose name has capital letters or spaces (for example "VLC-Multiplayer") was added from inside the projects
+  folder. That one folder stopped the whole list from loading. Such folders now work like any other project, and
+  the app repairs the record by itself when it starts. Your files were never touched.
+- One odd folder or damaged record can no longer empty the list: it is skipped and noted in the log.
+- If the projects ever cannot be loaded, the window now says so and tries again, instead of staying empty.
+
 ## 1.6.0 (2026-11-16)
 - **A quality check before each version, in plain words.** Before a new version is saved, Fred shows a short
   scorecard: is every requirement proven by a test, do the tests pass, does the code check find mistakes, do the
