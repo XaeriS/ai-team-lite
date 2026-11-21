@@ -39,10 +39,10 @@ REQ-1 to REQ-21, released up to 1.6.2, grouped into five finished iterations bel
 | 8 | **Before AI Team Lite: Build loop and quality** - Test-first iterations, scorecard, checkpoints, diagrams (released up to 1.6.2) | REQ-7, REQ-8, REQ-15, REQ-17 | done |
 | 9 | **Before AI Team Lite: Approvals, phone and keeping work moving** - Risk-based approvals, Telegram approvals, watchdog, pipeline, usage view (released up to 1.6.2) | REQ-9, REQ-10, REQ-11, REQ-12, REQ-14 | done |
 | 10 | **Before AI Team Lite: Delivery and updates** - Windows installer, GitHub tests and releases, sharing and update check (released up to 1.6.2) | REQ-19, REQ-21 | done |
-| 11 | **Sandbox investigation (L47, step 1)** - Report plus a prototype on this PC showing whether AppContainer works for Python, Git, pip, tests and claude.exe; a recommendation for you to decide | REQ-22 | building |
-|  | [ ] Probe script: start programs inside an AppContainer and record pass/fail | tools/sandbox_probe.py | |
-|  | [ ] Run the probe on this PC for AppContainer (B) and, if needed, restricted token (A) | reports/L47-probe-results.json | |
-|  | [ ] Write the report with one recommendation and the question for the owner | reports/L47-sandbox-options.md | |
+| 11 | **Sandbox investigation (L47, step 1)** - Report plus a prototype on this PC showing whether AppContainer works for Python, Git, pip, tests and claude.exe; a recommendation for you to decide | REQ-22 | done (621aa62) |
+|  | [x] Probe script: start programs inside an AppContainer and record pass/fail | tools/sandbox_probe.py | |
+|  | [x] Run the probe on this PC for AppContainer (B) and, if needed, restricted token (A) | reports/L47-probe-results.json | |
+|  | [x] Write the report with one recommendation and the question for the owner | reports/L47-sandbox-options.md | |
 | 12 | **Build the sandbox (1.6.3, only after your go)** - Engine and test runs start inside the chosen sandbox behind a setting, approval cards say when a command runs outside it | REQ-22 | planned |
 | 13 | **Taskbar colours (CR-1)** - The taskbar icon shows an orange, green or grey dot for all projects, flashes until you answer, and the tray icon follows | REQ-28 | planned |
 | 14 | **Parked ideas (not started)** - Keep the set-aside items on the list; nothing is built unless you ask | REQ-23, REQ-24, REQ-25, REQ-26, REQ-27 | planned |
