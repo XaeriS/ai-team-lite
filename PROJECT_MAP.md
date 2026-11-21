@@ -3,7 +3,7 @@
 > Maintained automatically by AI Team Lite after each iteration. Read this first to find the right file;
 > open only the files you need.
 
-**Tests:** 28 file(s) in `reports`, `tests`
+**Tests:** 29 file(s) in `reports`, `tests`
 
 | File | What it is for |
 |------|----------------|
@@ -44,7 +44,7 @@
 | `app/risk.py` | (pattern, what it does, risk, why) |
 | `app/routes_projects.py` |  |
 | `app/routes_setup.py` |  |
-| `app/routes_work.py` | Buttons that steer the work: pause and resume, messages, interrupted projects, answers to cards, the council. |
+| `app/routes_work.py` | the real session / week figures from Claude's own usage command (item 69); no tokens used |
 | `app/safefile.py` | Saving small JSON files safely from several threads (L34). |
 | `app/scorecard.py` | ---------------------------------------------------------------------------- the checks |
 | `app/secrets_store.py` | API keys and tokens live in Windows Credential Manager (via keyring), never in plain files or prompts. |
@@ -129,6 +129,7 @@
 | `tests/test_l67.py` | L67: "JSON message exceeded maximum buffer size of 1048576 bytes" stopped a new project (the team read a big |
 | `tests/test_l68_l69.py` | L69: the plan comes before the diagram, and the user decides whether the diagrammer starts. |
 | `tests/test_l70.py` | L70: the whole-codebase clean-up comes after every code change of a version, just before the GitHub push. |
+| `tests/test_l71_drafts.py` |  |
 | `tests/test_lite.py` | AI Team Lite: a separate app from AI Team (own data, keys, sign-in, install, instance) with the expert features removed. |
 | `tests/test_scorecard.py` | the key itself never appears in what is saved or shown |
 | `tests/test_server.py` | projects cannot be created before setup is finished |
@@ -148,6 +149,7 @@
 | `tests/ui_files_times.py` | Browser test: delete attachments before/after sending; send and reply times on messages. |
 | `tests/ui_l58.py` | Browser test of L58: an odd folder name no longer empties the window; if loading ever fails, the window says so. |
 | `tests/ui_l59.py` | Browser test of L59: a long chat opens with its latest part; earlier messages come back on request. |
+| `tests/ui_l71.py` | Browser test of REQ-29 (L71): each project keeps its own unsent message and attachments, saved with the project. |
 | `tests/ui_lite.py` | Browser test of AI Team Lite's screens: one simple layout (no Advanced switch), no expert tabs or controls, |
 | `tests/ui_scorecard.py` | a project not checked yet |
 | `tests/ui_v04.py` | --- brains in Settings |

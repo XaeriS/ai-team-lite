@@ -3,8 +3,6 @@ import json
 import re
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "tests" / "requirements_map.json"
 STATUS = ROOT / "STATUS.md"

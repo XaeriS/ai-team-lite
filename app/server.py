@@ -230,6 +230,9 @@ def make_handler(app: App):
                 m = re.fullmatch(r"/api/projects/([a-z0-9-]+)", path)
                 if m:
                     return self._json(app.project_view(m.group(1)))
+                m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/draft", path)
+                if m:   # REQ-29: the unsent message of a project
+                    return self._json(routes_work.get_draft(m.group(1)))
                 m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/history", path)
                 if m:   # L59: earlier messages, on request
                     q = self._query()
@@ -380,6 +383,19 @@ def make_handler(app: App):
             except KeyError:
                 return self._error(404, "Unknown project")
             except ValueError as e:
+                return self._error(400, str(e))
+
+        def do_PUT(self):
+            if not self._authorized():
+                return self._error(403, "forbidden")
+            m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/draft", urlparse(self.path).path)
+            if not m:
+                return self._error(404, "not found")
+            try:
+                return self._json(routes_work.put_draft(m.group(1), self._body()))
+            except KeyError:
+                return self._error(404, "Unknown project")
+            except (ValueError, TypeError, json.JSONDecodeError) as e:
                 return self._error(400, str(e))
 
         def _kickoff_setup(self):

@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 import threading
 
-from . import auth, brains, journal, projects, secrets_store, tooling, usage, winhelpers
+from . import auth, brains, journal, projects, safefile, secrets_store, tooling, usage, winhelpers
 from .server_common import ADOPTED_KICKOFF, EXISTING_KICKOFF, MAX_UPLOAD, NO_ROUTE, _ollama_get_and_add, _scan_text
 
 
@@ -147,6 +147,63 @@ def post_work(self, app, path: str, body: dict):
             dest.write_bytes(data)
             return self._json({"ok": True, "path": f"inputs/{name}"})
     return NO_ROUTE
+
+
+def _draft_file(slug: str) -> Path:
+    return projects.project_dir(slug) / ".aiteam" / "draft.json"
+
+
+def _safe_attachment(root: Path, a: str):
+    """The path of an uploaded file ("inputs/<name>") when it is safely inside the project's inputs folder, else None."""
+    if not a.startswith("inputs/") or "\\" in a or ":" in a or ".." in a.split("/") or chr(0) in a:
+        return None
+    try:
+        full = (root / a).resolve()
+        if not full.is_relative_to((root / "inputs").resolve()) or not full.is_relative_to(root.resolve()):
+            return None
+    except (OSError, ValueError):
+        return None
+    return full
+
+
+def get_draft(slug: str) -> dict:
+    """REQ-29: the unsent message of a project. Attachments whose file is gone are left out and named in "dropped"."""
+    if not projects.load(slug):
+        raise KeyError(slug)
+    saved = safefile.read_json(_draft_file(slug), {})
+    saved = saved if isinstance(saved, dict) else {}
+    root = projects.project_dir(slug)
+    kept, dropped = [], []
+    for a in saved.get("attachments") or []:
+        full = _safe_attachment(root, a) if isinstance(a, str) else None
+        if full is None:
+            continue   # not an uploaded file of this project: dropped silently, nothing is revealed
+        if full.is_file():
+            kept.append(a)
+        else:
+            dropped.append(Path(a).name)
+    return {"text": str(saved.get("text") or ""), "attachments": kept, "dropped": dropped}
+
+
+def put_draft(slug: str, body: dict) -> dict:
+    """REQ-29: save the unsent message (nothing is kept when both text and attachments are empty)."""
+    if not projects.load(slug):
+        raise KeyError(slug)
+    if not isinstance(body, dict):
+        raise ValueError("A draft must be a JSON object.")
+    text = body.get("text", "")
+    atts = body.get("attachments", [])
+    if not isinstance(text, str) or not isinstance(atts, list) or not all(isinstance(a, str) for a in atts):
+        raise ValueError("A draft is text and a list of attached files.")
+    if len(text.encode("utf-8")) > 100_000 or len(atts) > 50 or any(len(a) > 260 for a in atts):
+        raise ValueError("The draft is too big (text up to 100 KB, 50 attached files, 260 characters per file name).")
+    f = _draft_file(slug)
+    if not text.strip() and not atts:
+        with safefile.lock_for(f):
+            f.unlink(missing_ok=True)
+    else:
+        safefile.write_json(f, {"text": text, "attachments": atts})
+    return {"ok": True}
 
 
 def post_answers(self, app, path: str, body: dict):

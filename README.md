@@ -13,7 +13,7 @@ click "More info", then "Run anyway". What changed in each version: [CHANGELOG.m
 > you rely on it.
 
 Turn a business need into a working prototype without writing code. You talk (or type) with Fred, your AI team
-lead. Before anything is built he makes sure the problem is worth solving; then his AI team plans, builds and
+lead. Each project keeps its own unsent message (text and attached files), so you can switch projects without losing what you were typing. Before anything is built he makes sure the problem is worth solving; then his AI team plans, builds and
 tests it in small steps, and starts it for you to try. All you need is a Windows PC and a Claude subscription
 (or an Anthropic API key).
 

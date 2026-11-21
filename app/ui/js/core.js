@@ -5,9 +5,9 @@ const $ = id => document.getElementById(id);
 let S = null, cur = null, view = null, tab = 'team', attachments = [], es = null, lastSeq = 0;
 
 /* ------------------------------------------------------------------ api */
-async function api(path, body) {
+async function api(path, body, method) {
   const opts = {headers: {'X-Token': TOKEN, 'Content-Type': 'application/json'}};
-  if (body !== undefined) { opts.method = 'POST'; opts.body = JSON.stringify(body); }
+  if (body !== undefined) { opts.method = method || 'POST'; opts.body = JSON.stringify(body); }
   const r = await fetch(path, opts); const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || ('Error ' + r.status));
   return j;
@@ -68,6 +68,7 @@ async function loadState() {
     throw e;
   }
   S = fresh; USE_AT = Date.now();
+  if (typeof draftPrune === 'function') draftPrune(S.projects.map(p => p.slug));
   if (S.version) $('appVersion').textContent = 'v' + S.version;   // L35
   $('onboard').hidden = S.has_api_key;
   const ul = $('plist'); ul.innerHTML = '';
@@ -118,7 +119,9 @@ const phaseLabel = (p, st) => p === 'review' ? (st === 'working' || st === 'limi
 
 let early = [];  // events of the project being opened that arrive while its history is loading
 async function open(slug) {
-  cur = slug || null; attachments = []; renderChips();
+  draftStash();   // REQ-29: the box belongs to the project we leave
+  cur = slug || null; attachments = []; renderChips(); $('input').value = ''; autosize();
+  if (cur) draftRestore(cur);
   view = null; early = [];
   if (cur) { try { view = await api('/api/projects/' + cur); } catch (e) {
     view = null;

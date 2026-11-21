@@ -2,6 +2,11 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## Unreleased
+- **One unsent message per project.** What you type in the message box (and the files or screenshots you attach)
+  stays with its project: switch to another project and its own box appears; come back and your text is there
+  again, even after closing the app. Sending clears only that project's box.
+
 ## 1.6.2 (2026-11-21)
 - **Far fewer approval requests.** The team now works on your project without asking: anything inside the
   project folder, your Windows temp folder and AI Team Lite's own folder, and reading files. It still asks before

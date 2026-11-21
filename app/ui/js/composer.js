@@ -2,15 +2,46 @@
    Sending, attachments, pasted screenshots, talking and the microphone test.
    Classic scripts loaded in order by index.html; they share globals (TOKEN, $, S, cur, view...). */
 /* ------------------------------------------------------------------ composer */
+/* REQ-29: one unsent message per project. drafts[slug] = {text, attachments}; saved to the server 1.5 s after typing stops. */
+const drafts = {}; let draftLoaded = null, draftTimer = 0, draftSaving = Promise.resolve();
+function draftPrune(slugs) { for (const k of Object.keys(drafts)) if (!slugs.includes(k) && k !== 'setup') delete drafts[k]; }   // deleted projects
+function draftSave(slug, keepalive) {
+  const d = drafts[slug]; if (!d || slug === 'setup') return;
+  draftSaving = fetch(`/api/projects/${slug}/draft`, {method: 'PUT', keepalive: !!keepalive, headers: {'X-Token': TOKEN, 'Content-Type': 'application/json'}, body: JSON.stringify(d)}).catch(() => {});
+}
+function draftStash(keepalive) {   // box -> memory + server, for the project shown now
+  clearTimeout(draftTimer);
+  if (!cur || draftLoaded !== cur) return;
+  drafts[cur] = {text: $('input').value, attachments: [...attachments]}; draftSave(cur, keepalive);
+}
+function draftSoon() { if (!cur || draftLoaded !== cur) return; clearTimeout(draftTimer); draftTimer = setTimeout(draftStash, 1500); }
+async function draftRestore(slug) {
+  draftLoaded = null; $('draftNote').hidden = true;
+  let d = drafts[slug], dropped = [];
+  if (!d) {
+    try { await draftSaving; d = await api(`/api/projects/${slug}/draft`); dropped = d.dropped || []; } catch (e) { d = {text: '', attachments: []}; }
+    if (cur !== slug) return;   // the user moved on while it loaded
+  }
+  if (!$('input').value && !attachments.length) { $('input').value = d.text || ''; attachments = [...(d.attachments || [])]; }
+  drafts[slug] = {text: $('input').value, attachments: [...attachments]}; draftLoaded = slug;
+  autosize(); renderChips(); checkSpelling();
+  if (dropped.length) { $('draftNote').textContent = `Not attached any more (file is gone): ${dropped.join(', ')}`; $('draftNote').hidden = false; draftSoon(); }
+}
+window.addEventListener('pagehide', () => draftStash(true));
 async function send() {
   const t = $('input').value.trim(); if ((!t && !attachments.length) || !cur) return;
-  const text = t + (attachments.length ? '\n\n' + attachments.map(a => `[Attached file: ${a}]`).join('\n') : '');
+  const slug = cur, savedAtts = [...attachments], text = t + (attachments.length ? '\n\n' + attachments.map(a => `[Attached file: ${a}]`).join('\n') : '');
   $('input').value = ''; autosize(); attachments = []; renderChips(); checkSpelling();
-  try { await api(`/api/projects/${cur}/message`, {text}); } catch (e) { alertBox(e.message); $('input').value = t; }
+  clearTimeout(draftTimer); drafts[slug] = {text: '', attachments: []};
+  try { await api(`/api/projects/${slug}/message`, {text}); draftSave(slug); } catch (e) {   // the saved draft is cleared only once the message went through
+    alertBox(e.message);
+    drafts[slug] = {text: t, attachments: savedAtts};
+    if (cur === slug) { $('input').value = t; attachments = [...savedAtts]; autosize(); renderChips(); checkSpelling(); } else draftSave(slug);
+  }
 }
 function autosize() { const i = $('input'); i.style.height = 'auto'; i.style.height = Math.min(i.scrollHeight, 200) + 'px'; if (typeof renderSpell === 'function') renderSpell(); }
-function renderChips() { $('chips').innerHTML = attachments.map(a => chipHtml(a, false)).join(''); wireChips($('chips'), false); }
-$('input').addEventListener('input', e => { autosize(); if (e.isTrusted) voiceTalk = false; spellSoon(); });
+function renderChips() { $('chips').innerHTML = attachments.map(a => chipHtml(a, false)).join(''); wireChips($('chips'), false); draftSoon(); }
+$('input').addEventListener('input', e => { autosize(); if (e.isTrusted) voiceTalk = false; spellSoon(); draftSoon(); });
 $('input').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
 $('sendBtn').onclick = send;
 $('stopBtn').onclick = () => cur && api(`/api/projects/${cur}/stop`, {});
