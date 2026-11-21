@@ -51,6 +51,8 @@ Still to do (from WORKLIST-PRIVATE.md), in the owner's order:
 
 - **REQ-22 Sandbox for the team's commands (L47, planned 1.6.3, investigate first).** When the team runs a command, then a bad package or a tricked agent cannot reach the rest of the PC, with no setup effort for the user beyond a one-time permission. Step 1: a written comparison (restricted token + job object, AppContainer, Windows Sandbox, WSL, separate Windows user) with what each protects and which Windows editions it works on, and a recommendation. Step 2, only after the owner says "go": build it behind a setting and show a clear line on the approval card when a command runs outside the protection. When the Windows edition is Home, then Windows Sandbox is not offered.
 
+- **REQ-28 Taskbar icon colour (CR-1, change request).** When any project waits for me (a question or an approval card), then the AI Team Lite icon on the taskbar (and next to the clock when the tray is on) is orange. When no project waits and at least one is working, then it is green. When nothing waits and nothing works, then it is grey. When both apply, orange wins. When I answer the last waiting card, then the icon leaves orange within a few seconds. When the window is hidden or minimised, then the colour still updates. When the colour cannot be shown, then the normal icon stays and nothing else breaks. The tooltip also says in words what the colour means.
+
 Set aside by the owner on 2026-11-17 ("maybe later, not within the immediate need"):
 
 - **REQ-23 (later) Parallel build** of independent tasks in separate Git worktrees (L50).

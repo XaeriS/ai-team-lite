@@ -1,6 +1,6 @@
 > Written by Mat from the code. Sections "Overview" to "Hosting, build and release" describe version 1.6.2, which
-> already exists and is released: nothing in them is to be built. Only the last section (sandbox, REQ-22) is new
-> work, planned for version 1.6.3. Work stops after this architecture is approved, until the owner says to continue.
+> already exists and is released: nothing in them is to be built. Only the last two sections (sandbox, REQ-22;
+> taskbar colours, REQ-28 / CR-1) are new work. Work stays paused until the owner says to continue.
 
 # Architecture: AI Team Lite
 
@@ -13,10 +13,10 @@ The engine runs the team's file and shell commands itself. The app decides which
 ## Parts (existing, 1.6.2)
 | Part | Files | Job |
 |---|---|---|
-| Start | app/main.py, paths.py | Logging, hidden console, one instance per PC, opens the window (or browser with --browser). |
+| Start | app/main.py, paths.py | Logging, hidden console, one instance per PC, opens the window (or browser with --browser); tray icon (class Tray, pystray: Open / Quit) when "keep running in the tray" is on. |
 | Server | server.py, routes_setup.py, routes_projects.py, routes_work.py, server_common.py | HTTP routes for the buttons, SSE stream, voice endpoint. |
 | Screens | app/ui/index.html, app.css, js/*.js | Chat, side panel (Team, Plan, Tests, Diagrams), settings, usage, checkpoints, scorecard. Load order: core, chat, side, composer, clipboard, spelling, checkpoints, scorecard, usage, screens, start. |
-| Engine | engine.py + engine_watchdog, engine_limits, engine_pipeline, engine_text, engine_const | Owns all projects' sessions: watchdog, plan limits and sign-in expiry, master plan across projects. |
+| Engine | engine.py + engine_watchdog, engine_limits, engine_pipeline, engine_text, engine_const | Owns all projects' sessions: watchdog, plan limits and sign-in expiry, master plan across projects. engine_pipeline.project_state gives each project's state: needs you, working, limit, waiting (for a slot), release, paused, idle. |
 | Session | session.py + session_approvals, session_background, session_messages | One project's conversation with Claude: turns, approval cards, background workers, messages to events. |
 | Team tools | tools.py + tools_setup, tools_planning, tools_building, tools_delivery, tools_common | The mcp__aiteam__* tools (plan approval, iterations, tests, findings, installer, GitHub...). |
 | Guard | policy.py, shellcheck.py, risk.py | Decides what runs alone and what asks (L65); risk text on the cards. |
@@ -25,6 +25,7 @@ The engine runs the team's file and shell commands itself. The app decides which
 | Helpers | events.py, journal.py, ledger.py, usage.py, timeline.py, analytics.py, safefile.py, projectmap.py, upkeep.py, lessons.py | Event hub, recovery journal, token and time logs, safe JSON saves, project map, documents check, lessons. |
 | Extras | voice.py, spelling.py, telegram.py, council.py, brains.py, diagrams.py, tooling.py, updates.py, features.py | Speech to text on the PC, spelling, phone approvals, council, Archify diagrams, Ollama/Archify install, updates, feedback. |
 | Secrets & settings | secrets_store.py, settings.py, auth.py, reset.py | Keys in Windows Credential Manager (service "AI Team Lite"); settings JSON; Claude sign-in or API key; reset. |
+| Windows helpers | winhelpers.py | Voice typing, screenshots, launching programs, hidden engine console, hidden test desktop. |
 
 ## Data and storage (existing, 1.6.2)
 - App data: %APPDATA%\AI Team Lite (settings.json, logs, usage and time logs, lessons). No database: JSON and JSON-lines files.
@@ -41,7 +42,7 @@ The engine runs the team's file and shell commands itself. The app decides which
 - Runs only on the user's PC. Bundled Python; NSIS installer (installer/ai-team.nsi, build.sh), unsigned.
 - GitHub Actions: tests.yml on every push; release.yml builds and publishes a version on every push to main (so: never push without the owner's approval; bump app/__init__.py, VERSION and CHANGELOG.md together).
 
-## New work for 1.6.3: sandbox for the team's commands (REQ-22)
+## New work: sandbox for the team's commands (REQ-22)
 Owner's PC: Windows 11 Home, so Windows Sandbox is ruled out; WSL is ruled out because projects are Windows apps.
 
 Chosen direction to investigate: **B. AppContainer.**
@@ -52,18 +53,29 @@ Chosen direction to investigate: **B. AppContainer.**
 - Step 1 is an investigation with a prototype: reports/L47-sandbox-options.md, proving that Python, Git, pip and the tests work inside the container on this PC. Option A (restricted token + job object) is the fallback if B breaks them. Step 2 is built only after the owner says "go".
 - Open points to prove on the real PC: claude.exe sign-in and its own config folder from inside the container, Git credential access for pushes, pip's cache, WebView2/pywebview apps launched by tests.
 
+## New work: taskbar colours across all projects (REQ-28, CR-1)
+- **One combined state**, computed from engine.project_state for every project (no new bookkeeping):
+  - orange "Waiting for you": any project in "needs you" (question, approval card, sign-in card) or "release" (ready for your review);
+  - green "Working": none orange, and at least one project "working", "waiting" (queued for a slot) or "limit" (will resume by itself);
+  - grey "Nothing running": everything else (paused, idle, no projects).
+  Orange wins over green. Tooltip in words, e.g. "AI Team Lite: 1 project waiting for you".
+- **Where it is computed**: a small new module app/statusicon.py (pure function: list of project states -> colour and tooltip text), easy to unit-test. A light loop in main.py checks it every 2 seconds and acts only when the result changes.
+- **Taskbar**: a coloured dot as a Windows overlay badge on the window's taskbar button (ITaskbarList3.SetOverlayIcon via ctypes/comtypes on the pywebview window handle). The dot images are drawn once with Pillow (already a dependency).
+- **Flashing**: when the state turns orange, the taskbar button flashes (FlashWindowEx) until the card is answered; it stops while the AI Team Lite window is in front and starts again if the window goes to the back and something still waits; it stops when the state leaves orange. New setting "Flash the taskbar until I answer" (settings.py, on by default; Settings > General). The orange dot stays whether or not flashing is on.
+- **Tray**: when "keep running in the tray" is on, the tray icon (Tray class) shows the same dot and tooltip.
+- **Fallback**: if the badge, flashing or tray cannot be set (non-Windows, no handle yet, COM error), it is logged once and the normal icon stays; the rest of the app is unaffected.
+- **Tests**: unit tests for the colour rules and the flashing decisions (statusicon.py), a Windows screen check that the badge changes (screenshot of the taskbar button).
+
 ## After approval
-Work stops here. No plan, no diagram and no code until the owner asks to continue.
+Work stays paused until the owner asks to continue. Then: sandbox investigation, sandbox build (after "go"), taskbar colours.
 
 ## Decisions
 | Topic | Decision | Why |
 |---|---|---|
 | Existing version | 1.6.2 is released and is described as it is; nothing in it is rebuilt | Owner's correction |
-| Structure | Keep the current split (engine/session/server/tools mixins and route files, files under about 500 lines) | Done in 1.5.1 and tested |
-| Storage | JSON and JSON-lines files, saved through safefile.py; no database | Single user, small data, already working |
-| Secrets | Windows Credential Manager only | Never in files, prompts or chat |
-| Backups | Git per project, checkpoints, optional GitHub push with approval | Already built (REQ-15, REQ-19) |
-| Hosting | Local only, on the user's Windows PC | Desktop app by design |
-| Sandbox approach (1.6.3) | Investigate AppContainer (B) first, restricted token (A) as fallback | Owner's choice; works on Windows 11 Home with no admin setup |
-| Sandbox protection order (1.6.3) | 1. writing outside the project, 2. reading private files; network stays open | Owner agreed; pip and GitHub need the network |
-| After approval | Work stops until the owner asks to continue | Owner's request |
+| Sandbox approach | Investigate AppContainer (B) first, restricted token (A) as fallback | Owner's choice; works on Windows 11 Home with no admin |
+| Sandbox protection order | 1. writing outside the project, 2. reading private files; network open | Owner agreed |
+| Taskbar colour display | Coloured dot as a Windows overlay badge on the app icon | Owner chose A: app stays recognisable, standard Windows mechanism |
+| Taskbar flashing | Flash until the card is answered, paused while the window is in front, with a setting on by default | Owner wants continuous flashing; the setting and the pause cover meetings, screen sharing and comfort |
+| Source of the combined state | engine.project_state for all projects; orange = needs you or ready for review, green = working, queued or limit, grey = the rest | Already tracked for the Team panel and Pipeline |
+| Storage | One new setting in settings.json; no other data | Nothing else needs saving |
