@@ -3,7 +3,7 @@
 > Maintained automatically by AI Team Lite after each iteration. Read this first to find the right file;
 > open only the files you need.
 
-**Tests:** 26 file(s) in `tests`
+**Tests:** 28 file(s) in `reports`, `tests`
 
 | File | What it is for |
 |------|----------------|
@@ -106,6 +106,7 @@
 | `README.md` | how to use the app |
 | `reports/L47-probe-results.json` | data / settings file |
 | `reports/L47-sandbox-options.md` | L47: keeping the team's commands in a box (REQ-22) |
+| `reports/test_results.json` | data / settings file |
 | `requirements-dev.txt` |  |
 | `REQUIREMENTS.md` | the agreed requirements (REQ-n) |
 | `requirements.txt` | Python packages the app needs |
@@ -114,6 +115,7 @@
 | `tests/demo_server.py` | project conversation |
 | `tests/fakeclaude.py` | A stand-in for ClaudeSDKClient that plays scripted turns, including real calls into the app's |
 | `tests/fixtures_graph.html` | graphify - graphify-out/graph.html |
+| `tests/requirements_map.json` | data / settings file |
 | `tests/test_auth_reset.py` | defines test_cli_env_modes, test_ready_per_mode, test_status_parses_cli, test_engine_uses_subscription_env, test_reset_erases_app_data_but_not_projects |
 | `tests/test_checkpoints.py` | undo: everything is back, including the work that had not been saved |
 | `tests/test_core.py` | defines decide, test_policy_reading_always_allowed, test_policy_docs_allowed_code_needs_plan, test_policy_shell, test_policy_special_tools, test_project_create_and_inside … |
@@ -130,6 +132,7 @@
 | `tests/test_lite.py` | AI Team Lite: a separate app from AI Team (own data, keys, sign-in, install, instance) with the expert features removed. |
 | `tests/test_scorecard.py` | the key itself never appears in what is saved or shown |
 | `tests/test_server.py` | projects cannot be created before setup is finished |
+| `tests/test_traceability.py` | Traceability: every requirement (REQ-1..REQ-21) is mapped to tests, or listed as unproven with a reason. |
 | `tests/test_v04.py` | ------------------------------------------------------------------------------- a stand-in brain (OpenAI-compatible) |
 | `tests/test_v06.py` | 0.6.0: Mat the lead architect, projects from an existing folder, hide/delete projects, idle state. |
 | `tests/test_v07.py` | ------------------------------------------------------------------------------- models (items 8-10) |

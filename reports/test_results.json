@@ -1,0 +1,164 @@
+[
+ {
+  "time": 1795294233.3676612,
+  "name": "Setup and keys: test_core, test_server, test_auth_reset",
+  "requirement": "REQ-1",
+  "details": "Existing unit tests, run 2026-11-21 in the project .venv.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294234.1271765,
+  "name": "Problem card and challenge: test_v14, test_v100",
+  "requirement": "REQ-2",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294234.8308604,
+  "name": "Devil's advocate: test_v14",
+  "requirement": "REQ-3",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294235.6644065,
+  "name": "Architecture step and diagram choice: test_v06, test_l68_l69",
+  "requirement": "REQ-5",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294236.397112,
+  "name": "Plan approval and iterations: test_iterations, test_v08",
+  "requirement": "REQ-6",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294237.3966072,
+  "name": "Saved to Git only when the suite passes: test_iterations, test_v100",
+  "requirement": "REQ-7",
+  "details": "Passed, but only the \"saved only when tests pass\" part is tested. Nothing checks that tests are written first and must fail.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294238.2368371,
+  "name": "Scorecard and traceability: test_v14, test_scorecard, test_v08",
+  "requirement": "REQ-8",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294238.9649727,
+  "name": "Approvals only for what is risky: test_l65, test_core",
+  "requirement": "REQ-9",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294239.6610243,
+  "name": "Phone approvals: test_v100",
+  "requirement": "REQ-10",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294241.7954419,
+  "name": "Pipeline and Team panel: test_v07, test_v06, test_v100",
+  "requirement": "REQ-12",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294242.7951274,
+  "name": "Talking, files, spelling: test_voice_usage, test_v100, test_server",
+  "requirement": "REQ-13",
+  "details": "Passed. One test in test_v100 (name in settings) fails on the same encoding error but is not about speech.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294244.766486,
+  "name": "Checkpoints: test_checkpoints",
+  "requirement": "REQ-15",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294245.565393,
+  "name": "Existing folder and odd names: test_v06, test_l58",
+  "requirement": "REQ-16",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294246.3609316,
+  "name": "Diagram choice: test_l68_l69, test_v11",
+  "requirement": "REQ-17",
+  "details": "Passed. Four Archify tests skipped because Node is not installed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294247.0651085,
+  "name": "Council: test_v08",
+  "requirement": "REQ-18",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294249.2258165,
+  "name": "Long chat opens fast: test_l59",
+  "requirement": "REQ-20",
+  "details": "Passed for the long-chat part. The half and quarter screen layout is covered only by the browser test ui_v140, which was not run.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294250.025357,
+  "name": "Sharing and updates: test_v09, test_v10, test_v11",
+  "requirement": "REQ-21",
+  "details": "Existing unit tests, passed.",
+  "status": "passed",
+  "confirmed_in": 18,
+  "iteration": 18
+ },
+ {
+  "time": 1795294251.02722,
+  "name": "Traceability map: 7 tests in test_traceability.py",
+  "requirement": "REQ-4",
+  "details": "REQ-4 (prior-art check) has no test at all. It is listed under \"Requirements not proven by a test\" in STATUS.md.",
+  "status": "skipped",
+  "confirmed_in": 18,
+  "iteration": 18
+ }
+]

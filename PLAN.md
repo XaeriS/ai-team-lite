@@ -53,7 +53,10 @@ Tests are written first and must fail, then the code, then the whole suite and a
 | 15 | **Before AI Team Lite: Approvals, phone and keeping work moving** - Risk-based approvals, Telegram approvals, watchdog, pipeline, usage view (released up to 1.6.2) | REQ-9, REQ-10, REQ-11, REQ-12, REQ-14 | done |
 | 16 | **Before AI Team Lite: Delivery and updates** - Windows installer, GitHub tests and releases, sharing and update check (released up to 1.6.2) | REQ-19, REQ-21 | done |
 | 17 | **Sandbox investigation (L47, step 1)** - Report plus a prototype on this PC; finished and committed (621aa62) | REQ-22 | done |
-| 18 | **Proof for the requirements** - Existing tests are mapped to REQ-1 to REQ-22 and recorded, so the Requirements tab shows what is proven and what is not | REQ-1, REQ-2, REQ-3, REQ-4, REQ-5, REQ-6, REQ-7, REQ-8, REQ-9, REQ-10, REQ-11, REQ-12, REQ-13, REQ-14, REQ-15, REQ-16, REQ-17, REQ-18, REQ-19, REQ-20 | planned |
+| 18 | **Proof for the requirements** - Existing tests are mapped to REQ-1 to REQ-22 and recorded, so the Requirements tab shows what is proven and what is not | REQ-1, REQ-2, REQ-3, REQ-4, REQ-5, REQ-6, REQ-7, REQ-8, REQ-9, REQ-10, REQ-11, REQ-12, REQ-13, REQ-14, REQ-15, REQ-16, REQ-17, REQ-18, REQ-19, REQ-20 | building |
+|  | [ ] Read the existing tests and map each to the requirement it really proves | tests/requirements_map.json | |
+|  | [ ] Run the mapped existing tests and record each result against its requirement | reports/test-logs | |
+|  | [ ] List the unproven requirements in STATUS.md | STATUS.md | |
 | 19 | **One message draft per project** - Each project keeps its own unsent text and attachments, saved with the project | REQ-29 | planned |
 | 20 | **Improvement ideas after each iteration** - A Yes/No table of up to 3 ideas after every iteration, with every decision saved and no idea shown twice | REQ-30 | planned |
 | 21 | **Taskbar colours** - The taskbar icon shows an orange, green or grey dot for all projects, flashes until you answer, and the tray icon follows | REQ-28 | planned |

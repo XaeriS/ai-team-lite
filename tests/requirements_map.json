@@ -1,0 +1,27 @@
+{
+  "map": {
+    "REQ-1": ["tests/test_core.py", "tests/test_server.py", "tests/test_auth_reset.py"],
+    "REQ-2": ["tests/test_v14.py", "tests/test_v100.py"],
+    "REQ-3": ["tests/test_v14.py"],
+    "REQ-5": ["tests/test_v06.py", "tests/test_l68_l69.py"],
+    "REQ-6": ["tests/test_iterations.py", "tests/test_v08.py"],
+    "REQ-7": ["tests/test_iterations.py", "tests/test_v100.py"],
+    "REQ-8": ["tests/test_v14.py", "tests/test_scorecard.py", "tests/test_v08.py"],
+    "REQ-9": ["tests/test_l65.py", "tests/test_core.py"],
+    "REQ-10": ["tests/test_v100.py"],
+    "REQ-11": ["tests/test_v100.py", "tests/test_v04.py"],
+    "REQ-12": ["tests/test_v07.py", "tests/test_v06.py", "tests/test_v100.py"],
+    "REQ-13": ["tests/test_voice_usage.py", "tests/test_v100.py", "tests/test_server.py"],
+    "REQ-14": ["tests/test_v100.py", "tests/test_v07.py", "tests/test_voice_usage.py", "tests/test_v11.py"],
+    "REQ-15": ["tests/test_checkpoints.py"],
+    "REQ-16": ["tests/test_v06.py", "tests/test_l58.py"],
+    "REQ-17": ["tests/test_l68_l69.py", "tests/test_v11.py"],
+    "REQ-18": ["tests/test_v08.py"],
+    "REQ-19": ["tests/test_l52.py", "tests/test_l70.py"],
+    "REQ-20": ["tests/test_l59.py"],
+    "REQ-21": ["tests/test_v09.py", "tests/test_v10.py", "tests/test_v11.py"]
+  },
+  "unproven": {
+    "REQ-4": "No test checks the Scout's web search, the prior-art card or reports/PRIOR_ART.md."
+  }
+}

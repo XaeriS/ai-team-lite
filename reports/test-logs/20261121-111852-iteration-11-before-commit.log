@@ -1,4 +1,0 @@
-$ .venv\Scripts\python -m pytest -q tests/test_l47_probe.py
-
-.................                                                        [100%]
-17 passed in 0.17s

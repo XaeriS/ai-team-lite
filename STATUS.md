@@ -46,3 +46,7 @@ Uncommitted: .gitignore adds `.aiteam/`; PROJECT_MAP.md is new.
 1. L47 investigation report (1.6.3), then the owner's decision.
 2. Commit the .gitignore change and PROJECT_MAP.md.
 3. Pick from the set-aside items only if the owner's need changes.
+
+## Requirements not proven by a test
+
+- REQ-4: No test checks the Scout's web search, the prior-art card or reports/PRIOR_ART.md.
