@@ -20,6 +20,7 @@ class EventHub:
         # higher than the numbers saved in a project's history by an earlier run (the screen uses them to skip
         # events it already has; restarting at 0 made new cards collide with old ones and vanish).
         self._seq = int(time.time() * 1000)
+        self._parsed: dict[str, tuple[tuple, list[dict]]] = {}   # L59: history parsed once per file version
 
     def publish(self, slug: str, event: dict) -> dict:
         with self._cond:
@@ -54,8 +55,22 @@ class EventHub:
         return self._seq
 
     def history(self, slug: str) -> list[dict]:
-        """Saved events with updates folded in. Cards still pending from a previous run become 'expired'."""
+        """Saved events with updates folded in (a copy: callers may change the events they get)."""
         f = self._history_file(slug)
+        try:
+            st = f.stat()
+            key = (st.st_size, st.st_mtime_ns)
+        except OSError:
+            return []
+        hit = self._parsed.get(slug)
+        if hit and hit[0] == key:
+            return [dict(ev) for ev in hit[1]]
+        items = self._parse(f)
+        self._parsed[slug] = (key, items)
+        return [dict(ev) for ev in items]
+
+    @staticmethod
+    def _parse(f: Path) -> list[dict]:
         items: list[dict] = []
         by_id: dict[str, dict] = {}
         if f.exists():

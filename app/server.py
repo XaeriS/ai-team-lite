@@ -18,6 +18,8 @@ from .engine import Engine
 from .events import EventHub
 from .server_common import MAX_UPLOAD, NO_ROUTE, SETUP_KICKOFF, UI_DIR, UI_TYPES
 
+HISTORY_WINDOW = 300   # L59: chat events sent when a project opens; earlier ones on request
+
 
 class App:
     def __init__(self, engine: Engine | None = None, hub: EventHub | None = None):
@@ -122,15 +124,13 @@ class App:
         p = projects.load(slug)
         if not p:
             raise KeyError(slug)
-        live = self.engine.pending_for(slug)
-        history = self.hub.history(slug)
-        for ev in history:
-            if ev.get("status") == "pending" and ev.get("id") not in live:
-                ev["status"] = "expired"
+        full = self._history(slug)
+        start = max(0, len(full) - HISTORY_WINDOW)          # L59: only the latest part of a long chat is sent
+        history = [ev for ev in full[:start] if ev.get("status") == "pending"] + full[start:]
         p = {**p, "folder": str(projects.project_dir(slug)), "state": self.engine.project_state(slug, p)}
         p["launch"] = engine_mod.launch_info(slug, p)
         p["estimate"] = iterations.cost_estimate(slug)
-        return {"project": p, "history": history, "busy": self.engine.is_busy(slug) or p["state"] == "working",
+        return {"project": p, "history": history, "history_from": start, "busy": self.engine.is_busy(slug) or p["state"] == "working",
                 "team": self.engine.session(slug).team_snapshot(), "progress": iterations.progress(slug),
                 "docs": {"requirements": projects.read_doc(slug, "REQUIREMENTS.md"),
                          "plan": projects.read_doc(slug, "PLAN.md"),
@@ -138,6 +138,24 @@ class App:
                          "status": projects.read_doc(slug, "STATUS.md"),
                          "prior_art": projects.read_doc(slug, "reports/PRIOR_ART.md")},
                 "screenshots": self._screens(slug), "seq": self.hub.seq}
+
+    def _history(self, slug: str) -> list[dict]:
+        """The chat; cards still pending from an earlier run show as expired."""
+        live = self.engine.pending_for(slug)
+        full = self.hub.history(slug)
+        for ev in full:
+            if ev.get("status") == "pending" and ev.get("id") not in live:
+                ev["status"] = "expired"
+        return full
+
+    def history_before(self, slug: str, before: int, limit: int = 0) -> dict:
+        """Earlier messages for "Show earlier messages" (L59)."""
+        if not projects.load(slug):
+            raise KeyError(slug)
+        full = self._history(slug)
+        before = max(0, min(before, len(full)))
+        start = max(0, before - (limit or HISTORY_WINDOW))
+        return {"items": full[start:before], "from": start}
 
     def _screens(self, slug: str) -> list[str]:
         d = projects.project_dir(slug) / "reports" / "screenshots"
@@ -212,6 +230,14 @@ def make_handler(app: App):
                 m = re.fullmatch(r"/api/projects/([a-z0-9-]+)", path)
                 if m:
                     return self._json(app.project_view(m.group(1)))
+                m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/history", path)
+                if m:   # L59: earlier messages, on request
+                    q = self._query()
+                    try:
+                        before, limit = int(q.get("before") or 0), min(int(q.get("limit") or 0), 2000)
+                    except ValueError:
+                        return self._error(400, "before and limit are numbers")
+                    return self._json(app.history_before(m.group(1), before, limit))
                 m = re.fullmatch(r"/files/([a-z0-9-]+)/(.+)", path)
                 if m:
                     return self._file(m.group(1), unquote(m.group(2)))

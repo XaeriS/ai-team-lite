@@ -72,7 +72,10 @@ def save(changes: dict) -> dict:
         data = load()
         data.update(changes)
         safefile.write_json(_file(), data)   # L34: retried if Windows briefly refuses the file
-        return data
+    if "prices" in changes:
+        from . import models   # the price table is kept for a moment (L59): forget it when it changes
+        models.forget_prices()
+    return data
 
 
 def workspace() -> Path:

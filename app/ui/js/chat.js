@@ -63,8 +63,25 @@ function renderAll() {
   deletedFiles = new Set(items.filter(e => e.type === 'attachment_deleted').map(e => e.path));
   const box = $('msgs'); box.innerHTML = '';
   if (!cur) { box.innerHTML = welcomeHtml(); maybeInterrupted(); return; }
+  if (view.history_from > 0) box.appendChild(earlierButton());   // L59: long chats open with their latest part
   items.forEach(ev => box.appendChild(renderEvent(ev)));
   groupActivities(); scrollDown(true);
+}
+function earlierButton() {
+  const b = el(`<div class="earlier"><button>Show earlier messages</button></div>`);
+  b.querySelector('button').onclick = async () => {
+    const box = $('msgs'), slug = cur, btn = b.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Loading…';
+    let d; try { d = await api(`/api/projects/${slug}/history?before=${view.history_from}`); } catch (e) { btn.disabled = false; btn.textContent = 'Show earlier messages'; alertBox(e.message); return; }
+    if (slug !== cur) return;
+    const have = new Set(items.map(x => x.seq + ':' + x.ts)), older = d.items.filter(x => !have.has(x.seq + ':' + x.ts));
+    const keep = box.scrollHeight - box.scrollTop, frag = document.createDocumentFragment();
+    older.forEach(ev => frag.appendChild(renderEvent(ev)));
+    b.after(frag); items = older.concat(items); view.history_from = d.from;
+    if (d.from > 0) { btn.disabled = false; btn.textContent = 'Show earlier messages'; } else b.remove();
+    groupActivities(); box.scrollTop = box.scrollHeight - keep;
+  };
+  return b;
 }
 function maybeInterrupted() {
   const items = (S?.interrupted || []).filter(x => !dismissedInterrupt.has(x.slug));

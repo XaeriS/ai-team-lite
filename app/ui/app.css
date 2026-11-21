@@ -300,3 +300,5 @@ button,nav,.pill,.state,.tabs,.stab,.who,.legend,.acts{user-select:none}
 .sc-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:var(--panel)}
 .sc-box.good{border-color:var(--ok)}.sc-box.attention{border-color:var(--warn)}.sc-box.problem{border-color:var(--bad)}
 .sc-warn{border-left:3px solid var(--warn);padding-left:8px}
+/* L59: earlier messages on request */
+.earlier{text-align:center;margin:6px 0 10px}.earlier button{font-size:12.5px}

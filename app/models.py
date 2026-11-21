@@ -5,6 +5,8 @@ Reviewer). Claude picks the model for each step; other brains (brains.py) only s
 """
 from __future__ import annotations
 
+import time
+
 from . import settings
 
 CLAUDE = {
@@ -61,8 +63,22 @@ def guide() -> str:
 
 
 # ---------------------------------------------------------------------------- prices and cost
+_PRICES: tuple[float, dict] = (0.0, {})
+
+
 def prices() -> dict:
-    return {**DEFAULT_PRICES, **(settings.load().get("prices") or {})}
+    """The price table. Kept for 5 seconds: a cost estimate asks for it once per usage line, thousands of times
+    on a long project, and reading the settings file each time made opening a project slow on Windows (L59)."""
+    global _PRICES
+    now = time.monotonic()
+    if now - _PRICES[0] > 5 or not _PRICES[1]:
+        _PRICES = (now, {**DEFAULT_PRICES, **(settings.load().get("prices") or {})})
+    return _PRICES[1]
+
+
+def forget_prices() -> None:
+    global _PRICES
+    _PRICES = (0.0, {})
 
 
 def price_for(model: str) -> dict | None:
