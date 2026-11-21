@@ -1,14 +1,16 @@
-> Written by Mat from the code of version 1.6.2 (described as it is), plus the planned sandbox (REQ-22).
+> Written by Mat from the code. Sections "Overview" to "Hosting, build and release" describe version 1.6.2, which
+> already exists and is released: nothing in them is to be built. Only the last section (sandbox, REQ-22) is new
+> work, planned for version 1.6.3. Work stops after this architecture is approved, until the owner says to continue.
 
 # Architecture: AI Team Lite
 
-## Overview
+## Overview (existing, 1.6.2)
 A Windows desktop app. A local Python server (port 47824, token-protected) serves plain HTML/CSS/JavaScript screens
 to a pywebview window (Edge WebView2). Live updates come from the server to the window as server-sent events. Fred,
 Mat and the workers run through the Claude Agent SDK, which starts Claude's engine (claude.exe) as a child process.
 The engine runs the team's file and shell commands itself. The app decides which of them need the user's approval.
 
-## Parts
+## Parts (existing, 1.6.2)
 | Part | Files | Job |
 |---|---|---|
 | Start | app/main.py, paths.py | Logging, hidden console, one instance per PC, opens the window (or browser with --browser). |
@@ -24,22 +26,22 @@ The engine runs the team's file and shell commands itself. The app decides which
 | Extras | voice.py, spelling.py, telegram.py, council.py, brains.py, diagrams.py, tooling.py, updates.py, features.py | Speech to text on the PC, spelling, phone approvals, council, Archify diagrams, Ollama/Archify install, updates, feedback. |
 | Secrets & settings | secrets_store.py, settings.py, auth.py, reset.py | Keys in Windows Credential Manager (service "AI Team Lite"); settings JSON; Claude sign-in or API key; reset. |
 
-## Data and storage
+## Data and storage (existing, 1.6.2)
 - App data: %APPDATA%\AI Team Lite (settings.json, logs, usage and time logs, lessons). No database: JSON and JSON-lines files.
 - Per project: its own folder with the documents, code, tests, reports/ and a hidden .aiteam folder (project.json, events.jsonl = chat history, run journal). Shared JSON files are saved only through safefile.py (lock per file, retry on Windows' access denied).
 - Secrets: Credential Manager only; never in files, prompts or chat.
 - Backups: each project is a Git repository; checkpoints use Git (go back and undo). Optional push to GitHub with approval.
 
-## Security today
+## Security (existing, 1.6.2)
 - Approvals (policy.decide then shellcheck.judge): reading never asks; before plan approval every change asks; after it, work inside the project, Windows temp and the app's folder runs alone; installs, Windows changes, files elsewhere, programs from elsewhere, private files and GitHub ask. Every team tool must be in a policy list (a test checks it).
 - The weak point: commands run with the user's full rights. Text patterns are the only guard, and a tricked agent or a bad package can get round a pattern.
 - Network: osv.dev (package names and versions only), Anthropic, GitHub, optionally Gemini and Telegram.
 
-## Hosting, build and release
+## Hosting, build and release (existing, 1.6.2)
 - Runs only on the user's PC. Bundled Python; NSIS installer (installer/ai-team.nsi, build.sh), unsigned.
 - GitHub Actions: tests.yml on every push; release.yml builds and publishes a version on every push to main (so: never push without the owner's approval; bump app/__init__.py, VERSION and CHANGELOG.md together).
 
-## Planned: sandbox for the team's commands (REQ-22)
+## New work for 1.6.3: sandbox for the team's commands (REQ-22)
 Owner's PC: Windows 11 Home, so Windows Sandbox is ruled out; WSL is ruled out because projects are Windows apps.
 
 Chosen direction to investigate: **B. AppContainer.**
@@ -50,13 +52,18 @@ Chosen direction to investigate: **B. AppContainer.**
 - Step 1 is an investigation with a prototype: reports/L47-sandbox-options.md, proving that Python, Git, pip and the tests work inside the container on this PC. Option A (restricted token + job object) is the fallback if B breaks them. Step 2 is built only after the owner says "go".
 - Open points to prove on the real PC: claude.exe sign-in and its own config folder from inside the container, Git credential access for pushes, pip's cache, WebView2/pywebview apps launched by tests.
 
+## After approval
+Work stops here. No plan, no diagram and no code until the owner asks to continue.
+
 ## Decisions
 | Topic | Decision | Why |
 |---|---|---|
-| Structure | Keep the current split (engine/session/server/tools mixins and route files, files under about 500 lines) | Done in 1.5.1 and tested; no reason to change it |
+| Existing version | 1.6.2 is released and is described as it is; nothing in it is rebuilt | Owner's correction |
+| Structure | Keep the current split (engine/session/server/tools mixins and route files, files under about 500 lines) | Done in 1.5.1 and tested |
 | Storage | JSON and JSON-lines files, saved through safefile.py; no database | Single user, small data, already working |
 | Secrets | Windows Credential Manager only | Never in files, prompts or chat |
 | Backups | Git per project, checkpoints, optional GitHub push with approval | Already built (REQ-15, REQ-19) |
 | Hosting | Local only, on the user's Windows PC | Desktop app by design |
-| Sandbox approach | Investigate AppContainer (B) first, restricted token (A) as fallback | Owner's choice; works on Windows 11 Home with no admin setup |
-| Sandbox protection order | 1. writing outside the project, 2. reading private files; network stays open | Owner agreed; pip and GitHub need the network, approval cards still guard installs and pushes |
+| Sandbox approach (1.6.3) | Investigate AppContainer (B) first, restricted token (A) as fallback | Owner's choice; works on Windows 11 Home with no admin setup |
+| Sandbox protection order (1.6.3) | 1. writing outside the project, 2. reading private files; network stays open | Owner agreed; pip and GitHub need the network |
+| After approval | Work stops until the owner asks to continue | Owner's request |
