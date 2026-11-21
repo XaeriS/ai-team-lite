@@ -9,7 +9,7 @@ async function renderWork() {
   const stPill = s => `<span class="pill ${s === 'working' ? 'ok' : s === 'needs you' || s === 'limit' ? 'warn' : s === 'paused' ? 'bad' : ''}">${esc(s === 'limit' ? 'stopped: usage limit' : s)}</span>`;
   const since = s => s ? `since ${new Date(s * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}` : '';
   $('workBody').innerHTML = `<div class="qrow head"><div>Project</div><div>Status</div><div>Who is working on what</div><div>Priority</div><div></div></div>` +
-    (d.rows.length ? d.rows.map(r => `<div class="qrow" data-s="${esc(r.slug)}"><div><a href="#" data-open>${esc(r.name)}</a><div class="hint">${esc(phaseLabel(r.phase) + iterLabel(r.progress, r.phase))}</div></div>
+    (d.rows.length ? d.rows.map(r => `<div class="qrow" data-s="${esc(r.slug)}"><div><a href="#" data-open>${esc(r.name)}</a><div class="hint">${esc(phaseLabel(r.phase, r.state) + iterLabel(r.progress, r.phase))}</div></div>
       <div>${stPill(r.state)}<div class="hint">${since(r.since)}${r.continue_at ? ' · continues ' + new Date(r.continue_at * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : ''}${r.queued ? ` · ${r.queued} message(s) waiting` : ''}</div></div>
       <div>${r.who.length ? r.who.map(w => `<div><b>${esc(w.name)}</b>: ${esc(w.task || w.last || '')}</div>`).join('') : `<span class="hint">${r.pending.length ? 'Waiting for your answer in the chat' : 'Nobody'}</span>`}</div>
       <div><select data-prio><option value="high">High</option><option value="normal">Normal</option><option value="low">Low</option></select></div>

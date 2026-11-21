@@ -148,7 +148,8 @@ function renderEvent(ev) {
       <div><b>${ev.to === 'Mat' ? 'Fred handed over to Mat, the lead architect' : 'Mat handed back to Fred'}</b><div class="hint">${ev.to === 'Mat' ? 'Mat asks how things should work (data, storage, security, where it runs) with his recommendations, then shows you the architecture to approve.' : esc(ev.summary || '')}</div></div></div>`); break;
     case 'screenshot':
       node = el(`<div class="card shot"><h4>📸 Screenshot</h4><div class="hint">${esc(ev.caption || '')}</div><img alt="" src="${fileUrl(ev.path)}"></div>`);
-      node.querySelector('img').onclick = () => lightbox(fileUrl(ev.path)); break;
+      node.querySelector('img').onclick = () => lightbox(fileUrl(ev.path));
+      node.querySelector('img').onerror = e => e.target.replaceWith(el(`<div class="hint">This screenshot was replaced by a newer test run.</div>`)); break;   // L64
     case 'launched': node = el(`<div class="card"><h4>▶ Your app was started</h4><div class="hint">${esc(ev.command)}${ev.url ? ' · ' + esc(ev.url) : ''}. Try it, then tell Fred what you think.</div></div>`); break;
     case 'setup_done': node = el(`<div class="card" style="border-color:var(--ok)"><h4>✅ Setup complete</h4><div class="doc">${md(ev.summary || '')}</div><div class="acts"><button class="primary">+ Start my first project</button></div></div>`);
       node.querySelector('button').onclick = () => $('newBtn').click(); break;

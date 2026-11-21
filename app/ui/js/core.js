@@ -79,7 +79,7 @@ async function loadState() {
   if (!nHidden) showHidden = false;
   S.projects.filter(p => showHidden || !p.hidden || p.slug === cur).forEach(p => {
     const li = document.createElement('li'); li.className = (p.slug === cur ? 'sel ' : '') + (p.hidden ? 'hid' : '');
-    const sub = p.phase === 'execute' && p.progress && p.progress.building ? 'Iteration ' + p.progress.current + '/' + p.progress.total : phaseLabel(p.phase);
+    const sub = p.phase === 'execute' && p.progress && p.progress.building ? 'Iteration ' + p.progress.current + '/' + p.progress.total : phaseLabel(p.phase, p.state);
     li.innerHTML = `<span class="nmw"><span class="nm">${esc(p.name)}${p.hidden ? ' (hidden)' : ''}</span><span class="sub">${esc(sub)}</span></span>${stateHtml(p.state)}`;
     li.title = p.existing ? 'Started from an existing folder' : '';
     li.onclick = () => open(p.slug); ul.appendChild(li);
@@ -103,14 +103,18 @@ const softState = () => { clearTimeout(lsTimer); lsTimer = setTimeout(loadState,
 function updateStateP() {
   const p = view?.project, sp = $('stateP');
   if (!p || p.slug === 'setup') { sp.hidden = true; return; }
-  const live = (S?.projects || []).find(x => x.slug === p.slug);
-  sp.outerHTML = stateHtml(live?.state || p.state || 'idle').replace('<span ', '<span id="stateP" ');
+  sp.outerHTML = stateHtml(liveState(p)).replace('<span ', '<span id="stateP" ');
+  if (p.phase === 'review') $('phase').textContent = phaseLabel(p.phase, liveState(p)) + iterLabel(view.progress, p.phase);   // L60
 }
+const liveState = p => ((S?.projects || []).find(x => x.slug === p.slug)?.state) || p.state || 'idle';
 const STATE_LABEL = {working: 'Working', 'needs you': 'Needs you', paused: 'Paused', limit: 'Usage limit', waiting: 'Waiting', release: 'Waiting for release', idle: 'Idle'};
 const stateHtml = st => { st = st || 'idle'; return `<span class="state ${esc(st.split(' ')[0])}" title="${esc(st === 'idle' ? 'Nothing is in progress right now' : st === 'needs you' ? 'Waiting for your answer in the chat' : STATE_LABEL[st])}">${esc(STATE_LABEL[st] || st)}</span>`; };
 const leadName = () => view?.project?.phase === 'architecture' ? 'Mat' : 'Fred';
 const iterLabel = (pr, phase) => pr && pr.total ? (phase === 'execute' && pr.building ? ` · iteration ${pr.current} of ${pr.total}` : ` · ${pr.done}/${pr.total} iterations done`) : '';
-const phaseLabel = p => ({discover: 'Requirements', architecture: 'Architecture', plan: 'Planning', execute: 'Building', review: 'Your review', setup: 'Setup'})[p] || p;
+// L60: after the last iteration the team may still be checking the new version (security review, fixes,
+// clean-up, quality check): say so while it works, and "Ready for your review" only once it waits for the user.
+const phaseLabel = (p, st) => p === 'review' ? (st === 'working' || st === 'limit' ? 'New version check' : 'Ready for your review')
+  : ({discover: 'Requirements', architecture: 'Architecture', plan: 'Planning', execute: 'Building', setup: 'Setup'})[p] || p;
 
 let early = [];  // events of the project being opened that arrive while its history is loading
 async function open(slug) {
@@ -133,7 +137,7 @@ async function open(slug) {
 function renderHeader() {
   const p = view?.project;
   $('title').textContent = p ? p.name : 'AI Team Lite';
-  const ph = $('phase'); ph.hidden = !p; if (p) { ph.textContent = phaseLabel(p.phase) + iterLabel(view.progress, p.phase); ph.className = 'pill ' + (p.phase === 'execute' ? 'acc' : p.phase === 'review' ? 'ok' : ''); }
+  const ph = $('phase'); ph.hidden = !p; if (p) { ph.textContent = phaseLabel(p.phase, liveState(p)) + iterLabel(view.progress, p.phase); ph.className = 'pill ' + (p.phase === 'execute' ? 'acc' : p.phase === 'review' ? 'ok' : ''); }
   renderCost(p);
   $('folderBtn').hidden = !p || p.slug === 'setup';
   $('pauseBtn').hidden = !p || p.slug === 'setup';

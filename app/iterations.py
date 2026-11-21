@@ -8,7 +8,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import paths, policy, projectmap, projects, settings, testrun, upkeep, usage
+from . import freshtests, paths, policy, projectmap, projects, settings, testrun, upkeep, usage
 
 STATUSES = ("planned", "building", "done")
 AFTER = ("continue", "pause")  # when an iteration is finished: go on to the next one, or wait for the user's release
@@ -289,6 +289,10 @@ def commit(slug: str, n: int, summary: str, test_command: str, light_cleanup: st
     if not ok:
         _save(slug, its)
         return {"ok": False, "output": output, "commit": None}
+    try:   # L64: the results of this validated run replace the older ones (saved with this iteration)
+        it["fresh_tests"] = freshtests.refresh(folder, n, it.get("started"))
+    except OSError:
+        pass
     if not (folder / ".git").exists():
         _git(folder, "init", "-b", "main")
     projects.exclude_meta(folder)  # never commit AI Team Lite's own chat history
