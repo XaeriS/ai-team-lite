@@ -1,7 +1,8 @@
-/* L38: spelling help in the message box. The app checks the words (dictionaries on this PC, in the languages chosen in
-   Settings) and lists possible typos under the box; click one, or right-click the word, to pick a correction. */
+/* L38 + L66: spelling help in the message box, like Word: misspelt words get a red wavy underline (drawn on a layer
+   behind the box, so the text itself is untouched) and a right-click on one shows the corrections. The words are
+   checked with the dictionaries on this PC, in the languages chosen in Settings > General. */
 let spellIssues = [], spellTimer = null, spellSeq = 0;
-function spellSoon() { clearTimeout(spellTimer); spellTimer = setTimeout(checkSpelling, 500); }
+function spellSoon() { clearTimeout(spellTimer); spellTimer = setTimeout(checkSpelling, 500); renderSpell(); }
 async function checkSpelling() {
   const text = $('input').value, mine = ++spellSeq;
   if (!S?.settings?.spell_check || !text.trim()) { spellIssues = []; renderSpell(); return; }
@@ -9,7 +10,9 @@ async function checkSpelling() {
   if (mine !== spellSeq || $('input').value !== text) return;   // the text changed meanwhile: a newer check is on its way
   spellIssues = r.issues || []; renderSpell();
 }
-function spellIssueAt(pos) { return spellIssues.find(i => pos >= i.start && pos <= i.end && $('input').value.slice(i.start, i.end) === i.word) || null; }
+// issues still where they were (typing elsewhere keeps them; text changed under one hides it until the next check)
+const spellLive = () => spellIssues.filter(i => $('input').value.slice(i.start, i.end) === i.word);
+function spellIssueAt(pos) { return spellLive().find(i => pos >= i.start && pos <= i.end) || null; }
 function spellReplace(issue, word) {
   const f = $('input');
   if (f.value.slice(issue.start, issue.end) !== issue.word) return;
@@ -23,15 +26,31 @@ function spellEntries(issue) {
   return e;
 }
 function renderSpell() {
-  const bar = $('spellBar'), seen = new Set(), list = spellIssues.filter(i => !seen.has(i.word.toLowerCase()) && seen.add(i.word.toLowerCase()));
-  bar.hidden = !list.length; bar.innerHTML = '';
-  if (!list.length) return;
-  bar.append(el('<span class="hint">Possible typos:</span>'));
-  list.slice(0, 8).forEach(i => {
-    const b = el(`<button type="button" class="typo" title="Click to see corrections">${esc(i.word)}</button>`);
-    b.onmousedown = e => e.preventDefault();
-    b.onclick = () => { const r = b.getBoundingClientRect(); openCtx(r.left, Math.max(4, r.top - 8 - 32 * (Math.max(1, i.suggestions.length) + 1)), spellEntries(i)); };
-    bar.append(b);
+  const layer = $('spellLayer'), f = $('input');
+  if (!layer) return;
+  const cs = getComputedStyle(f);   // the layer copies the box's text layout so the lines fall exactly under the words
+  ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'paddingTop', 'paddingRight', 'paddingBottom',
+   'paddingLeft', 'borderTopWidth', 'borderLeftWidth', 'textIndent', 'tabSize'].forEach(k => layer.style[k] = cs[k]);
+  layer.style.width = f.offsetWidth + 'px'; layer.style.height = f.offsetHeight + 'px';
+  const text = f.value, live = spellLive().sort((a, b) => a.start - b.start);
+  let html = '', at = 0;
+  live.forEach((i, n) => {
+    if (i.start < at) return;
+    html += esc(text.slice(at, i.start)) + `<mark data-i="${n}">${esc(i.word)}</mark>`; at = i.end;
   });
-  if (list.length > 8) bar.append(el(`<span class="hint">+${list.length - 8} more</span>`));
+  layer.innerHTML = html + esc(text.slice(at)) + '\n';
+  layer.scrollTop = f.scrollTop;
 }
+// the misspelt word under the mouse (right-click), found from the underline drawn on the layer
+function spellIssueAtPoint(x, y) {
+  const live = spellLive().sort((a, b) => a.start - b.start);
+  for (const m of $('spellLayer')?.querySelectorAll('mark') || []) {
+    for (const r of m.getClientRects()) if (x >= r.left - 2 && x <= r.right + 2 && y >= r.top - 2 && y <= r.bottom + 4) return live[+m.dataset.i] || null;
+  }
+  return null;
+}
+addEventListener('DOMContentLoaded', () => {
+  const f = $('input');
+  f.addEventListener('scroll', () => { $('spellLayer').scrollTop = f.scrollTop; });
+  addEventListener('resize', renderSpell);
+});

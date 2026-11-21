@@ -55,7 +55,7 @@ document.addEventListener('contextmenu', e => {
   if (field) {
     e.preventDefault();
     const picked = field.value.slice(field.selectionStart, field.selectionEnd), secret = field.type === 'password';
-    const typo = field.id === 'input' ? spellIssueAt(field.selectionStart) : null;   // L38: corrections first
+    const typo = field.id === 'input' ? (spellIssueAtPoint(e.clientX, e.clientY) || spellIssueAt(field.selectionStart)) : null;   // L38/L66: corrections first
     openCtx(e.clientX, e.clientY, [...(typo ? spellEntries(typo) : []),
       ['Cut', async () => { if (await copyText(picked)) pasteInto(field, ''); }, !picked || secret],
       ['Copy', () => copyText(picked), !picked || secret],
