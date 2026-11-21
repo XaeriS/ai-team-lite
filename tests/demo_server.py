@@ -186,10 +186,12 @@ async def script(i, prompt, c):
             for x in m:
                 yield x
             _, res, m, _ = await use("mcp__aiteam__record_challenge_review", {"findings": [
-                {"kind": "objection", "title": "A spreadsheet template may be enough",
+                {"kind": "objection", "current": "The app imports the expense files and shows totals per month.",
+                 "title": "A spreadsheet template may be enough",
                  "detail": "Two requirements, both doable with a pivot table.", "recommendation": "Try a template first",
                  "requirements": ["REQ-1", "REQ-2"]},
-                {"kind": "contradiction", "title": "Totals 'per month' but expenses have no month rule",
+                {"kind": "contradiction", "current": "Each expense counts in the month it is imported.",
+                 "title": "Totals 'per month' but expenses have no month rule",
                  "detail": "REQ-2 needs to know which month a late refund belongs to.",
                  "recommendation": "Use the expense date", "requirements": ["REQ-2"]},
                 {"kind": "assumption", "title": "Only one currency is used", "detail": "Nothing says so.",
