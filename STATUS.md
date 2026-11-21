@@ -25,7 +25,8 @@ restart, pipeline, voice, spelling, usage view, checkpoints, existing-folder imp
 installer packaging and GitHub release.
 
 ## Unfinished or broken
-- L47 sandbox: not started, an investigation is planned first (1.6.3).
+- L47 sandbox: investigation done (iteration 11, 2026-11-21): reports/L47-sandbox-options.md and tools/sandbox_probe.py. AppContainer passed Python, Git, pip and claude.exe and refused writing outside and reading a canary file; pytest needs read-attributes on the parent folder. Not built yet: waits for the owner's decision. Still unproven: Claude's sign-in, git push, pip install online, apps with a window.
+- REQ-28 taskbar colours: planned after the sandbox.
 - Today the only guard against a harmful command is text patterns (policy.py, risk.py).
 - The installer is unsigned.
 - Set aside: parallel build, IT handover pack, signing, portfolio view, templates, second reviewer.

@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AI Team Lite 1.6.2: how the app is built",
+    "output": ".archify/architecture-ai-team-lite-20261121-085038/architecture-ai-team-lite.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/XaeriS/ai-team-lite",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "2725f3f6b488796a81e54291807ef2efbda554d2"
+    },
+    "legend": { "mode": "auto" }
+  },
+  "layout": {
+    "mode": "grid",
+    "origin": [40, 40],
+    "cols": 5,
+    "gapX": 130,
+    "gapY": 100,
+    "cellW": 150,
+    "cellH": 90
+  },
+  "components": [
+    {
+      "id": "window",
+      "type": "frontend",
+      "label": "Desktop window",
+      "sublabel": "Chat and side panel",
+      "row": 0, "col": 0,
+      "sources": [
+        { "path": "app/main.py", "line": 221, "end_line": 221, "label": "opens the window" },
+        { "path": "app/main.py", "line": 272, "end_line": 272, "label": "Edge WebView2" }
+      ]
+    },
+    {
+      "id": "server",
+      "type": "backend",
+      "label": "Local server",
+      "sublabel": "Port 47824, token",
+      "row": 0, "col": 1,
+      "sources": [
+        { "path": "app/server.py", "line": 421, "end_line": 422, "label": "listens on this PC only" },
+        { "path": "app/server.py", "line": 197, "end_line": 201, "label": "token check" },
+        { "path": "app/server.py", "line": 351, "end_line": 351, "label": "live event stream" }
+      ]
+    },
+    {
+      "id": "engine",
+      "type": "backend",
+      "label": "Engine and sessions",
+      "sublabel": "One session per project",
+      "row": 0, "col": 2,
+      "sources": [
+        { "path": "app/engine.py", "line": 38, "end_line": 41, "label": "owns all sessions" },
+        { "path": "app/session.py", "line": 221, "end_line": 221, "label": "starts the Claude client" }
+      ]
+    },
+    {
+      "id": "guard",
+      "type": "security",
+      "label": "Approval guard",
+      "sublabel": "Asks before risky work",
+      "row": 0, "col": 3,
+      "sources": [
+        { "path": "app/policy.py", "line": 111, "end_line": 116, "label": "decides allow or ask" },
+        { "path": "app/shellcheck.py", "line": 102, "end_line": 103, "label": "judges shell commands" },
+        { "path": "app/session_approvals.py", "line": 87, "end_line": 88, "label": "asked for each tool call" }
+      ]
+    },
+    {
+      "id": "claude",
+      "type": "external",
+      "label": "Claude engine",
+      "sublabel": "claude.exe, Anthropic",
+      "row": 1, "col": 2,
+      "sources": [
+        { "path": "app/auth.py", "line": 19, "end_line": 24, "label": "finds bundled claude.exe" },
+        { "path": "app/winhelpers.py", "line": 37, "end_line": 54, "label": "starts it with no console" }
+      ]
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "Team tools",
+      "sublabel": "Plan, build, tests, GitHub",
+      "row": 1, "col": 3,
+      "sources": [
+        { "path": "app/tools.py", "line": 26, "end_line": 27, "label": "collects the tool groups" },
+        { "path": "app/tools.py", "line": 40, "end_line": 40, "label": "registers the mcp__aiteam__ tools" }
+      ]
+    },
+    {
+      "id": "delivery",
+      "type": "backend",
+      "label": "Tests and installer",
+      "sublabel": "Hidden desktop, setup",
+      "row": 1, "col": 4,
+      "sources": [
+        { "path": "app/testrun.py", "line": 25, "end_line": 35, "label": "runs tests on a hidden desktop" },
+        { "path": "app/tools_delivery.py", "line": 25, "end_line": 27, "label": "builds the installer" },
+        { "path": "app/packaging.py", "line": 116, "end_line": 116, "label": "PyInstaller command" }
+      ]
+    },
+    {
+      "id": "folders",
+      "type": "database",
+      "label": "Project folders",
+      "sublabel": "Files, code, Git",
+      "row": 2, "col": 2,
+      "sources": [
+        { "path": "app/projects.py", "line": 42, "end_line": 42, "label": "one folder per project" },
+        { "path": "app/iterations.py", "line": 266, "end_line": 271, "label": "runs git commits" }
+      ]
+    },
+    {
+      "id": "appdata",
+      "type": "database",
+      "label": "App data and keys",
+      "sublabel": "Settings, logs, keys",
+      "row": 1, "col": 1,
+      "sources": [
+        { "path": "app/paths.py", "line": 18, "end_line": 22, "label": "data folder in APPDATA" },
+        { "path": "app/secrets_store.py", "line": 8, "end_line": 8, "label": "Credential Manager service" },
+        { "path": "app/secrets_store.py", "line": 56, "end_line": 56, "label": "saves keys there" }
+      ]
+    },
+    {
+      "id": "github",
+      "type": "cloud",
+      "label": "GitHub",
+      "sublabel": "CI tests, releases",
+      "row": 2, "col": 4,
+      "sources": [
+        { "path": "app/github.py", "line": 123, "end_line": 123, "label": "publishes a project" },
+        { "path": ".github/workflows/release.yml", "line": 7, "end_line": 9, "label": "release on push to main" },
+        { "path": ".github/workflows/tests.yml", "line": 3, "end_line": 5, "label": "tests on every push" }
+      ]
+    },
+    {
+      "id": "sandbox",
+      "type": "security",
+      "label": "Sandbox",
+      "sublabel": "AppContainer, 1.6.3",
+      "tag": "PLANNED, not built",
+      "row": 2, "col": 3,
+      "sources": [
+        { "path": "ARCHITECTURE.md", "line": 44, "end_line": 53, "label": "planned design, not in code" }
+      ]
+    }
+  ],
+  "connections": [
+    { "id": "window-server", "from": "window", "to": "server", "label": "Clicks, updates" },
+    { "id": "server-engine", "from": "server", "to": "engine", "label": "Chat, actions" },
+    { "id": "server-appdata", "from": "server", "to": "appdata", "label": "Settings, keys" },
+    { "id": "engine-claude", "from": "engine", "to": "claude", "label": "Starts engine" },
+    { "id": "engine-guard", "from": "engine", "to": "guard", "label": "Checks actions", "variant": "security" },
+    { "id": "claude-tools", "from": "claude", "to": "tools", "label": "Uses team tools" },
+    { "id": "claude-folders", "from": "claude", "to": "folders", "label": "Reads, writes, runs" },
+    { "id": "tools-delivery", "from": "tools", "to": "delivery", "label": "Tests, installer" },
+    { "id": "delivery-github", "from": "delivery", "to": "github", "label": "Push, CI, release" },
+    { "id": "sandbox-claude", "from": "sandbox", "to": "claude", "label": "Wraps engine", "variant": "dashed" },
+    { "id": "sandbox-delivery", "from": "sandbox", "to": "delivery", "label": "Wraps tests", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Approvals",
+      "items": [
+        "Reading never asks; a change before plan approval always asks",
+        "Installs, Windows changes and GitHub always ask",
+        "Commands run with the user's full rights; text patterns are the only guard"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Planned for 1.6.3 (not built)",
+      "items": [
+        "AppContainer around claude.exe and test runs",
+        "Protects writes outside the project and private files first",
+        "Network stays open for pip, GitHub and Anthropic"
+      ]
+    }
+  ]
+}
