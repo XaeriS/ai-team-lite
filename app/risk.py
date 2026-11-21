@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from . import policy
+from . import policy, shellcheck
 
 HIGH, MEDIUM, LOW = "high", "medium", "low"
 
@@ -46,10 +46,12 @@ def _rel(path: str, root: Path) -> str:
         return path
 
 
-def explain(tool: str, inp: dict, root: Path, inside_project) -> dict:
+def explain(tool: str, inp: dict, root: Path, inside_project, roots: list[str] | None = None) -> dict:
     """Return {"what": str, "risk": low|medium|high, "risk_reason": str}."""
+    roots = roots or [str(root)]
     if tool in ("Bash", "PowerShell"):
-        cmd = str(inp.get("command", ""))
+        parts = shellcheck.split(str(inp.get("command", "")))
+        cmd = parts.visible   # L62: text being written into a file is content, not an action
         whats, risk, reasons = [], LOW, []
         order = {LOW: 0, MEDIUM: 1, HIGH: 2}
         for pattern, what, r, why in COMMANDS:
@@ -59,12 +61,17 @@ def explain(tool: str, inp: dict, root: Path, inside_project) -> dict:
                 whats.append(what)
                 reasons.append(why)
                 risk = r if order[r] > order[risk] else risk
-        if policy.is_risky(cmd):
-            risk = HIGH if risk != HIGH else risk
-        outside = policy._abs_paths_outside(cmd, [str(root)])
-        if outside:
+        if policy.RISKY.search(cmd):   # a new package stays medium (it downloads code): it asks, but is not alarming
             risk = HIGH
-            reasons.insert(0, f"it touches files outside the project ({outside[0]})")
+        v = shellcheck.judge(str(inp.get("command", "")), roots, plan_approved=True, is_risky=policy.is_risky,
+                             outside_paths=policy._abs_paths_outside)
+        if v.ask and v.reason != "risky for your PC":   # L62: name the real outside place, never text in a file
+            risk = HIGH
+            reasons.insert(0, f"it {v.reason} ({v.what})" if v.what else f"it {v.reason}")
+        elif risk == HIGH and not policy.RISKY.search(cmd) and "Deletes files or folders" in whats:
+            risk = MEDIUM   # L63: deleting inside the project: earlier versions are in its checkpoints
+            reasons = ["files not saved in a checkpoint cannot be recovered" if r == "deleted files cannot be recovered" else r
+                       for r in reasons]
         if not whats:
             whats, reasons = ["Runs a command"], ["the app could not recognise this command: read it carefully"]
             risk = MEDIUM if risk == LOW else risk
@@ -73,7 +80,7 @@ def explain(tool: str, inp: dict, root: Path, inside_project) -> dict:
     if tool in ("Write", "Edit", "MultiEdit", "NotebookEdit"):
         path = str(inp.get("file_path") or inp.get("notebook_path") or "")
         rel = _rel(path, root)
-        inside = inside_project(path)
+        inside = inside_project(path) or (bool(path) and not policy._abs_paths_outside(f'"{path}"', roots))
         exists = Path(path).exists()
         if not inside:
             return {"what": f"{'Changes' if exists else 'Creates'} {path} (outside the project folder).", "risk": HIGH,

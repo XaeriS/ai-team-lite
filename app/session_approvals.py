@@ -11,7 +11,7 @@ import uuid
 
 from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
 
-from . import engine_const as const, models, paths, policy, projects, risk, scorecard, settings, timeline
+from . import engine_const as const, models, paths, policy, projects, risk, scorecard, settings, shellcheck, timeline
 from .engine_text import approval_card, interrupted_text
 
 
@@ -82,7 +82,8 @@ class ApprovalsMixin:
             return await self._ask_user_question(tool_input or {})
         s = settings.load()
         project = projects.load(self.slug) or {}
-        roots = [str(self.folder), str(paths.bundled_python().parent), str(paths.install_dir())]
+        # L63: the project, AI Team Lite's own folder (its Python, Node, Archify) and the Windows temp folder
+        roots = shellcheck.safe_roots(self.folder, paths.install_dir()) + [str(paths.bundled_python().parent)]
         decision, reason = policy.decide(
             tool_name, tool_input or {}, kind=self.kind, mode=s["approval_mode"],
             plan_approved=bool(project.get("plan_approved")),
@@ -94,7 +95,7 @@ class ApprovalsMixin:
         who = self.persona if not agent_id else (self._current_worker() or "A worker agent")
         card["who"] = who
         card["reason"] = reason
-        card.update(risk.explain(tool_name, tool_input or {}, self.folder, lambda p: projects.inside(self.slug, p)))
+        card.update(risk.explain(tool_name, tool_input or {}, self.folder, lambda p: projects.inside(self.slug, p), roots))
         if tool_name == "mcp__aiteam__github_push":   # L49: red points of the scorecard are shown, not blocking
             warn = scorecard.push_warning(self.slug)
             if warn:

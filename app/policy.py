@@ -1,18 +1,21 @@
 """Which agent actions run on their own and which need your approval.
 
 Rules (in order):
-1. Reading and searching never asks (including simple read-only commands such as `git log` or `dir`, used to
-   understand an existing folder).
+1. Reading and searching never asks, wherever it looks (L65).
 2. Setup conversation, or approval mode "strict": everything else asks.
 3. Writing documents (*.md) inside the project never asks: that is Fred keeping the requirements and plan.
-4. Before you approve a plan, any other change asks.
-5. After you approve a plan (mode "plan"), agents may edit files and run ordinary commands INSIDE the
-   project folder. Commands that are risky (installing software, deleting outside the project, pushing to
-   GitHub, changing the system) still ask.
+4. Before you approve a plan, any change asks (nothing is built before the plan is approved).
+5. After you approve a plan (mode "plan"), the team works without asking inside the safe places: the project
+   folder, the Windows temp folder and AI Team Lite's own folder (L63, L65). Only what is risky for the PC asks:
+   installing software or new packages, changing Windows (settings, registry, services, scheduled tasks,
+   firewall, Defender), changing files elsewhere on the PC, running a program from elsewhere, running as
+   administrator, and publishing to GitHub. See app/shellcheck.py.
 """
 from __future__ import annotations
 
 import re
+
+from . import shellcheck
 
 ALWAYS_ALLOW = {
     "Read", "Glob", "Grep", "LS", "TodoWrite", "TodoRead", "NotebookRead", "WebSearch", "WebFetch",
@@ -29,12 +32,13 @@ ALWAYS_ALLOW = {
     "mcp__aiteam__record_diagram", "mcp__aiteam__record_problem", "mcp__aiteam__record_challenge_review",
     "mcp__aiteam__record_questions", "mcp__aiteam__connect_phone",
     "mcp__aiteam__run_tests", "mcp__aiteam__record_lesson", "mcp__aiteam__quality_check",   # run_tests checks itself that the command only runs the project's tests
+    "mcp__aiteam__record_finding", "mcp__aiteam__close_finding", "mcp__aiteam__clean_leftovers",   # L61: bookkeeping
 }
 # helpers that only read, search the web or draw diagrams: they may start before a plan is approved
 EARLY_WORKERS = {"scout", "challenger", "diagrammer"}
 AFTER_PLAN = {"mcp__aiteam__take_screenshot", "Agent", "Task", "KillShell",
-              "KillBash", "TaskStop"}
-ALWAYS_ASK = {"mcp__aiteam__github_create_repo", "mcp__aiteam__github_push", "mcp__aiteam__launch_for_user"}
+              "KillBash", "TaskStop", "mcp__aiteam__launch_for_user"}   # L65: starting the project is project work
+ALWAYS_ASK = {"mcp__aiteam__github_create_repo", "mcp__aiteam__github_push"}
 WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 SHELL_TOOLS = {"Bash", "PowerShell"}
 
@@ -43,22 +47,26 @@ RISKY = re.compile(
     \b(winget|choco|scoop|msiexec|apt(-get)?|brew|sudo|runas|reg(\.exe)?\s+(add|delete)|setx|
        Set-ExecutionPolicy|Set-ItemProperty|New-ItemProperty|Remove-ItemProperty|shutdown|Restart-Computer|
        Stop-Computer|format(\.com)?\s|diskpart|bcdedit|schtasks|sc(\.exe)?\s+(create|delete|config)|
-       Start-Process\s+.*-Verb\s+RunAs|Invoke-Expression|iex\b)
+       Start-Process\s+.*-Verb\s+RunAs|Invoke-Expression|iex\b|
+       netsh|New-NetFirewallRule|Set-NetFirewall\w*|Add-MpPreference|Set-MpPreference|Set-Service|New-Service|
+       Register-ScheduledTask|Enable-WindowsOptionalFeature|Disable-WindowsOptionalFeature|dism(\.exe)?\s)
     | git\s+push | git\s+remote\s+(add|set-url) | gh\s+repo
     | npm\s+(i|install)\s+(-g|--global) | pip\s+install\s+.*--user
     | (curl|wget|iwr|Invoke-WebRequest|irm|Invoke-RestMethod)\b.*\|\s*(sh|bash|iex|powershell)
-    | rm\s+-[a-z]*r[a-z]*f?\s+(/|~|\.\.|[a-z]:) | Remove-Item\b.*-Recurse\b.*([a-z]:\\|\.\.|~|\$env:)
+    | rm\s+-[a-z]*r[a-z]*f?\s+(/(?!tmp\b)|~|\.\.|[a-z]:) | Remove-Item\b.*-Recurse\b.*([a-z]:\\|\.\.|~|\$env:(?!TE?MP))
     | del\s+/[sq] | rmdir\s+/s | rd\s+/s
     """
 )
-PIP_INSTALL = re.compile(r"\bpip(\.exe)?\s+install\b(?!\s+-r\b)", re.I)
+# L65: a new package runs its own code on the PC when installed, so it asks; the packages already listed by the
+# project (pip install -r requirements.txt, npm install / npm ci), the project itself (-e .) and pip itself do not.
+PIP_INSTALL = re.compile(r"\bpip(3)?(\.exe)?\s+install\b(?!(\s+(-q|--quiet|-U|--upgrade|--no-input|--disable-pip-version-check))*"
+                         r"\s+(-r\b|--requirement\b|-e\s+\.(\s|$)|\.(\s|$)|pip(\s|$)))", re.I)
+NPM_INSTALL = re.compile(r"\bnpm\s+(i|install|add)\s+(?!-)[@\w]", re.I)
 
 
 def is_risky(command: str) -> bool:
-    """Risky shell command. Installing packages counts as risky unless it goes into the project's .venv."""
-    if RISKY.search(command):
-        return True
-    return bool(PIP_INSTALL.search(command)) and ".venv" not in command.lower()
+    """Risky for the PC: installing software or new packages, changing Windows, publishing."""
+    return bool(RISKY.search(command) or PIP_INSTALL.search(command) or NPM_INSTALL.search(command))
 
 
 ABS_PATH = re.compile(r"""(?i)(?<![\w/])([a-z]:[\\/][^\s"'|;&]*|/[a-z]/[^\s"'|;&]*)""")
@@ -110,6 +118,8 @@ def decide(tool: str, tool_input: dict, *, kind: str, mode: str, plan_approved: 
         return "ask", "approval needed for every action"
     if tool in WRITE_TOOLS:
         path = str(tool_input.get("file_path") or tool_input.get("notebook_path") or "")
+        if path and not inside_project(path) and not _abs_paths_outside(f'"{path}"', allowed_roots):
+            return "allow", "a safe place (temp or AI Team Lite's folder)"   # L63
         if not path or not inside_project(path):
             return "ask", "outside the project folder"
         if "/.archify/" in path.replace("\\", "/"):
@@ -121,20 +131,11 @@ def decide(tool: str, tool_input: dict, *, kind: str, mode: str, plan_approved: 
         return "allow", "read-only helper"
     if tool in AFTER_PLAN:
         return ("allow", "covered by the approved plan") if plan_approved else ("ask", "no approved plan yet")
-    cmd0 = str(tool_input.get("command") or "")
-    if tool in SHELL_TOOLS and "archify.mjs" in cmd0 and not CHAINING.search(cmd0) \
-            and not _abs_paths_outside(cmd0, allowed_roots):
-        return "allow", "drawing a diagram"  # the bundled diagram program, writing inside the project (item 78)
-    if tool in SHELL_TOOLS and is_readonly(str(tool_input.get("command") or "")) \
-            and not _abs_paths_outside(str(tool_input.get("command") or ""), allowed_roots):
-        return "allow", "read-only command"
     if tool in SHELL_TOOLS:
-        if not plan_approved:
-            return "ask", "no approved plan yet"
         cmd = str(tool_input.get("command") or "")
-        if is_risky(cmd):
-            return "ask", "risky command"
-        if _abs_paths_outside(cmd, allowed_roots):
-            return "ask", "touches files outside the project"
-        return "allow", "covered by the approved plan"
+        if "archify.mjs" in cmd and not CHAINING.search(cmd) and not _abs_paths_outside(cmd, allowed_roots):
+            return "allow", "drawing a diagram"  # the bundled diagram program, writing inside the project (item 78)
+        v = shellcheck.judge(cmd, allowed_roots, plan_approved=plan_approved, is_risky=is_risky,
+                             outside_paths=_abs_paths_outside)
+        return ("ask", v.reason) if v.ask else ("allow", v.reason)
     return "ask", "unknown action"

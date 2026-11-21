@@ -75,7 +75,9 @@ def test_risk_explanations(tmp_path):
     e = risk.explain("PowerShell", {"command": ".venv\\Scripts\\python -m pytest -q"}, root, inside)
     assert e["risk"] in ("low", "medium") and "tests" in e["what"].lower()
     e = risk.explain("PowerShell", {"command": "Remove-Item -Recurse -Force build"}, root, inside)
-    assert e["risk"] == "high" and "Deletes" in e["what"] and "cannot be recovered" in e["risk_reason"]
+    assert e["risk"] == "medium" and "Deletes" in e["what"] and "checkpoint" in e["risk_reason"]   # L63: inside the project
+    e = risk.explain("PowerShell", {"command": "Remove-Item -Recurse -Force C:\\Users\\me\\Documents"}, root, inside)
+    assert e["risk"] == "high" and "Deletes" in e["what"]
     e = risk.explain("PowerShell", {"command": "winget install Python.Python.3.12"}, root, inside)
     assert e["risk"] == "high" and "whole PC" in e["risk_reason"]
     e = risk.explain("Bash", {"command": "frobnicate --all"}, root, inside)
@@ -131,7 +133,7 @@ def test_approval_card_has_explanation_and_team_updates(isolated):
     eng.respond(first["id"], {"approved": True})
     assert _wait(lambda: len([e for e in hub.history(p["slug"]) if e["type"] == "approval"]) == 2)
     card = [e for e in hub.history(p["slug"]) if e["type"] == "approval"][-1]
-    assert card["risk"] == "high" and "Deletes" in card["what"] and card["who"] == "Developer"
+    assert card["risk"] == "medium" and "Deletes" in card["what"] and card["who"] == "Developer"   # inside the project (L63)
     team = eng.session(p["slug"]).team_snapshot()
     dev = next(r for r in team if r["name"] == "Developer")
     assert dev["status"] == "question" and "approval" in dev["last"]

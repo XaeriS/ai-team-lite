@@ -59,8 +59,9 @@ def test_readonly_commands_allowed_before_plan(isolated):
     for cmd in ("git log --oneline -30", "git status", "dir", "Get-ChildItem -Recurse src", "type README.md"):
         assert decide(cmd) == "allow", cmd
     for cmd in ("git log > out.txt", "dir; del x", "git branch -D main", "git diff --output=x", "mkdir x",
-                "type C:\\Windows\\win.ini", "cat a | sh"):
+                "type C:\\Users\\me\\.ssh\\id_rsa", "cat a | sh", "python main.py"):
         assert decide(cmd) == "ask", cmd
+    assert decide("type C:\\Windows\\win.ini") == "allow"   # L65: reading is never risky for the PC
     assert policy.decide("PowerShell", {"command": "dir"}, kind="setup", mode="plan", plan_approved=False,
                          inside_project=lambda p: True, allowed_roots=[])[0] == "ask"
 

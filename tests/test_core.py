@@ -49,7 +49,8 @@ def test_policy_shell():
 
 def test_policy_special_tools():
     assert decide("mcp__aiteam__github_push", {}, plan_approved=True) == "ask"
-    assert decide("mcp__aiteam__launch_for_user", {}, plan_approved=True) == "ask"
+    assert decide("mcp__aiteam__launch_for_user", {}, plan_approved=True) == "allow"   # L65: project work
+    assert decide("mcp__aiteam__launch_for_user", {}) == "ask"
     assert decide("Agent", {}) == "ask"
     assert decide("Agent", {}, plan_approved=True) == "allow"
     assert decide("mcp__aiteam__request_plan_approval", {}) == "allow"
@@ -228,8 +229,8 @@ def test_project_flow_plan_then_build(isolated):
                    ("Write", True), ("PowerShell", True), ("PowerShell", True),
                    ("mcp__aiteam__take_screenshot", True), ("mcp__aiteam__launch_for_user", True),
                    ("worker-write", True)]
-    # only these asked: the pre-plan command, the risky install, and launching the app
-    assert approvals == ["Run a command", "Run a command", "Start your app for you to try"]
+    # only these asked: the pre-plan command and the risky install (L65: starting the app is project work)
+    assert approvals == ["Run a command", "Run a command"]
     proj = projects.load(p["slug"])
     assert proj["plan_approved"] and proj["phase"] == "review" and proj["session_id"] == "sess-1"
     assert proj["cost_usd"] == pytest.approx(0.01)
