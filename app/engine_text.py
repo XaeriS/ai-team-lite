@@ -210,6 +210,18 @@ def closed_by_windows(e: Exception) -> bool:
     return code is not None and (code & 0xFFFFFFFF) in WINDOWS_CLOSED
 
 
+def is_oversize(e: Exception) -> bool:
+    """L67: one message from Claude's engine was bigger than the app accepts (e.g. a big file read whole)."""
+    return "exceeded maximum buffer size" in str(e) or "exceeds limit" in str(e)
+
+
+OVERSIZE_NOTE = ("[App] Your last step produced a message too big for the app (more than {mb} MB), most likely from "
+                 "reading a big file in one go (a saved web page, an image, a PDF or a log). The app recovered. Do "
+                 "not read that file whole again: check a file's size first, and read big files in parts (offset and "
+                 "limit), search them with grep, or convert them to plain text first. Then carry on with what you "
+                 "were doing.")
+
+
 def friendly_error(e: Exception) -> str:
     name = type(e).__name__
     text = str(e)
@@ -222,4 +234,4 @@ def friendly_error(e: Exception) -> str:
     return f"Something went wrong ({name}): {text[:500]}"
 
 
-__all__ = ["APPROVAL_TITLES", "WINDOWS_CLOSED", "_NOT_A_START", "_SIGNIN_LOST", "_START_FIRST", "_file_label", "_quiet", "_result_text", "_short", "_tail", "approval_card", "closed_by_windows", "describe_tool", "friendly_error", "interrupted_text", "is_lost_conversation", "is_signin_lost", "iterations_note", "launch_candidates", "launch_info", "validate_anthropic_key"]
+__all__ = ["OVERSIZE_NOTE", "is_oversize", "APPROVAL_TITLES", "WINDOWS_CLOSED", "_NOT_A_START", "_SIGNIN_LOST", "_START_FIRST", "_file_label", "_quiet", "_result_text", "_short", "_tail", "approval_card", "closed_by_windows", "describe_tool", "friendly_error", "interrupted_text", "is_lost_conversation", "is_signin_lost", "iterations_note", "launch_candidates", "launch_info", "validate_anthropic_key"]

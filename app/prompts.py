@@ -17,6 +17,8 @@ COMMON = """
   Git), never next to the project folder, in the Public folder or other folders; delete them when done.
 - Never ask the user to paste secrets (API keys, tokens, passwords) into the chat. Use request_secret.
 - Never invent results. If something failed, say so plainly and propose the next step.
+- Files the user gives you can be big (saved web pages, PDFs, images, logs): check a file's size before reading
+  it, and read big ones in parts, search them, or convert them to plain text first (L67).
 
 ## Environment
 - Windows PC. Shell commands run in PowerShell unless Git Bash is installed. Prefer simple commands.

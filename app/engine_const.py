@@ -34,3 +34,4 @@ PIPELINE_TICK = 60
 FRESH_MARKERS = ("start_iteration(", "Continue iteration", "user released iteration")  # safe context-reset points
 CONTINUE_TEXT = ("[App] The Claude plan's usage limit has reset. Continue the work exactly where you stopped; do not "
                  "redo steps that were already finished. Tell the user in one line what you are resuming.")
+MAX_MESSAGE_MB = 50   # L67: largest message accepted from Claude's engine (its default, 1 MB, stopped a project)

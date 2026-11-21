@@ -12,7 +12,8 @@ from claude_agent_sdk import AgentDefinition, ClaudeAgentOptions
 from . import (auth, brains, challenge, engine_const as const, journal, languages, lessons as lessons_mod, models,
                paths, projectmap, projects, prompts, secrets_store, settings, skills as skills_mod, timeline, tooling,
                tools, usage)
-from .engine_text import closed_by_windows, friendly_error, is_lost_conversation, is_signin_lost, iterations_note
+from .engine_text import (OVERSIZE_NOTE, closed_by_windows, friendly_error, is_lost_conversation, is_oversize,
+                          is_signin_lost, iterations_note)
 from .events import EventHub
 
 if TYPE_CHECKING:
@@ -183,6 +184,7 @@ class Session(ApprovalsMixin, BackgroundMixin, MessagesMixin):
             model=self.lead_model(), cwd=str(self.folder),
             system_prompt={"type": "preset", "preset": "claude_code", "append": system},
             mcp_servers={"aiteam": server}, agents=agents, can_use_tool=self.can_use_tool,
+            max_buffer_size=const.MAX_MESSAGE_MB * 1024 * 1024,   # L67: the engine's default is 1 MB
             permission_mode="default", resume=project.get("session_id"), env=env, setting_sources=[],
         )
 
@@ -276,6 +278,12 @@ class Session(ApprovalsMixin, BackgroundMixin, MessagesMixin):
                             self.handle(msg)
                         break
                     except Exception as e:  # noqa: BLE001
+                        if attempt == 1 and is_oversize(e):   # L67: recover by itself, and tell Fred why
+                            await self._drop_client()
+                            self.hub.publish(self.slug, {"type": "notice", "text": "A file was too big to read in one "
+                                                         "go; the work restarted and the team now reads it in parts."})
+                            text = OVERSIZE_NOTE.format(mb=const.MAX_MESSAGE_MB)
+                            continue
                         if attempt == 2 or not is_lost_conversation(e):
                             raise
                         # Fred's saved conversation cannot be found (folder path changed, or the conversation was
