@@ -75,6 +75,13 @@ try:
         dg = page.locator(".card", has_text="Draw the overview diagram")
         check("diagram card with Draw it / Skip", dg.locator(".acts button").all_inner_texts() == ["Draw it", "Skip"])
         dg.scroll_into_view_if_needed(); dg.screenshot(path=OUT / "v162-diagram-choice.png")
+        # L52b
+        page.evaluate("ev => onEvent(ev)", {"type": "package", "name": "Cyber assistant", "version": "1.2", "installer": "delivery/Cyber-assistant-Setup-1.2.exe",
+                                            "bytes": 48 * 1048576, "slug": slug, "seq": 9e15 + 2, "ts": 3})
+        pk = page.locator(".card", has_text="Installer ready")
+        check("installer card: file, size and how to install", "delivery/Cyber-assistant-Setup-1.2.exe" in pk.inner_text()
+              and "48 MB" in pk.inner_text() and "desktop shortcut" in pk.inner_text() and pk.locator("[data-folder]").count() == 1)
+        pk.scroll_into_view_if_needed(); pk.screenshot(path=OUT / "v162-installer-card.png")
         b.close()
 finally:
     proc.kill()

@@ -103,6 +103,9 @@ def explain(tool: str, inp: dict, root: Path, inside_project, roots: list[str] |
     if tool == "mcp__aiteam__github_push":
         return {"what": "Uploads the current project files to its GitHub repository.", "risk": MEDIUM,
                 "risk_reason": "Make sure no passwords or private data are in the files."}
+    if tool == "mcp__aiteam__github_release":
+        return {"what": "Publishes the installer of this version on the project's GitHub repository.", "risk": MEDIUM,
+                "risk_reason": "Anyone who can see the repository can download it (public repository: anyone)."}
     if tool == "mcp__aiteam__launch_for_user":
         return {"what": f"Starts your app ({inp.get('command', '')}) so you can try it.", "risk": LOW,
                 "risk_reason": "It runs the project's own program with your user rights."}

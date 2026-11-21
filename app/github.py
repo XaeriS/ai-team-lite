@@ -5,6 +5,7 @@ import base64
 import json
 import subprocess
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -147,3 +148,33 @@ def publish(folder: Path, message: str, clone_url: str, tag: str = "") -> str:
         except GitHubError:
             pass  # the tag already exists (same version published again): the code itself is up to date
     return _git(["log", "-1", "--format=%h %s"], folder)
+
+
+def needs_workflow_scope() -> bool:
+    """L52c: GitHub refuses a push that adds .github/workflows unless a classic token has the "workflow" scope.
+    Fine-grained tokens do not list scopes: then we cannot know, and the push says so if it fails."""
+    scopes = [x.strip() for x in str(check().get("scopes") or "").split(",") if x.strip()]
+    return bool(scopes) and "workflow" not in scopes
+
+
+def create_release(repo_full: str, tag: str, title: str, notes: str, asset: Path, target: str = "main") -> str:
+    """L52d: publish a release with the installer attached. Returns the release page."""
+    tok = token()
+    rel, _ = _request("POST", f"{API}/repos/{repo_full}/releases", tok,
+                      {"tag_name": tag, "name": title, "body": notes, "target_commitish": target})
+    upload = str(rel.get("upload_url") or "").split("{")[0]
+    if not upload:
+        raise GitHubError("GitHub did not return where to upload the installer.")
+    data = asset.read_bytes()
+    req = urllib.request.Request(f"{upload}?name={urllib.parse.quote(asset.name)}", data=data, method="POST", headers={
+        "Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json", "Content-Type": "application/octet-stream",
+        "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "AI-Team-Lite-App"})
+    try:
+        with urllib.request.urlopen(req, timeout=600):
+            pass
+    except urllib.error.HTTPError as e:
+        raise GitHubError(f"GitHub refused the installer upload ({e.code}). The release page exists: "
+                          f"{rel.get('html_url', '')}") from None
+    except urllib.error.URLError as e:
+        raise GitHubError(f"Could not upload the installer: {e.reason}") from None
+    return str(rel.get("html_url") or "")

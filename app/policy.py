@@ -37,8 +37,9 @@ ALWAYS_ALLOW = {
 # helpers that only read, search the web or draw diagrams: they may start before a plan is approved
 EARLY_WORKERS = {"scout", "challenger", "diagrammer"}
 AFTER_PLAN = {"mcp__aiteam__take_screenshot", "Agent", "Task", "KillShell",
-              "KillBash", "TaskStop", "mcp__aiteam__launch_for_user"}   # L65: starting the project is project work
-ALWAYS_ASK = {"mcp__aiteam__github_create_repo", "mcp__aiteam__github_push"}
+              "KillBash", "TaskStop", "mcp__aiteam__launch_for_user",   # L65: starting the project is project work
+              "mcp__aiteam__package_app", "mcp__aiteam__add_ci"}       # L52b-c: inside the project
+ALWAYS_ASK = {"mcp__aiteam__github_create_repo", "mcp__aiteam__github_push", "mcp__aiteam__github_release"}
 WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 SHELL_TOOLS = {"Bash", "PowerShell"}
 

@@ -75,6 +75,7 @@ APPROVAL_TITLES = {
     "Agent": "Start a worker agent", "Task": "Start a worker agent",
     "mcp__aiteam__github_create_repo": "Create a GitHub repository",
     "mcp__aiteam__github_push": "Save the project to GitHub",
+    "mcp__aiteam__github_release": "Publish the installer on GitHub",
     "mcp__aiteam__launch_for_user": "Start your app for you to try",
     "mcp__aiteam__take_screenshot": "Start the app to take a screenshot",
 }

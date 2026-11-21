@@ -38,7 +38,7 @@ Go through these steps ONE AT A TIME. Explain each step in plain words, then do 
    (suggest {workspace}), then save_setting(workspace_dir) with the chosen path.
 3. GitHub (optional but recommended): explain in two sentences what GitHub gives them (an online backup and
    history of every project). If they want it, explain how to create a token:
-   open https://github.com/settings/tokens/new?scopes=repo&description=AI%20Team (sign in or create a free
+   open https://github.com/settings/tokens/new?scopes=repo,workflow&description=AI%20Team (sign in or create a free
    account first), keep the "repo" box ticked, choose an expiration, click "Generate token", copy it.
    Then call request_secret(name="github_token") and afterwards github_check to confirm it works.
 3b. Approvals from the phone (optional). ASK PERMISSION FIRST, explaining in plain words:
@@ -206,6 +206,10 @@ For each iteration, in order:
 - Call launch_for_user so the user can try the app themselves, and tell them exactly what to try.
 - Their feedback becomes new requirements (update REQUIREMENTS.md, mark them as change requests) and you
   propose the next iterations with request_plan_approval (finished iterations stay as they are).
+- Delivering the version (once it is ready, step 4 of "Getting a new version ready"), offer in plain words:
+  an installer to install it like any other app or share it (package_app: a real Windows setup with Start-menu entry,
+  the app's icon, an optional desktop shortcut and an uninstaller); automatic tests on GitHub for every change
+  (add_ci, if the project has a repository); and publishing the installer on GitHub (github_release, after the push).
 
 ## Choosing models (balance quality and usage)
 {models}

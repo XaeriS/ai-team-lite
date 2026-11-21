@@ -133,7 +133,9 @@ def post_work(self, app, path: str, body: dict):
             app.engine.stop(slug)
             return self._json({"ok": True})
         if action == "open-folder":
-            winhelpers.open_folder(projects.project_dir(slug))
+            folder = projects.project_dir(slug)
+            sub = folder / "delivery" if body.get("sub") == "delivery" and (folder / "delivery").is_dir() else folder   # L52b
+            winhelpers.open_folder(sub)
             return self._json({"ok": True})
         if action == "attach":
             name = re.sub(r"[^\w.\- ]", "_", Path(str(body.get("name", "file"))).name)[:80] or "file"

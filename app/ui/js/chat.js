@@ -159,6 +159,11 @@ function renderEvent(ev) {
     case 'signin': node = signinCard(ev); break;
     case 'wentback': node = wentBackCard(ev); break;
     case 'scorecard': node = scorecardCard(ev); break;   // L49
+    case 'package':   // L52b: the installer of this version
+      node = el(`<div class="card"><h4>📦 Installer ready: ${esc(ev.name)} ${esc(ev.version)}</h4>
+        <div class="hint">${esc(ev.installer)} · ${Math.round((ev.bytes || 0) / 1048576)} MB. Double-click it to install ${esc(ev.name)} like any other app (Start menu, and a desktop shortcut if you tick the box), or share this one file. Windows may say it does not know the publisher because the installer is not signed: click More info, then Run anyway.</div>
+        <div class="acts" style="margin-top:6px"><button data-folder>Show in folder</button></div></div>`);
+      node.querySelector('[data-folder]').onclick = () => api(`/api/projects/${cur}/open-folder`, {sub: 'delivery'}).catch(e => alertBox(e.message)); break;
     case 'watch': node = el(`<div class="notice watch">⏱ ${esc(ev.text)}</div>`); break;
     case 'headroom': node = el(`<div class="itcard" style="border-left-color:var(--warn)"><b>Your Claude plan:</b> ${esc(ev.text)} <a href="#" data-u>See usage</a></div>`);
       node.querySelector('[data-u]').onclick = e => { e.preventDefault(); UQ.scope = null; openUsage(); }; break;

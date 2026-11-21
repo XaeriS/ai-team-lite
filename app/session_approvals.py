@@ -90,7 +90,7 @@ class ApprovalsMixin:
             inside_project=lambda p: projects.inside(self.slug, p), allowed_roots=roots)
         if decision == "allow":
             return PermissionResultAllow()
-        if tool_name == "mcp__aiteam__github_push" and not (tool_input or {}).get("user_asked_now"):
+        if tool_name in ("mcp__aiteam__github_push", "mcp__aiteam__github_release") and not (tool_input or {}).get("user_asked_now"):
             wait = iterations.cleanup_before_push(self.slug)   # L70: no card for a push that should wait
             if wait:
                 return PermissionResultDeny(message=wait + " If the user explicitly asked to push now, call github_push "
