@@ -357,18 +357,23 @@ function problemHtml(pr) {
     <div class="hint" style="margin-top:4px">${miss.length ? `Fred still needs: ${miss.map(m => m[1].toLowerCase()).join(', ')}.` : '✓ Complete. Fred checks the idea against it before writing requirements.'}</div>`;
 }
 const CH_KIND = {objection: ['🤔', 'Objection'], contradiction: ['⚖️', 'Contradiction'], assumption: ['❓', 'Assumption to confirm'], clarification: ['🔍', 'Needs clarification']};
-const CH_OPTS = {objection: [['change', 'Change it'], ['keep', 'Keep as is'], ['accept', 'Accept the risk']], contradiction: [['change', 'Change it'], ['keep', 'Keep as is'], ['accept', 'Accept the risk']],
-  assumption: [['confirm', 'Correct'], ['correct', 'Not correct']], clarification: [['answer', 'Answer']]};
-const CH_WORD = {change: 'change it', keep: 'keep as is', accept: 'accept the risk', confirm: 'confirmed', correct: 'not correct', answer: 'answered'};
+// L68: keep the current behaviour, accept Fred's recommendation in one click, or say what to do instead
+const CH_THREE = [['keep', 'Keep current behaviour'], ['recommend', "Accept Fred's recommendation"], ['other', 'Do something else']];
+const CH_OPTS = {objection: CH_THREE, contradiction: CH_THREE, clarification: CH_THREE,
+  assumption: [['confirm', 'Correct'], ['correct', 'Not correct']]};
+const CH_WORD = {change: 'change it', keep: 'keep the current behaviour', accept: 'accept the risk', confirm: 'confirmed', correct: 'not correct',
+  answer: 'answered', recommend: "accept Fred's recommendation", other: 'something else'};
 function challengeCard(ev) {
   const pend = ev.status === 'pending', ans = ev.answers || {};
   const items = (ev.findings || []).map(f => {
     const [ic, label] = CH_KIND[f.kind] || CH_KIND.objection, a = ans[f.id] || {};
     const reqs = (f.requirements || []).length ? ` <span class="pill acc">${esc(f.requirements.join(', '))}</span>` : '';
     return `<div class="chf" data-f="${esc(f.id)}" data-kind="${esc(f.kind)}" style="border-top:1px solid var(--line);padding:8px 0">
-      <div><span class="hint">${ic} ${label}</span>${reqs}</div><b>${esc(f.title)}</b>
-      ${f.detail ? `<div class="hint">${esc(f.detail)}</div>` : ''}${f.recommendation ? `<div style="margin-top:2px">💡 <i>Fred recommends:</i> ${esc(f.recommendation)}</div>` : ''}${whyHtml(f.why)}
-      ${pend ? `<div class="acts" style="margin-top:4px">${(CH_OPTS[f.kind] || CH_OPTS.objection).map(([v, t]) => `<button type="button" data-d="${v}">${t}</button>`).join('')}</div>
+      <div><span class="hint">${ic} ${label}</span>${reqs}</div>
+      ${f.current ? `<div class="chcur"><b>Current behaviour:</b> ${esc(f.current)}</div>` : ''}
+      <b>${esc(f.title)}</b>
+      ${f.detail ? `<div class="hint">${esc(f.detail)}</div>` : ''}${f.recommendation ? `<div class="chrec">💡 <b>Fred recommends:</b> ${esc(f.recommendation)}</div>` : ''}${whyHtml(f.why)}
+      ${pend ? `<div class="acts" style="margin-top:4px">${(CH_OPTS[f.kind] || CH_OPTS.objection).filter(([v]) => v !== 'recommend' || f.recommendation).map(([v, t]) => `<button type="button" data-d="${v}">${t}</button>`).join('')}</div>
         <input type="text" data-why hidden placeholder="" style="margin-top:4px">`
       : `<div class="hint" style="margin-top:2px">Your decision: <b>${esc(CH_WORD[a.decision] || 'not decided')}</b>${a.reason ? ' · “' + esc(a.reason) + '”' : ''}</div>`}</div>`;
   }).join('');
@@ -378,9 +383,9 @@ function challengeCard(ev) {
     ${pend ? `<div class="acts"><button class="primary" data-send disabled>Send my decisions to Fred</button><span class="hint" data-left></span></div>` : ''}</div>`);
   if (pend) {
     const choice = {};
-    const why = {keep: 'Why keep it? (optional, helps later)', accept: 'Why is the risk acceptable? (optional)', change: 'What should change? (optional, otherwise Fred uses his recommendation)', correct: 'What is right instead?', answer: 'Your answer', confirm: ''};
+    const why = {keep: 'Why keep it? (optional, kept for whoever takes the project over)', recommend: '', other: 'What should be done instead?', correct: 'What is right instead?', confirm: ''};
     const refresh = () => {
-      const all = [...n.querySelectorAll('.chf')], left = all.filter(x => { const c = choice[x.dataset.f]; return !c || ((c === 'answer' || c === 'correct') && !x.querySelector('[data-why]').value.trim()); }).length;
+      const all = [...n.querySelectorAll('.chf')], left = all.filter(x => { const c = choice[x.dataset.f]; return !c || ((c === 'other' || c === 'correct') && !x.querySelector('[data-why]').value.trim()); }).length;
       n.querySelector('[data-send]').disabled = left > 0;
       n.querySelector('[data-left]').textContent = left ? `${left} point(s) left to decide` : 'All decided.';
     };

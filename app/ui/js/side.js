@@ -125,7 +125,7 @@ async function renderDiagrams() {
       <div class="hint">${esc(x.question || '')} ${when(x)}</div>
       <div class="acts" style="margin-top:6px"><button class="primary" data-open="${esc(x.id)}">Open</button>${x.compare ? `<button data-cmp="${esc(x.id)}">What changed</button>` : ''}</div></div>`;
   const tops = Object.values(latest).sort((a, b) => (b.topic === 'architecture') - (a.topic === 'architecture'));
-  p.innerHTML = why + (tops.length ? tops.map(card).join('') : (why ? '' : '<p class="empty">No diagram yet. Fred asks for the overall picture once the architecture is approved, and after iterations that change it. You can also ask for one below.</p>'))
+  p.innerHTML = why + (tops.length ? tops.map(card).join('') : (why ? '' : '<p class="empty">No diagram yet. Once the plan is approved, Fred asks whether to draw the overall picture; iterations that change how the app is put together update it. You can also ask for one below.</p>'))
     + (older.length ? `<details style="margin-top:8px"><summary class="hint" style="cursor:pointer">Earlier versions (${older.length})</summary>${older.map(card).join('')}</details>` : '')
     + (d.available && d.enabled ? ask : '');
   const byId = Object.fromEntries((d.items || []).map(x => [x.id, x]));

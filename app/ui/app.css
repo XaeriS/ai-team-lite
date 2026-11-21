@@ -304,3 +304,6 @@ button,nav,.pill,.state,.tabs,.stab,.who,.legend,.acts{user-select:none}
 .sc-warn{border-left:3px solid var(--warn);padding-left:8px}
 /* L59: earlier messages on request */
 .earlier{text-align:center;margin:6px 0 10px}.earlier button{font-size:12.5px}
+/* L68: devil's advocate cards */
+.chcur{margin:4px 0 2px;padding:4px 8px;border-left:3px solid var(--line);background:var(--code);border-radius:4px}
+.chrec{margin-top:4px}

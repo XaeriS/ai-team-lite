@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from claude_agent_sdk import tool
 
-from . import brains, challenge, council, iterations, projects, settings, tracking, usage
+from . import brains, challenge, council, diagrams, iterations, projects, settings, tracking, usage
 
 if TYPE_CHECKING:
     from .session import Session
@@ -80,7 +80,7 @@ def make(session: "Session") -> dict:
             session.hub.publish(slug, {"type": "handoff", "from": "Mat", "to": "Fred",
                                        "summary": "Architecture approved. Fred prepares the plan by iterations."})
             session.hub.publish(slug, {"type": "project_list", "transient": True})
-            session.pending_kickoff = PLAN_KICKOFF + diagram_hint("architecture")
+            session.pending_kickoff = PLAN_KICKOFF   # L69: the plan first; the diagram is offered once it is approved
             return text("The user APPROVED the architecture. End your turn now without writing anything else: "
                         "Fred takes over to plan the iterations.")
         return text("The user did NOT approve the architecture yet. Requested changes: " +
@@ -136,9 +136,21 @@ def make(session: "Session") -> dict:
             tracking.mark_approved(slug, "plan")
             tracking.mark_approved(slug, "requirements")
             pauses = [str(it["n"]) for it in proposed if it["status"] != "done" and it.get("after") == "pause"]
+            draw = ""
+            if diagram_hint("architecture") and not any(d.get("topic") == "architecture" for d in diagrams.items(slug)):
+                pick = await session.ask_user("choice", {   # L69: the user decides whether the diagrammer starts now
+                    "title": "Draw the overview diagram before building starts?",
+                    "options": ["Draw it", "Skip"],
+                    "hints": ["The diagrammer draws how the app will work (a few minutes, some of your Claude plan).",
+                              "Go straight to building; the first iteration that adds parts draws it, or ask any time "
+                              "from the Diagrams tab."]})
+                if interrupted(pick):
+                    return interrupted(pick)
+                if str(pick.get("value") or "").lower().startswith("draw"):
+                    draw = " Before that:" + diagram_hint("architecture")
             return text(f"The user APPROVED the plan ({len([i for i in proposed if i['status'] != 'done'])} iterations). "
                         f"Start with iteration {first['n']} ({first['name']}): call start_iteration({first['n']}), then "
-                        "build, test, and commit_iteration before moving on." +
+                        "build, test, and commit_iteration before moving on." + draw +
                         (f" The user wants to release the next iteration themselves after iteration(s) {', '.join(pauses)}."
                          if pauses else ""))
         projects.update(slug, phase="plan", plan_approved=False)
@@ -178,7 +190,8 @@ def make(session: "Session") -> dict:
 
     @tool("record_challenge_review", "Fred: after the challenger worker reviewed the requirements, show its findings to "
           "the user and wait for their decisions. findings = [{kind: objection|contradiction|assumption|clarification, "
-          "title, detail, recommendation, requirements: [REQ-n]}] (most important first, at most 10). Returns what the "
+          "current (what the requirements say today), title, detail, recommendation, requirements: [REQ-n]}] (most "
+          "important first, at most 10). Returns what the "
           "user decided and what you must change.", {"findings": list})
     async def record_challenge_review(args):
         findings = challenge.normalize(args.get("findings"))

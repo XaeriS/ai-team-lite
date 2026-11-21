@@ -49,9 +49,9 @@ def test_findings_normalized_and_decisions_applied(isolated):
     assert [x["title"] for x in challenge.undecided(d)] == ["Unknown kind becomes an objection"]
     todo = challenge.instructions_for_fred(d)
     assert "OVERRULED" in todo and "my boss wants an app" in todo and "Do not raise it again" in todo
-    assert "CHANGE the requirements (REQ-2, REQ-3)" in todo and "Use your recommendation: Managers only" in todo
+    assert "CHANGE the requirements (REQ-2, REQ-3)" in todo and "ACCEPTED your recommendation: Managers only" in todo
     assert "Assumption WRONG" in todo and "dollars and euros" in todo and "When... then..." in todo
-    assert "keep it as it is" in challenge.decisions_markdown(d)
+    assert "keep the current behaviour" in challenge.decisions_markdown(d)   # L68 wording
 
 
 def test_level_setting(isolated):
@@ -216,3 +216,21 @@ def test_l42_l43_finding_and_cleanup_tools(isolated):
     card = [e for e in hub.history(slug) if e["type"] == "choice"][-1]
     assert ".venv_old: an old Python environment" in card["title"]
     eng.shutdown()
+
+
+def test_l68_three_choices_and_current_behaviour(isolated):
+    f = challenge.normalize([
+        {"kind": "objection", "current": "Every user can delete invoices.", "title": "Deleting is too easy",
+         "recommendation": "Only managers can delete.", "requirements": ["REQ-4"]},
+        {"kind": "contradiction", "current_behaviour": "Approvals are optional.", "title": "Approvals vs audit",
+         "recommendation": "Make approvals mandatory."},
+        {"kind": "clarification", "current": "Totals are shown.", "title": "Which totals?", "recommendation": "Per month."}])
+    assert [x["current"] for x in f] == ["Every user can delete invoices.", "Approvals are optional.", "Totals are shown."]
+    d = challenge.apply_answers(f, {f[0]["id"]: {"decision": "recommend"}, f[1]["id"]: {"decision": "other", "reason": "Log every change instead"},
+                                    f[2]["id"]: {"decision": "keep", "reason": "Fine as it is"}})
+    assert not challenge.undecided(d)
+    todo = challenge.instructions_for_fred(d)
+    assert "ACCEPTED your recommendation: Only managers can delete." in todo
+    assert "something else: Log every change instead" in todo and "OVERRULED \"Which totals?\"" in todo
+    md = challenge.decisions_markdown(d)
+    assert "accept Fred's recommendation" in md and "something else" in md and "keep the current behaviour" in md

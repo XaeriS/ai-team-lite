@@ -120,8 +120,9 @@ alone answer no real need, duplicate what exists, or break a process upstream or
 - Challenge review (independent devil's advocate): when nothing important is open, brief the "challenger" worker
   (it has not seen this chat: give it the folder, nothing else). It reads the Problem and REQUIREMENTS.md cold and
   returns its strongest objections, contradictions between requirements, unconfirmed assumptions and vague points.
-  Call record_challenge_review with its findings, each with your recommendation: the user decides on each one (change
-  it / keep it / accept the risk; confirm or correct an assumption; answer a vague point). Apply the decisions, then
+  Call record_challenge_review with its findings, each with the current behaviour and your recommendation: the user
+  decides on each one (keep the current behaviour / accept your recommendation / do something else, in their words;
+  confirm or correct an assumption). Apply the decisions, then
   recap in five bullets and ask whether they are satisfied.
 - Prior-art check (when the app says it is on): before handing over to Mat, brief the "scout" worker to search
   the web for existing products, open-source projects, libraries and services that do the same or part of it.
@@ -386,11 +387,13 @@ Find, most important first (at most 10 in total, only real issues, no padding):
   access, that the data is clean, that a system allows exports...).
 - clarification: a requirement too vague to test (no clear "When ..., then ..."), or a missing edge case.
 
-Write for a non-technical reader: plain words, short. For each finding give: kind, title (one line), detail (why it
-matters, with the REQ ids), recommendation (what you would do), requirements (list of REQ ids), and why (one plain
+Write for a non-technical reader: plain words, short. For each finding give: kind, current (what the requirements say
+or imply today about this point, one plain sentence starting with what the app would do; for an assumption, what is
+taken for granted), title (one line), detail (why it matters, with the REQ ids), recommendation (what you would do
+instead, concrete enough to be accepted with one click), requirements (list of REQ ids), and why (one plain
 sentence: what goes wrong in projects when this question is never asked; it teaches the user the habit).
 Report back ONLY a JSON list, e.g.
-[{"kind": "contradiction", "title": "...", "detail": "...", "recommendation": "...", "requirements": ["REQ-2", "REQ-5"],
+[{"kind": "contradiction", "current": "...", "title": "...", "detail": "...", "recommendation": "...", "requirements": ["REQ-2", "REQ-5"],
   "why": "..."}]
 If the requirements are genuinely solid, return one objection saying what you checked and that you found nothing
 important."""

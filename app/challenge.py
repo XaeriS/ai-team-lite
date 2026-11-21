@@ -55,8 +55,11 @@ KIND_WHY = {
 LEVELS = ("gentle", "normal", "firm")
 KINDS = ("objection", "contradiction", "assumption", "clarification")
 # what the user can decide for each kind of finding
-DECISIONS = {"objection": ("change", "keep", "accept"), "contradiction": ("change", "keep", "accept"),
-             "assumption": ("confirm", "correct"), "clarification": ("answer",)}
+# L68: keep the current behaviour, accept Fred's recommendation, or do something else (the user's own words).
+# "change", "accept" and "answer" are the choices of earlier versions, still understood.
+DECISIONS = {"objection": ("keep", "recommend", "other", "change", "accept"),
+             "contradiction": ("keep", "recommend", "other", "change", "accept"),
+             "assumption": ("confirm", "correct"), "clarification": ("keep", "recommend", "other", "answer")}
 
 LEVEL_TEXT = {
     "gentle": ("Challenge level: GENTLE. Fill the Problem card with the user and raise only serious concerns (something "
@@ -115,6 +118,8 @@ def normalize(raw) -> list[dict]:
         if not title:
             continue
         out.append({"id": uuid.uuid4().hex[:8], "kind": kind, "title": title,
+                    "current": " ".join(str(f.get("current") or f.get("current_behaviour") or
+                                            f.get("current_behavior") or "").split())[:600],   # L68
                     "detail": " ".join(str(f.get("detail") or "").split())[:800],
                     "recommendation": " ".join(str(f.get("recommendation") or f.get("answer") or "").split())[:600],
                     "why": " ".join(str(f.get("why") or f.get("why_asked") or "").split())[:400] or KIND_WHY[kind],
@@ -147,8 +152,9 @@ def save_review(slug: str, findings: list[dict]) -> dict:
     return rev
 
 
-WORDS = {"change": "change it", "keep": "keep it as it is", "accept": "accept the risk", "confirm": "confirmed",
-         "correct": "not correct", "answer": "answered"}
+WORDS = {"change": "change it", "keep": "keep the current behaviour", "accept": "accept the risk", "confirm": "confirmed",
+         "correct": "not correct", "answer": "answered", "recommend": "accept Fred's recommendation",
+         "other": "something else"}
 
 
 def decisions_markdown(findings: list[dict]) -> str:
@@ -169,9 +175,12 @@ def instructions_for_fred(findings: list[dict]) -> str:
     for f in findings:
         d, why = f.get("decision"), f.get("reason") or ""
         ref = f" ({', '.join(f['requirements'])})" if f.get("requirements") else ""
-        if d == "change":
-            todo.append(f"CHANGE the requirements{ref} to resolve: {f['title']}. "
-                        + (f"The user said: {why}" if why else f"Use your recommendation: {f['recommendation']}"))
+        if d == "recommend" or (d == "change" and not why):
+            todo.append(f"CHANGE the requirements{ref} to resolve: {f['title']}. The user ACCEPTED your recommendation: "
+                        f"{f['recommendation']}")
+        elif d in ("other", "change"):
+            todo.append(f"CHANGE the requirements{ref} to resolve: {f['title']}. The user wants something else: {why}"
+                        + (". Turn it into a clear When... then... check." if f["kind"] == "clarification" else ""))
         elif d in ("keep", "accept"):
             todo.append(f"The user OVERRULED \"{f['title']}\" ({WORDS[d]}). Record it under Decisions in REQUIREMENTS.md "
                         f"with the reason: {why or '(no reason given)'}. Do not raise it again.")
