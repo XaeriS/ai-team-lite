@@ -1,30 +1,34 @@
 # Plan
 
 ## Goal
-Carry on from AI Team Lite 1.6.2 (released, nothing rebuilt). Two pieces of new work, in this order:
-1. A sandbox so a bad package or a tricked agent cannot write outside the project or read your private files (REQ-22).
-2. The taskbar icon changes with the state of all projects (REQ-28, CR-1), with the choices you made: an orange, green or grey dot on the icon, and flashing until you answer.
+Carry on from AI Team Lite 1.6.2 (released, nothing rebuilt). The sandbox investigation (iteration 11) is finished and saved. Remaining work, with the new requests you approved (CR-1, CR-2, CR-3):
 
-Work stays paused until you ask me to continue. Overview diagram: `.archify/architecture-ai-team-lite-20261121-085038/architecture-ai-team-lite.html`.
+## Already done (not rebuilt)
+REQ-1 to REQ-21 (released up to 1.6.2) and the sandbox investigation (REQ-22, step 1).
 
-## Already done (shown as done, not rebuilt)
-REQ-1 to REQ-21, released up to 1.6.2, grouped into five finished iterations below.
+## Still to do, in this order
+1. **Proof for the requirements.** The Requirements tab shows "proven by test" only for tests recorded against a requirement. The Tester maps the existing test files to REQ-1 to REQ-22, records each result, and reports which requirements have no test (they stay "not proven" and I list them for you). No change to the app.
+2. **One message draft per project (REQ-29).** Each project keeps its own unsent text and attachments, saved with the project so a restart does not lose them. Small.
+3. **Improvement ideas after each iteration (REQ-30).** A table card with Yes and No per idea (at most 3, from Fred and a short web search by the Scout), every decision saved in `reports/IDEAS.md` and a log, no idea shown twice. Medium.
+4. **Taskbar colours (REQ-28).** Orange, green or grey dot for all projects, flashing until you answer (paused when the window is in front, with a setting), tray follows. Medium.
+5. **Build the sandbox (REQ-22, version 1.6.3), only after your yes** to Mat's question: it protects your files outside the project from being changed or read, not the network or the project folder, and needs your yes once. Large, and the one that uses most of your plan.
+6. **Parked ideas (REQ-23 to REQ-27).** Nothing is built unless you ask.
 
-## Still to do
-1. **Sandbox investigation (no release, no change to the app).** Report `reports/L47-sandbox-options.md` plus a prototype on this Windows 11 Home PC showing whether AppContainer works for Python, Git, pip, the tests and claude.exe (restricted token as fallback). Ends with one recommendation and a question to you. Tested by a script that records pass or fail per tool.
-2. **Build the sandbox (only after you say "go" on the report).** Behind a setting; engine and test runs start inside it; the approval card says in one line when a command runs outside it. Version 1.6.3 with CHANGELOG. Tests first, then the whole suite and screen tests.
-3. **Taskbar colours (REQ-28).** Built test-first in two tasks: (a) a small module that turns all projects' states into a colour and a tooltip (orange: a project waits for you or is ready for review; green: working, queued or waiting for the plan limit; grey: the rest), with unit tests for every case; (b) the Windows part: the dot on the taskbar button, flashing until you answer (paused while the window is in front, with a setting "Flash the taskbar until I answer", on by default), the same dot and tooltip on the tray icon when it is on, and a fallback to the normal icon if Windows refuses. Tested by unit tests and a screen check of the taskbar button (screenshots).
-4. **Parked ideas (REQ-23 to REQ-27).** Nothing is built unless you ask.
+I moved the sandbox build to fifth place: it still waits for your yes, and it is the biggest step for your plan usage (95% this session, reset at 1:30 pm Phoenix time). Say so if you want it earlier.
+
+## How each is tested
+Tests are written first and must fail, then the code, then the whole suite and a screen test with screenshots. Version number, CHANGELOG and the GitHub push wait for your approval.
 
 ## What you will try at the end
-- Sandbox: a test command that writes to your Documents folder or reads a private folder is refused.
-- Taskbar: start two projects, leave one waiting on an approval card. The dot turns orange and the button flashes. Answer the card and it turns green, then grey when all work ends.
+- Drafts: type in project A, switch to B (empty box), back to A (text back), restart the app (still there).
+- Ideas: finish an iteration, get the table, click Yes on one and No on another, open `reports/IDEAS.md` and find both with the date.
+- Taskbar: leave one project waiting on an approval card: orange dot and flashing; answer it: green, then grey.
 
 ## Risks and assumptions
-- The sandbox may break Git credentials, pip's cache or claude.exe's sign-in: the investigation proves it first.
-- Only a real run on your PC proves the taskbar behaviour. The taskbar may not be visible to the test tools, so part of the check is yours.
-- REQ-1 to REQ-21 were not re-run by me.
-- Uncommitted now: the .gitignore change and PROJECT_MAP.md.
+- The web search after every iteration costs plan usage; it is skipped when the limit is near.
+- The taskbar dot can only be fully proven on your PC.
+- REQ-1 to REQ-21 were never re-run by me; step 1 shows what the existing tests prove.
+- Uncommitted now: the .gitignore change, PROJECT_MAP.md and the documents I updated.
 
 ## Iterations
 | # | Iteration | Requirements | Status |
@@ -43,7 +47,16 @@ REQ-1 to REQ-21, released up to 1.6.2, grouped into five finished iterations bel
 |  | [x] Probe script: start programs inside an AppContainer and record pass/fail | tools/sandbox_probe.py | |
 |  | [x] Run the probe on this PC for AppContainer (B) and, if needed, restricted token (A) | reports/L47-probe-results.json | |
 |  | [x] Write the report with one recommendation and the question for the owner | reports/L47-sandbox-options.md | |
-| 12 | **Build the sandbox (1.6.3, only after your go)** - Engine and test runs start inside the chosen sandbox behind a setting, approval cards say when a command runs outside it | REQ-22 | planned |
-| 13 | **Taskbar colours (CR-1)** - The taskbar icon shows an orange, green or grey dot for all projects, flashes until you answer, and the tray icon follows | REQ-28 | planned |
-| 14 | **Parked ideas (not started)** - Keep the set-aside items on the list; nothing is built unless you ask | REQ-23, REQ-24, REQ-25, REQ-26, REQ-27 | planned |
-| 15 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | planned |
+| 12 | **Before AI Team Lite: Start, projects and setup** - Setup, existing-folder import, layout, speed, spelling, voice (released up to 1.6.2) | REQ-1, REQ-13, REQ-16, REQ-20 | done |
+| 13 | **Before AI Team Lite: Problem, requirements and architecture steps** - Problem card, devil's advocate, prior art, Mat, plan approval, council (released up to 1.6.2) | REQ-2, REQ-3, REQ-4, REQ-5, REQ-6, REQ-18 | done |
+| 14 | **Before AI Team Lite: Build loop and quality** - Test-first iterations, scorecard, checkpoints, diagrams (released up to 1.6.2) | REQ-7, REQ-8, REQ-15, REQ-17 | done |
+| 15 | **Before AI Team Lite: Approvals, phone and keeping work moving** - Risk-based approvals, Telegram approvals, watchdog, pipeline, usage view (released up to 1.6.2) | REQ-9, REQ-10, REQ-11, REQ-12, REQ-14 | done |
+| 16 | **Before AI Team Lite: Delivery and updates** - Windows installer, GitHub tests and releases, sharing and update check (released up to 1.6.2) | REQ-19, REQ-21 | done |
+| 17 | **Sandbox investigation (L47, step 1)** - Report plus a prototype on this PC; finished and committed (621aa62) | REQ-22 | done |
+| 18 | **Proof for the requirements** - Existing tests are mapped to REQ-1 to REQ-22 and recorded, so the Requirements tab shows what is proven and what is not | REQ-1, REQ-2, REQ-3, REQ-4, REQ-5, REQ-6, REQ-7, REQ-8, REQ-9, REQ-10, REQ-11, REQ-12, REQ-13, REQ-14, REQ-15, REQ-16, REQ-17, REQ-18, REQ-19, REQ-20 | planned |
+| 19 | **One message draft per project** - Each project keeps its own unsent text and attachments, saved with the project | REQ-29 | planned |
+| 20 | **Improvement ideas after each iteration** - A Yes/No table of up to 3 ideas after every iteration, with every decision saved and no idea shown twice | REQ-30 | planned |
+| 21 | **Taskbar colours** - The taskbar icon shows an orange, green or grey dot for all projects, flashes until you answer, and the tray icon follows | REQ-28 | planned |
+| 22 | **Build the sandbox (1.6.3, only after your yes)** - Engine and test runs start inside the AppContainer behind a setting, approval cards say when a command runs outside it | REQ-22 | planned |
+| 23 | **Parked ideas (not started)** - Keep the set-aside items on the list; nothing is built unless you ask | REQ-23, REQ-24, REQ-25, REQ-26, REQ-27 | planned |
+| 24 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | planned |
