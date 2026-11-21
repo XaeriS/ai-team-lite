@@ -123,7 +123,7 @@ def test_what_is_missing_first(isolated):
 def test_ci_workflow(isolated):
     slug, folder = _project("Tested")
     its = iterations.load(slug)
-    its[-1]["test_command"] = '"C:/ZZ - Projects/AI Team Lite/python/python.exe" -m pytest -q tests'
+    its[-1]["test_command"] = '"C:/Programs/AI Team Lite/python/python.exe" -m pytest -q tests'
     projects.update(slug, iterations=its)
     assert shipping.ci_command(slug) == "python -m pytest -q tests"
     out = shipping.write_ci(slug)

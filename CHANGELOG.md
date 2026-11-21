@@ -2,6 +2,33 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
+## 1.6.2 (2026-11-21)
+- **Far fewer approval requests.** The team now works on your project without asking: anything inside the
+  project folder, your Windows temp folder and AI Team Lite's own folder, and reading files. It still asks before
+  anything risky for your PC: installing software or a new package, changing Windows settings, changing files
+  elsewhere, running a program from elsewhere, reading private files (keys, passwords) and publishing to GitHub.
+  No more false alarms from text inside a file (such as a test mentioning C:\Windows), recording a review
+  finding never asks, and deleting inside the project is no longer shown as high risk.
+- **Opening a project is fast again**, even with a very long chat: the latest messages show at once and
+  "Show earlier messages" brings back the rest.
+- **The right status after the last iteration:** "New version check" while the team is still checking the version,
+  "Ready for your review" once it waits for you.
+- **Fresh test results:** when an iteration passes and is saved, its results replace the older ones (one line per
+  test); older logs and screenshots are removed (they stay in the project's saved checkpoints).
+- **Spelling like Word:** a red wavy line under misspelt words; right-click one for corrections. The list under the
+  message box is gone.
+- **Big files no longer stop the work:** a very large message from Claude (a saved web page read in one go) used to
+  end with an error; the limit is much higher and the work restarts by itself if it is reached.
+- **Devil's advocate cards are clearer:** each point shows the current behaviour, the objection and Fred's
+  recommendation, with three buttons: Keep current behaviour, Accept Fred's recommendation, Do something else.
+- **Plan first, then the diagram:** after the architecture, Fred goes straight to the plan; once it is approved a
+  card asks whether to draw the overview diagram now.
+- **Clean-up last:** the whole-project clean-up now comes after every code change of a version (security fixes
+  included), just before the push to GitHub; Fred no longer pushes halfway.
+- **A real installer for the apps you build:** Fred can package a finished project as a Windows setup program
+  (Start-menu entry, the app's icon, a "Create a desktop shortcut" box, an uninstaller, no administrator rights),
+  add automatic tests on GitHub, and publish the installer as a GitHub release.
+
 ## 1.6.1 (2026-11-16)
 - **Fixed: all projects disappeared** (with the setup guide, the Browse button and the token counts) after a folder
   whose name has capital letters or spaces (for example "VLC-Multiplayer") was added from inside the projects

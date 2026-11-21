@@ -102,7 +102,7 @@ try:
         appr = page.locator(".card.pending", has_text="Run a command")
         expect(appr).to_be_visible(timeout=15000)
         check("approval shows command", "winget install" in appr.inner_text())
-        check("approval shows reason", "risky command" in appr.inner_text())
+        check("approval shows reason", "risky for your PC" in appr.inner_text())   # L65 wording
         page.screenshot(path=OUT / "7-approval.png")
         appr.locator("input").fill("No need, we use the bundled Python")
         appr.locator("button", has_text="Decline").click()

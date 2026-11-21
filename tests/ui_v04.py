@@ -93,9 +93,9 @@ try:
         # --- tests view
         expect(page.locator(".m.fred").last).to_contain_text("starting the app", timeout=20000)
         page.locator(".tab", has_text="Tests").click()
-        expect(page.locator(".trow-test")).to_have_count(3, timeout=5000)
+        expect(page.locator(".trow-test")).to_have_count(2, timeout=5000)   # L64: the failure fixed before the save is gone
         txt = page.locator("#pane").inner_text()
-        check("tests summary 2 passed 1 failed", "2 passed" in txt and "1 failed" in txt, txt[:200])
+        check("tests summary: the validated run", "2 passed" in txt and "failed" not in txt.split("\n")[0], txt[:200])
         check("screenshot attached to its test", page.locator(".trow-test", has_text="monthly total per category").locator("img").count() == 1)
         check("open-folder button", page.locator("#openTests").count() == 1)
         page.screenshot(path=OUT / "a3-tests.png")

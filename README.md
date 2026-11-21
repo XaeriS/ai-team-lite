@@ -46,6 +46,8 @@ tests it in small steps, and starts it for you to try. All you need is a Windows
 4. Fred proposes a plan split into iterations. Nothing is built until you approve it.
 5. Each iteration: tests written first, then the code, then a review; it is saved (Git) only when the tests pass.
 6. When it is ready, "Launch the project" starts it for you to try. Diagrams show how it works.
+7. To keep or share it, Fred makes a real Windows installer (Start menu, the app's icon, an optional desktop
+   shortcut, an uninstaller) and, with GitHub, adds automatic tests and publishes the installer there.
 
 Every finished iteration is a checkpoint: **What changed** shows, in plain words, which requirement it serves and
 which files were added, changed or removed, and **Go back to this point** returns the project to that iteration
@@ -57,8 +59,10 @@ Want to carry on with something that already exists? **+ New project > Continue 
 ## Approvals and safety
 
 - Fred explains what he wants to do and the app asks you to Approve or Decline.
-- **Only for big steps** (default): once you approve a plan, the team works inside that project's folder.
-  Installing software, GitHub and anything outside the project folder always ask.
+- **Only for big steps** (default): once you approve a plan, the team works on the project without asking (its
+  folder, your temp folder, reading files). Only what is risky for your PC asks: installing software or a new
+  package, changing Windows settings, changing files elsewhere, running a program from elsewhere, reading private
+  files, and GitHub.
 - **Always**: every action asks. Change it in Settings > General.
 - Before each new version, the Reviewer runs a security review of the code, then a **quality scorecard** shows in
   plain words what is proven and what still needs attention: each requirement proven by a test, the tests, a code
@@ -90,8 +94,8 @@ Want to carry on with something that already exists? **+ New project > Continue 
   microphone, Windows privacy settings, microphone busy) and offers a "Test microphone" button (also in Settings >
   General).
 - Paste a screenshot (Win+Shift+S, then Ctrl+V) or drop files straight into the message box.
-- Spelling help: possible typos are listed under the message box; click one, or right-click the word, for
-  corrections. Languages are chosen in Settings > General.
+- Spelling help: misspelt words get a red wavy underline; right-click one for corrections. Languages are chosen in
+  Settings > General.
 - Copy anything from the chat: select text, or use the **Copy** button under a message, or right-click (Copy, and
   Paste in the message box).
 
