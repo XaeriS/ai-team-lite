@@ -13,7 +13,7 @@ import uuid
 
 from claude_agent_sdk import tool
 
-from . import github, models, paths, projects, secrets_store, settings, winhelpers
+from . import github, iterations, models, paths, projects, secrets_store, settings, winhelpers
 
 if TYPE_CHECKING:
     from .session import Session
@@ -122,12 +122,17 @@ def make(session: "Session") -> dict:
         projects.update(slug, github_repo=repo["url"], github_clone=repo["clone_url"])
         return text(f"Repository created: {repo['url']}")
 
-    @tool("github_push", "Save the project's current files to its GitHub repository (asks the user first).",
-          {"message": str, "explanation": str})
+    @tool("github_push", "Save the project's current files to its GitHub repository (asks the user first). The "
+          "clean-up must come after every code change of the version; set user_asked_now=true only when the user "
+          "explicitly asked to push right away.", {"message": str, "explanation": str, "user_asked_now": bool})
     async def github_push(args):
         p = projects.load(slug) or {}
         if not p.get("github_clone"):
             return text("This project has no GitHub repository yet. Use github_create_repo first.", True)
+        wait = "" if args.get("user_asked_now") else iterations.cleanup_before_push(slug)   # L70
+        if wait:
+            return text(wait + " (If the user explicitly asked to push now, call github_push again with "
+                        "user_asked_now=true.)", True)
         try:
             last = github.push(projects.project_dir(slug), args.get("message", "Update"), p["github_clone"])
         except github.GitHubError as e:

@@ -208,7 +208,8 @@ def make(session: "Session") -> dict:
                     "Findings are tracked until closed (reports/FINDINGS.md). Known so far: " + upkeep.findings_brief(slug)
                     + "\nGive this list to the Reviewer. Afterwards call record_finding for every NEW finding, and "
                     "close_finding(id, \"fixed\") for each one fixed. A finding the user decides to live with is closed "
-                    "with close_finding(id, \"accepted\", reason) and is not reported again. Then call clean_leftovers().")
+                    "with close_finding(id, \"accepted\", reason) and is not reported again. Fix the findings first; the "
+                    "Clean-up iteration comes after every code change, then clean_leftovers() and quality_check().")
 
     @tool("record_finding", "Keep a review finding (security or quality) until it is fixed or accepted. A finding "
           "already known under the same title is not added twice.", {"title": str, "severity": str, "where": str})

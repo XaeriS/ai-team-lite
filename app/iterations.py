@@ -342,3 +342,34 @@ def cost_estimate(slug: str) -> dict:
         est = {"low": round(lo * remaining, 2), "high": round(hi * remaining, 2), "mid": round(avg * remaining, 2)}
     return {"so_far": round(data["est_cost"], 2), "tokens": data["tokens"], "per_iteration": round(avg, 2) if avg else None,
             "remaining_iterations": remaining, "remaining": est, "basis": basis if per_it else ""}
+
+
+# ---------------------------------------------------------------------------- L70: clean-up last, just before a push
+NOT_CODE = re.compile(r"(?i)(\.(md|txt|rst)$|^reports/|^docs/|^\.aiteam/|^PROJECT_MAP|^\.archify/)")
+
+
+def cleanup_before_push(slug: str) -> str:
+    """Why the project should not be pushed yet, or "" when it may: the whole-codebase clean-up must come after every
+    code change of the version (owner, 2026-11-18). Documents and reports may change after it."""
+    if not settings.load().get("version_cleanup", True):
+        return ""
+    its = load(slug)
+    cleanups = [it for it in its if it.get("kind") == "cleanup"]
+    if not cleanups:
+        return ""
+    waiting = [it for it in cleanups if it.get("status") != "done"]
+    if waiting:
+        return (f"The clean-up (iteration {waiting[0]['n']}, \"{waiting[0]['name']}\") is not done yet: it comes after "
+                "every code change of the version (security fixes included), just before the push.")
+    last = max((it for it in cleanups if it.get("commit")), key=lambda it: it.get("finished") or 0, default=None)
+    if not last:
+        return ""
+    folder = projects.project_dir(slug)
+    changed = set(_git(folder, "diff", "--name-only", last["commit"], "HEAD").stdout.split())
+    changed |= {line[3:].strip().strip('"') for line in _git(folder, "status", "--porcelain").stdout.splitlines() if line.strip()}
+    code = sorted(f for f in changed if f and not NOT_CODE.search(f))
+    if code:
+        return (f"Code changed after the clean-up of iteration {last['n']} ({', '.join(code[:5])}"
+                + (" ..." if len(code) > 5 else "") + "): run a short clean-up of those files (tests must still pass, "
+                "commit it) before pushing.")
+    return ""

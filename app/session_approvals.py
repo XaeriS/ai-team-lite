@@ -11,7 +11,7 @@ import uuid
 
 from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
 
-from . import engine_const as const, models, paths, policy, projects, risk, scorecard, settings, shellcheck, timeline
+from . import engine_const as const, iterations, models, paths, policy, projects, risk, scorecard, settings, shellcheck, timeline
 from .engine_text import approval_card, interrupted_text
 
 
@@ -90,6 +90,11 @@ class ApprovalsMixin:
             inside_project=lambda p: projects.inside(self.slug, p), allowed_roots=roots)
         if decision == "allow":
             return PermissionResultAllow()
+        if tool_name == "mcp__aiteam__github_push" and not (tool_input or {}).get("user_asked_now"):
+            wait = iterations.cleanup_before_push(self.slug)   # L70: no card for a push that should wait
+            if wait:
+                return PermissionResultDeny(message=wait + " If the user explicitly asked to push now, call github_push "
+                                            "again with user_asked_now=true.")
         card = approval_card(tool_name, tool_input or {}, ctx, self.folder)
         agent_id = getattr(ctx, "agent_id", None)
         who = self.persona if not agent_id else (self._current_worker() or "A worker agent")

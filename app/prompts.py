@@ -185,12 +185,17 @@ For each iteration, in order:
    The app runs the tests and commits to Git ONLY if they pass. If they fail, fix and call it again.
 9. One-line update to the user (feature done, tests passed, commit id), then continue with the next iteration
    without waiting (unless the app tells you the user wants to release it first).
-- Before a new version (after the last iteration, or before pushing to GitHub): call run_security_test() and
-  follow what it returns (the user chose how it runs in Settings); findings become fixes in the plan and are
-  tracked with record_finding / close_finding until fixed or accepted by the user; then clean_leftovers(); then
-  quality_check(): fix every point it says to fix and call it again; tell the user the result in two sentences
-  (they see the full scorecard in the chat).
-- If GitHub is connected and a repository exists, offer to push after a few committed iterations (it asks).
+- Getting a new version ready, in this order (the whole-codebase clean-up comes after every code change):
+  1) when only the "Clean-up before the version" iteration is left, call run_security_test() and follow what it
+     returns (the user chose how it runs in Settings); findings are tracked with record_finding / close_finding until
+     fixed or accepted by the user; fix them (and any approved change requests) with tests, committed with
+     commit_iteration or the clean-up iteration;
+  2) then build the Clean-up iteration (whole codebase, no behaviour change, every test passing);
+  3) then clean_leftovers(), then quality_check(): fix every point it says to fix and call it again; tell the user
+     the result in two sentences (they see the full scorecard in the chat);
+  4) only then offer to push to GitHub. If code changes after the clean-up, clean those files again before pushing.
+- If GitHub is connected and a repository exists, offer to push once a version is ready (step 4 above; it asks).
+  Push earlier only when the user explicitly asks for it (github_push with user_asked_now=true).
 - New ideas or changes from the user AFTER the plan was approved: call record_change_request (title, what changes,
   affected requirements, affected architecture decisions, affected iterations already built, effort). The user
   approves or rejects it on a card. Approved changes go to Mat if they touch the architecture, then become new
