@@ -48,6 +48,10 @@ def hide_engine_console(force: bool = False) -> bool:
 
     async def open_process(*args, **kwargs):
         kwargs["creationflags"] = int(kwargs.get("creationflags") or 0) | CREATE_NO_WINDOW
+        if args and paths.IS_WINDOWS and kwargs.get("cwd"):
+            # REQ-22: the engine of a project runs inside that project's sandbox (unchanged if it cannot)
+            from . import sandbox
+            args = (await anyio.to_thread.run_sync(sandbox.engine_command, args[0], kwargs["cwd"]), *args[1:])
         return await original(*args, **kwargs)
 
     open_process.hides_console = True
@@ -327,24 +331,35 @@ def screenshot_command(command: str, cwd: Path, out: Path, wait_seconds: float =
 
 
 # ---------------------------------------------------------------------------- launching
+def _start_app(command: str, cwd: Path):
+    """REQ-22: the project's app starts inside the project's sandbox when it is on; the normal way when it is off
+    or the sandbox cannot be set up (then the approval cards say so). Returns (process, boxed)."""
+    from . import sandbox
+    if sandbox.enabled() and sandbox.available():
+        try:
+            return sandbox.start_process(sandbox.shell_line(command), cwd, cwd, capture=False, new_console=True), True
+        except OSError as e:
+            sandbox.note_unprotected(cwd, str(e))
+    flags = NEW_CONSOLE if paths.IS_WINDOWS else 0
+    return subprocess.Popen(command, cwd=str(cwd), shell=True, creationflags=flags,
+                            start_new_session=not paths.IS_WINDOWS), False
+
+
 def launch(command: str, cwd: Path) -> int:
     """Start the user's app in its own window and leave it running."""
-    flags = NEW_CONSOLE if paths.IS_WINDOWS else 0
-    proc = subprocess.Popen(command, cwd=str(cwd), shell=True, creationflags=flags,
-                            start_new_session=not paths.IS_WINDOWS)
-    return proc.pid
+    return _start_app(command, cwd)[0].pid
 
 
 def launch_checked(command: str, cwd: Path, wait: float = 2.0) -> int:
     """Like launch, but reports an app that stops with an error straight away (missing file, crash on start)."""
-    flags = NEW_CONSOLE if paths.IS_WINDOWS else 0
-    proc = subprocess.Popen(command, cwd=str(cwd), shell=True, creationflags=flags,
-                            start_new_session=not paths.IS_WINDOWS)
+    proc, boxed = _start_app(command, cwd)
     end = time.time() + wait
     while time.time() < end and proc.poll() is None:
         time.sleep(0.1)
     if proc.returncode not in (None, 0):
-        raise RuntimeError(f"the app stopped right away with error code {proc.returncode} (command: {command})")
+        hint = (" It ran inside file protection; if it needs files outside the project folder, "
+                "switch file protection off in Settings (Protect my files) and try again.") if boxed else ""
+        raise RuntimeError(f"the app stopped right away with error code {proc.returncode} (command: {command}).{hint}")
     return proc.pid
 
 

@@ -65,6 +65,16 @@ Want to carry on with something that already exists? **+ New project > Continue 
   package, changing Windows settings, changing files elsewhere, running a program from elsewhere, reading private
   files, and GitHub.
 - **Always**: every action asks. Change it in Settings > General.
+- **File protection** (on by default, Settings > General): the project's tests and "Launch the project" run in a
+  Windows protected box that may change files only in the project folder and cannot read your other files; the
+  internet stays open. When something runs outside the box, its approval card says so in one line. On some PCs
+  (for example when Git Bash is installed) the team's own commands cannot run in the box yet, so they run outside
+  it and their cards say so. To let programs in the box use Python and Git, AI Team Lite gives the bundled Python
+  and Git folders (and the Python it runs with) a permanent read-and-run right for every Windows app container
+  ("ALL APPLICATION PACKAGES"), the same right Windows gives C:\Program Files; nothing in them can be changed. The
+  uninstaller deletes the bundled folders and that right with them; if the Git used is a separate install, the right
+  stays on its folder (remove it with `icacls "<Git folder>" /remove:g *S-1-15-2-1 /T`). The Claude sign-in folder
+  is only given to the engine's own box, never to test runs or the launched app.
 - Before each new version, the Reviewer runs a security review of the code, then a **quality scorecard** shows in
   plain words what is proven and what still needs attention: each requirement proven by a test, the tests, a code
   check, the packages (fixed versions, known security problems, checked with osv.dev: only package names and

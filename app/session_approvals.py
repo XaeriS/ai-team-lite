@@ -11,7 +11,7 @@ import uuid
 
 from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
 
-from . import engine_const as const, iterations, models, paths, policy, projects, risk, scorecard, settings, shellcheck, timeline
+from . import engine_const as const, iterations, models, paths, policy, projects, risk, sandbox, scorecard, settings, shellcheck, timeline
 from .engine_text import approval_card, interrupted_text
 
 
@@ -105,6 +105,9 @@ class ApprovalsMixin:
             warn = scorecard.push_warning(self.slug)
             if warn:
                 card["quality"] = warn
+        note = sandbox.card_note(tool_name, self.folder)   # REQ-22: one line when it runs outside the protection
+        if note:
+            card["sandbox_note"] = note
         said = (self.says_for_tool.pop(who, "") or self.last_text.pop(who, "")).strip()
         if said:
             card["says"] = said[-700:]

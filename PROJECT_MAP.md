@@ -3,7 +3,7 @@
 > Maintained automatically by AI Team Lite after each iteration. Read this first to find the right file;
 > open only the files you need.
 
-**Tests:** 31 file(s) in `reports`, `tests`
+**Tests:** 34 file(s) in `reports`, `tests`
 
 | File | What it is for |
 |------|----------------|
@@ -47,6 +47,9 @@
 | `app/routes_setup.py` |  |
 | `app/routes_work.py` | the real session / week figures from Claude's own usage command (item 69); no tokens used |
 | `app/safefile.py` | Saving small JSON files safely from several threads (L34). |
+| `app/sandbox.py` | ------------------------------------------------------------------ setting and availability |
+| `app/sandbox_launch.py` | REQ-22: starts Claude's engine (claude.exe) inside the project's AppContainer. |
+| `app/sandbox_win.py` | internetClient, internetClientServer, privateNetworkClientServer: the network stays open (ARCHITECTURE.md) |
 | `app/scorecard.py` | ---------------------------------------------------------------------------- the checks |
 | `app/secrets_store.py` | API keys and tokens live in Windows Credential Manager (via keyring), never in plain files or prompts. |
 | `app/server.py` | ---------------------------------------------------------------- voice |
@@ -74,7 +77,7 @@
 | `app/spelling.py` | Spelling help for what the user types to Fred (L38). Words are checked against the dictionaries of the chosen |
 | `app/statusicon.py` | REQ-28: one colour for the taskbar / tray icon from the states of all projects. |
 | `app/taskbar_win.py` | ---------------------------------------------------------------- window |
-| `app/telegram.py` | Approve from the phone (L17): a private Telegram bot sends the cards that wait for the user, with buttons. |
+| `app/telegram.py` | ---------------------------------------------------------------------------- what a card looks like on the phone |
 | `app/testrun.py` | L32: out of sight, on a desktop the user never sees; the normal way if Windows does not allow it |
 | `app/timeline.py` | ---------------------------------------------------------------------------- recording |
 | `app/tooling.py` | Programs the team may need on the PC: Ollama (local brains for the council) and Archify (diagrams). |
@@ -136,6 +139,9 @@
 | `tests/test_l72_ideas.py` | REQ-30 (L72, CR-3): improvement ideas after each iteration. Written BEFORE the code (app/ideas.py, |
 | `tests/test_l73_statusicon.py` | ------------------------------------------------------------------ colour |
 | `tests/test_lite.py` | AI Team Lite: a separate app from AI Team (own data, keys, sign-in, install, instance) with the expert features removed. |
+| `tests/test_sandbox.py` | REQ-22: the team's commands run inside a Windows AppContainer (the "sandbox"). Written BEFORE the code |
+| `tests/test_sandbox_engine.py` |  |
+| `tests/test_sandbox_setting.py` | REQ-22: the setting that turns the sandbox on or off. Written BEFORE the code. |
 | `tests/test_scorecard.py` | the key itself never appears in what is saved or shown |
 | `tests/test_server.py` | projects cannot be created before setup is finished |
 | `tests/test_traceability.py` | Traceability: every requirement (REQ-1..REQ-21) is mapped to tests, or listed as unproven with a reason. |

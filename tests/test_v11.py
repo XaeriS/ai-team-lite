@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import pytest
 import time
+import os
 from pathlib import Path
 
 import http.client
@@ -256,9 +257,16 @@ def test_close_to_tray_setting_saved(isolated):
 
 # ------------------------------------------------------------------ 0.11.2
 def _fake_claude(tmp_path, text):
-    f = tmp_path / "claude"
-    f.write_text("#!/bin/sh\ncat <<'EOF'\n" + text + "\nEOF\n")
-    f.chmod(0o755)
+    """A fake engine that prints `text`; a .bat on Windows, a shell script elsewhere (never a Linux-only script)."""
+    body = tmp_path / "fake_claude_output.txt"
+    body.write_text(text + "\n", encoding="utf-8")
+    if os.name == "nt":
+        f = tmp_path / "claude.bat"
+        f.write_text(f'@echo off\r\ntype "{body}"\r\n')
+    else:
+        f = tmp_path / "claude"
+        f.write_text(f"#!/bin/sh\ncat '{body}'\n")
+        f.chmod(0o755)
     return f
 
 

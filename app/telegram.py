@@ -73,6 +73,8 @@ def card_message(kind: str, payload: dict, project: str, high_risk_on_phone: boo
                          (f": {_short(payload.get('risk_reason'), 200)}" if payload.get("risk_reason") else ""))
         if payload.get("quality"):   # L49
             lines.append("⚠ Quality check: " + _short(payload["quality"], 200))
+        if payload.get("sandbox_note"):   # REQ-22
+            lines.append("⚠ Not protected: " + _short(payload["sandbox_note"], 200))
         if payload.get("risk") == "high" and not high_risk_on_phone:
             return head + "\n".join(lines) + "\n\nThis one needs you at the PC (high risk).", []
         return head + "\n".join(lines), [[{"text": "✅ Approve", "data": "b0"}, {"text": "✋ Decline", "data": "b1"}]]

@@ -67,11 +67,16 @@ Tests are written first and must fail, then the code, then the whole suite and a
 |  | [x] Ideas card in the chat with Yes/No per row and an optional reason; Yes creates a change request, No is logged | app/session_approvals.py, app/routes_work.py, app/ui/js/chat.js, app/ui/app.css | |
 |  | [x] Trigger after commit_iteration and Fred's instructions (Scout search, skip near the plan limit) | app/iterations.py, app/prompts.py, app/tools_building.py | |
 |  | [x] Document it | CHANGELOG.md, STATUS.md, README.md | |
-| 21 | **Taskbar colours** - The taskbar icon shows an orange, green or grey dot for all projects, flashes until you answer, and the tray icon follows | REQ-28 | building |
-|  | [ ] Colour rules: all projects' states to orange, green or grey plus a tooltip (app/statusicon.py) | app/statusicon.py | |
-|  | [ ] Windows part: dot on the taskbar button, flashing until answered, tray follows, fallback to the normal icon | app/winhelpers.py, app/main.py, app/settings.py | |
-|  | [ ] Setting 'Flash the taskbar until I answer' in Settings > General | app/settings.py, app/routes_setup.py, app/server.py, app/ui/index.html, app/ui/js/screens.js | |
-|  | [ ] Document it | CHANGELOG.md, STATUS.md, README.md | |
-| 22 | **Build the sandbox (1.6.3, only after your yes)** - Engine and test runs start inside the AppContainer behind a setting, approval cards say when a command runs outside it | REQ-22 | planned |
+| 21 | **Taskbar colours** - The taskbar icon shows an orange, green or grey dot for all projects, flashes until you answer, and the tray icon follows | REQ-28 | done (28b35f3) |
+|  | [x] Colour rules: all projects' states to orange, green or grey plus a tooltip (app/statusicon.py) | app/statusicon.py | |
+|  | [x] Windows part: dot on the taskbar button, flashing until answered, tray follows, fallback to the normal icon | app/winhelpers.py, app/main.py, app/settings.py | |
+|  | [x] Setting 'Flash the taskbar until I answer' in Settings > General | app/settings.py, app/routes_setup.py, app/server.py, app/ui/index.html, app/ui/js/screens.js | |
+|  | [x] Document it | CHANGELOG.md, STATUS.md, README.md | |
+| 22 | **Build the sandbox (1.6.3, only after your yes)** - Engine and test runs start inside the AppContainer behind a setting, approval cards say when a command runs outside it | REQ-22 | building |
+|  | [ ] AppContainer helper: create profile, grant/revoke folder access, start a process inside it (ctypes) | app/sandbox.py | |
+|  | [ ] Start the engine (claude.exe) inside the container from hide_engine_console, with the access list from ARCHITECTURE.md | app/winhelpers.py, app/paths.py | |
+|  | [ ] Same container for testrun.run and Launch the project | app/testrun.py, app/winhelpers.py | |
+|  | [ ] Setting to turn the sandbox on or off and one clear line on the approval card when a command runs outside it | app/routes_setup.py, app/session_approvals.py, app/ui/js/screens.js | |
+|  | [ ] Version 1.6.3: VERSION, CHANGELOG, README note | VERSION, CHANGELOG.md, README.md | |
 | 23 | **Parked ideas (not started)** - Keep the set-aside items on the list; nothing is built unless you ask | REQ-23, REQ-24, REQ-25, REQ-26, REQ-27 | planned |
 | 24 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | planned |

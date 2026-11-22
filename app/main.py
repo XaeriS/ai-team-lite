@@ -233,6 +233,13 @@ def main(argv: list[str] | None = None) -> int:
         except Exception:  # noqa: BLE001
             logging.exception("archify self-test failed")
     threading.Thread(target=_archify_check, name="archify-check", daemon=True).start()
+    def _sandbox_leftovers():
+        try:
+            from app import sandbox
+            sandbox.cleanup_leftovers()   # REQ-22: file-protection rights left by a crash last time
+        except Exception:  # noqa: BLE001
+            logging.exception("sandbox leftover cleanup failed")
+    threading.Thread(target=_sandbox_leftovers, name="sandbox-leftovers", daemon=True).start()
 
     use_browser = "--browser" in argv
     if not use_browser:

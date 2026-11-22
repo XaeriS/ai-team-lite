@@ -21,7 +21,7 @@ def test_setup_script_is_a_usual_installer():
     assert 'Name: "desktopicon"; Description: "Create a desktop shortcut"' in s                            # the box
     assert 'Name: "{userdesktop}\\{#AppName}"; Filename: "{app}\\{#AppExe}"; Tasks: desktopicon' in s
     assert 'Name: "{group}\\{#AppName}"' in s and 'Name: "{group}\\Uninstall {#AppName}"' in s               # Start menu
-    assert "SetupIconFile=C:/p/packaging/icon.ico" in s and "UninstallDisplayIcon={app}\\{#AppExe}" in s     # its icon
+    assert f"SetupIconFile={Path('C:/p/packaging/icon.ico')}" in s and "UninstallDisplayIcon={app}\\{#AppExe}" in s     # its icon
     assert "AppId={{ABC-123}" in s and 'Description: "Start {#AppName} now"' in s
 
 

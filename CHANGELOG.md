@@ -2,7 +2,18 @@
 
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
-## Unreleased
+## 1.6.3 (2026-11-22)
+- **File protection for the team's work.** The project's tests and "Launch the project" now run in a protected
+  Windows box: they can change files only in the project folder and cannot read your other files (keys,
+  documents); the internet stays open. It is on by default and can be switched off in Settings > General. If the
+  box cannot be used, the work still goes on, and the approval card says in one line that it runs outside the
+  protection. Claude's engine is started in the box too when the shell it uses works there; on PCs with Git Bash
+  it does not yet, so the team's own commands still run outside the box and their cards say so. The engine has a
+  box of its own: only it may use the Claude sign-in folder, test runs and the launched app never can. The rights
+  given to a project folder are taken back from every file in it when the app closes, when the project is deleted,
+  and at the next start after a crash. Note: the bundled Python and Git folders (and the Python in use) keep a
+  permanent read-and-run right for all Windows app containers ("ALL APPLICATION PACKAGES"); the uninstaller
+  deletes those bundled folders and the right with them.
 - **Taskbar colours across all projects.** A dot on the AI Team Lite taskbar icon (and tray icon) shows orange when a
   project waits for you, green while the team works, grey when nothing runs; the tooltip says it in words. The
   button flashes while something waits and you are elsewhere (Settings > General, "Flash the taskbar until I answer").

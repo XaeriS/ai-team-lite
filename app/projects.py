@@ -206,6 +206,12 @@ def delete(slug: str, mode: str) -> str:
     "all" = delete the project folder and everything in it."""
     folder = project_dir(slug)
     reg = external()
+    if mode in ("remove", "all"):
+        try:   # REQ-22: take back the file-protection rights and profiles before the project goes
+            from . import sandbox
+            sandbox.cleanup(folder)
+        except Exception:  # noqa: BLE001  (deleting a project must not fail on this)
+            logging.exception("sandbox cleanup failed for %s", folder)
     if mode == "remove":
         if slug not in reg:
             raise ValueError("Only projects from an existing folder can be removed while keeping the files.")

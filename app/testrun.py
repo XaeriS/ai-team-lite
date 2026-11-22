@@ -14,7 +14,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import paths, settings, winhelpers
+from . import paths, sandbox, settings, winhelpers
 
 LOG_DIR = Path("reports") / "test-logs"
 KEEP_LOGS = 20
@@ -25,7 +25,12 @@ NO_WINDOW = 0x08000000 if paths.IS_WINDOWS else 0
 def run(command: str, cwd: Path, timeout: int = 300) -> tuple[bool, str]:
     """Run a test command; returns (passed, full output)."""
     env = {**os.environ, "PATH": paths.tool_path(), "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"}
-    if settings.load().get("tests_hidden_desktop", True):
+    hidden_desktop = settings.load().get("tests_hidden_desktop", True)
+    if sandbox.enabled() and sandbox.available():
+        boxed = _run_boxed(command, cwd, env, timeout, hidden_desktop)
+        if boxed is not None:
+            return boxed
+    if hidden_desktop:
         # L32: out of sight, on a desktop the user never sees; the normal way if Windows does not allow it
         try:
             hidden = winhelpers.run_on_hidden_desktop(command, cwd, env, timeout)
@@ -40,6 +45,24 @@ def run(command: str, cwd: Path, timeout: int = 300) -> tuple[bool, str]:
         return r.returncode == 0, (r.stdout or "") + (r.stderr or "")
     except subprocess.TimeoutExpired:
         return False, f"Tests timed out after {timeout} s."
+
+
+def _run_boxed(command: str, cwd: Path, env: dict, timeout: int, hidden_desktop: bool) -> tuple[bool, str] | None:
+    """REQ-22: the test command inside the project's container (on the hidden desktop when that is on).
+    None when the container cannot be set up: the caller then runs it the old way (the user is never blocked)."""
+    try:
+        proc = sandbox.start_process(sandbox.shell_line(command), cwd, cwd, env=env, merge=True,
+                                     desktop=winhelpers.TEST_DESKTOP if hidden_desktop else None)
+    except OSError as e:
+        sandbox.note_unprotected(cwd, str(e))
+        return None
+    try:
+        out, err = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        out, err = proc.communicate()
+        return False, (out or "") + (err or "") + f"\nTests timed out after {timeout} s."
+    return proc.returncode == 0, (out or "") + (err or "")
 
 
 def save_log(folder: Path, label: str, command: str, output: str) -> str:

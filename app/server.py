@@ -90,7 +90,8 @@ class App:
             "settings": {k: s[k] for k in ("approval_mode", "user_name", "github_login", "iteration_pause", "voice_end_mode",
                                            "pipeline_auto", "voice_end_word", "voice_silence_seconds", "voice_review",
                                            "voice_auto_listen", "voice_model", "voice_language", "auto_resume",
-                                           "close_to_tray", "scorecard_online", "flash_taskbar")}
+                                           "close_to_tray", "scorecard_online", "flash_taskbar",
+                                           "sandbox_enabled")}
             | {"workspace_dir": str(settings.workspace()), "spell_check": bool(s.get("spell_check", True)),
                "spell_languages": spelling.languages(), "spell_all": spelling.LANGUAGES},
             "github_connected": secrets_store.has("github_token"),

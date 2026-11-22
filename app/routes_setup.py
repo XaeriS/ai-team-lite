@@ -71,7 +71,8 @@ def post_settings(self, app, path: str, body: dict):
             changes["approval_mode"] = body["approval_mode"]
         if isinstance(body.get("max_parallel"), int) and 1 <= body["max_parallel"] <= 5:
             changes["max_parallel"] = body["max_parallel"]
-        for k in ("iteration_pause", "pipeline_auto", "close_to_tray", "scorecard_online", "flash_taskbar"):
+        for k in ("iteration_pause", "pipeline_auto", "close_to_tray", "scorecard_online", "flash_taskbar",
+                  "sandbox_enabled"):
             if isinstance(body.get(k), bool):
                 changes[k] = body[k]
         if isinstance(body.get("spell_check"), bool):   # L38

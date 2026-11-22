@@ -46,6 +46,7 @@ DEFAULTS = {
     "ollama_autostart": True,        # start Ollama when a local brain is needed
     "close_to_tray": False,          # the X button hides AI Team Lite to the tray instead of quitting (item 67)
     "flash_taskbar": True,           # REQ-28: flash the taskbar button while a project waits for me
+    "sandbox_enabled": True,         # REQ-22: the team's commands run in a Windows AppContainer (app/sandbox.py)
     "ollama_stop_on_exit": False,    # stop Ollama when AI Team Lite closes (only if AI Team Lite started it)
     "auto_resume": False,            # resume interrupted work automatically at start
     "user_name": "",

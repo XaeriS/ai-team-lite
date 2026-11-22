@@ -358,7 +358,7 @@ def test_activity_per_minute_and_no_token_only_stuck_warning():
         a = analytics.activity("x", now=now)
     assert a["minutes"][49] == 10 and "flat_minutes" not in a
     ui = pathlib.Path(__file__).resolve().parent.parent / "app" / "ui"
-    screen = "\n".join(f.read_text() for f in [ui / "app.css", *sorted((ui / "js").glob("*.js"))])
+    screen = "\n".join(f.read_text(encoding="utf-8") for f in [ui / "app.css", *sorted((ui / "js").glob("*.js"))])
     assert "something may be stuck" not in screen and "flat_minutes" not in screen
 
 
@@ -548,7 +548,7 @@ def test_name_can_be_changed_in_settings(isolated):
     st = json.loads(urllib.request.urlopen(req).read())
     assert st["settings"]["user_name"] == "Anne"
     ui = Path(__file__).resolve().parent.parent / "app" / "ui"
-    html = "\n".join(f.read_text() for f in [ui / "index.html", *sorted((ui / "js").glob("*.js"))])
+    html = "\n".join(f.read_text(encoding="utf-8") for f in [ui / "index.html", *sorted((ui / "js").glob("*.js"))])
     assert "'with ' + S.settings.user_name" not in html, "the name is not shown as part of the product name"
     httpd.shutdown()
     eng.shutdown()
@@ -1311,7 +1311,8 @@ def test_l32_engine_starts_without_a_console_window(monkeypatch):
 
 
 def test_l32_test_runs_go_to_the_hidden_desktop_with_a_fallback(isolated, monkeypatch, tmp_path):
-    from app import testrun, winhelpers
+    from app import settings, testrun, winhelpers
+    settings.save({"sandbox_enabled": False})   # REQ-22: with the sandbox on, its own run uses the hidden desktop
     calls = []
 
     def hidden(result):

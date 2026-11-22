@@ -5,7 +5,7 @@
 ## What it is
 A Windows desktop app where Fred, an AI team lead, helps non-developers turn a business need into a tested
 prototype: problem first, requirements, architecture, plan, iterations built test-first, a real installer at the end.
-Public repo: github.com/XaeriS/ai-team-lite (MIT). Version 1.6.2.
+Public repo: github.com/XaeriS/ai-team-lite (MIT). Version 1.6.3 (file protection added: test runs and "Launch the project" run in a Windows AppContainer; the engine's own shell commands still run outside it, and the approval card says so).
 
 ## Technologies
 Python (about 12,000 lines in app/), Claude Agent SDK 0.2.165, pywebview (Edge WebView2) window, local Python
