@@ -52,3 +52,5 @@ Uncommitted: .gitignore adds `.aiteam/`; PROJECT_MAP.md is new.
 ## Requirements not proven by a test
 
 - REQ-4: No test checks the Scout's web search, the prior-art card or reports/PRIOR_ART.md.
+
+- Parked, not built (decision 2026-11-22: keep parked): REQ-23 parallel build in Git worktrees, REQ-24 IT handover pack and installer signing, REQ-25 portfolio view, REQ-26 reusable templates, REQ-27 second reviewer or approver. Nothing in the app depends on them.

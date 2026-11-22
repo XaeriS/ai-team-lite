@@ -1,34 +1,19 @@
-# Plan
-
 ## Goal
-Carry on from AI Team Lite 1.6.2 (released, nothing rebuilt). The sandbox investigation (iteration 11) is finished and saved. Remaining work, with the new requests you approved (CR-1, CR-2, CR-3):
+Fix the high-severity findings of the security review (reports/SECURITY_REVIEW.md) before version 1.6.3 is released, then clean up.
 
-## Already done (not rebuilt)
-REQ-1 to REQ-21 (released up to 1.6.2) and the sandbox investigation (REQ-22, step 1).
-
-## Still to do, in this order
-1. **Proof for the requirements.** The Requirements tab shows "proven by test" only for tests recorded against a requirement. The Tester maps the existing test files to REQ-1 to REQ-22, records each result, and reports which requirements have no test (they stay "not proven" and I list them for you). No change to the app.
-2. **One message draft per project (REQ-29).** Each project keeps its own unsent text and attachments, saved with the project so a restart does not lose them. Small.
-3. **Improvement ideas after each iteration (REQ-30).** A table card with Yes and No per idea (at most 3, from Fred and a short web search by the Scout), every decision saved in `reports/IDEAS.md` and a log, no idea shown twice. Medium.
-4. **Taskbar colours (REQ-28).** Orange, green or grey dot for all projects, flashing until you answer (paused when the window is in front, with a setting), tray follows. Medium.
-5. **Build the sandbox (REQ-22, version 1.6.3), only after your yes** to Mat's question: it protects your files outside the project from being changed or read, not the network or the project folder, and needs your yes once. Large, and the one that uses most of your plan.
-6. **Parked ideas (REQ-23 to REQ-27).** Nothing is built unless you ask.
-
-I moved the sandbox build to fifth place: it still waits for your yes, and it is the biggest step for your plan usage (95% this session, reset at 1:30 pm Phoenix time). Say so if you want it earlier.
+## What will be built
+- **Security fixes (F-1 to F-5):** diagrams shown in a locked-down frame with no access to the app token; screenshots and test commands restricted to safe commands and refused before plan approval; Read/WebFetch refuse the secrets file, the sign-in folder and file:/// addresses; the sandbox's "not protected here" state is shown clearly instead of silently.
+- **Medium fixes (F-6 to F-10):** approval state moved out of the project-writable file, push card shows the destination, phone cards show the command.
+- Low findings (L-1 to L-7) are listed in the report; I will propose which to fix after the high ones.
 
 ## How each is tested
-Tests are written first and must fail, then the code, then the whole suite and a screen test with screenshots. Version number, CHANGELOG and the GitHub push wait for your approval.
+One automated test per finding, written first from the finding's attack (it must fail before the fix). The full suite and the screen checks run at the end. Screenshots: the diagram frame and the new approval card text.
 
 ## What you will try at the end
-- Drafts: type in project A, switch to B (empty box), back to A (text back), restart the app (still there).
-- Ideas: finish an iteration, get the table, click Yes on one and No on another, open `reports/IDEAS.md` and find both with the date.
-- Taskbar: leave one project waiting on an approval card: orange dot and flashing; answer it: green, then grey.
+Open a diagram, start a build, see the push card with its destination.
 
-## Risks and assumptions
-- The web search after every iteration costs plan usage; it is skipped when the limit is near.
-- The taskbar dot can only be fully proven on your PC.
-- REQ-1 to REQ-21 were never re-run by me; step 1 shows what the existing tests prove.
-- Uncommitted now: the .gitignore change, PROJECT_MAP.md and the documents I updated.
+## Risks
+Stricter rules may block a command the team legitimately uses; if so the approval card asks you instead of failing silently.
 
 ## Iterations
 | # | Iteration | Requirements | Status |
@@ -72,11 +57,14 @@ Tests are written first and must fail, then the code, then the whole suite and a
 |  | [x] Windows part: dot on the taskbar button, flashing until answered, tray follows, fallback to the normal icon | app/winhelpers.py, app/main.py, app/settings.py | |
 |  | [x] Setting 'Flash the taskbar until I answer' in Settings > General | app/settings.py, app/routes_setup.py, app/server.py, app/ui/index.html, app/ui/js/screens.js | |
 |  | [x] Document it | CHANGELOG.md, STATUS.md, README.md | |
-| 22 | **Build the sandbox (1.6.3, only after your yes)** - Engine and test runs start inside the AppContainer behind a setting, approval cards say when a command runs outside it | REQ-22 | building |
-|  | [ ] AppContainer helper: create profile, grant/revoke folder access, start a process inside it (ctypes) | app/sandbox.py | |
-|  | [ ] Start the engine (claude.exe) inside the container from hide_engine_console, with the access list from ARCHITECTURE.md | app/winhelpers.py, app/paths.py | |
-|  | [ ] Same container for testrun.run and Launch the project | app/testrun.py, app/winhelpers.py | |
-|  | [ ] Setting to turn the sandbox on or off and one clear line on the approval card when a command runs outside it | app/routes_setup.py, app/session_approvals.py, app/ui/js/screens.js | |
-|  | [ ] Version 1.6.3: VERSION, CHANGELOG, README note | VERSION, CHANGELOG.md, README.md | |
-| 23 | **Parked ideas (not started)** - Keep the set-aside items on the list; nothing is built unless you ask | REQ-23, REQ-24, REQ-25, REQ-26, REQ-27 | planned |
-| 24 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | planned |
+| 22 | **Build the sandbox (1.6.3, only after your yes)** - Engine and test runs start inside the AppContainer behind a setting, approval cards say when a command runs outside it | REQ-22 | done (d24c101) |
+|  | [x] AppContainer helper: create profile, grant/revoke folder access, start a process inside it (ctypes) | app/sandbox.py | |
+|  | [x] Start the engine (claude.exe) inside the container from hide_engine_console, with the access list from ARCHITECTURE.md | app/winhelpers.py, app/paths.py | |
+|  | [x] Same container for testrun.run and Launch the project | app/testrun.py, app/winhelpers.py | |
+|  | [x] Setting to turn the sandbox on or off and one clear line on the approval card when a command runs outside it | app/routes_setup.py, app/session_approvals.py, app/ui/js/screens.js | |
+|  | [x] Version 1.6.3: VERSION, CHANGELOG, README note | VERSION, CHANGELOG.md, README.md | |
+| 23 | **Before AI Team Lite (iterations 1-22)** - Everything built up to the sandbox, committed | REQ-1, REQ-22 | done |
+| 24 | **Parked ideas (kept parked)** - REQ-23 to REQ-27 stay on the list; nothing built, by your decision | REQ-23, REQ-24, REQ-25, REQ-26, REQ-27 | done |
+| 25 | **Security fixes, high (F-1 to F-5)** - Close the five high findings with a failing-first test each | REQ-1, REQ-22 | planned |
+| 26 | **Security fixes, medium (F-6 to F-10)** - Close the five medium findings with tests | REQ-1, REQ-22 | planned |
+| 27 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | planned |
