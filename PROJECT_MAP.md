@@ -3,7 +3,7 @@
 > Maintained automatically by AI Team Lite after each iteration. Read this first to find the right file;
 > open only the files you need.
 
-**Tests:** 30 file(s) in `reports`, `tests`
+**Tests:** 31 file(s) in `reports`, `tests`
 
 | File | What it is for |
 |------|----------------|
@@ -33,7 +33,7 @@
 | `app/languages.py` | How the team builds: Python with the bundled interpreter (AI Team Lite builds in Python only). |
 | `app/ledger.py` | Append-only JSON-lines logs shared by the token log (usage) and the time log (timeline). |
 | `app/lessons.py` | Lessons learned across projects (L23). |
-| `app/main.py` | Start AI Team Lite: a local server plus a desktop window (pywebview / Edge WebView2). |
+| `app/main.py` |  |
 | `app/models.py` | Claude models for the team, who uses which, and the price list used for cost estimates. |
 | `app/packaging.py` |  |
 | `app/paths.py` | Where things live: the install folder (read-only app files) and the data folder (your settings). |
@@ -72,6 +72,8 @@
 | `app/skills/SOURCES.md` | Bundled skills (reviewed copies) |
 | `app/skills.py` | Community skills the team may use (reviewed copies in app/skills, see SOURCES.md). |
 | `app/spelling.py` | Spelling help for what the user types to Fred (L38). Words are checked against the dictionaries of the chosen |
+| `app/statusicon.py` | REQ-28: one colour for the taskbar / tray icon from the states of all projects. |
+| `app/taskbar_win.py` | ---------------------------------------------------------------- window |
 | `app/telegram.py` | Approve from the phone (L17): a private Telegram bot sends the cards that wait for the user, with buttons. |
 | `app/testrun.py` | L32: out of sight, on a desktop the user never sees; the normal way if Windows does not allow it |
 | `app/timeline.py` | ---------------------------------------------------------------------------- recording |
@@ -132,6 +134,7 @@
 | `tests/test_l70.py` | L70: the whole-codebase clean-up comes after every code change of a version, just before the GitHub push. |
 | `tests/test_l71_drafts.py` |  |
 | `tests/test_l72_ideas.py` | REQ-30 (L72, CR-3): improvement ideas after each iteration. Written BEFORE the code (app/ideas.py, |
+| `tests/test_l73_statusicon.py` | ------------------------------------------------------------------ colour |
 | `tests/test_lite.py` | AI Team Lite: a separate app from AI Team (own data, keys, sign-in, install, instance) with the expert features removed. |
 | `tests/test_scorecard.py` | the key itself never appears in what is saved or shown |
 | `tests/test_server.py` | projects cannot be created before setup is finished |
@@ -153,6 +156,7 @@
 | `tests/ui_l59.py` | Browser test of L59: a long chat opens with its latest part; earlier messages come back on request. |
 | `tests/ui_l71.py` | Browser test of REQ-29 (L71): each project keeps its own unsent message and attachments, saved with the project. |
 | `tests/ui_l72.py` | Browser test of REQ-30 (L72): the improvement-ideas card, decisions shown, kept after reload, saved in reports/IDEAS.md. |
+| `tests/ui_l73.py` | Browser test of REQ-28 (L73): the "Flash the taskbar until I answer" setting in Settings > General. |
 | `tests/ui_lite.py` | Browser test of AI Team Lite's screens: one simple layout (no Advanced switch), no expert tabs or controls, |
 | `tests/ui_scorecard.py` | a project not checked yet |
 | `tests/ui_v04.py` | --- brains in Settings |

@@ -373,6 +373,7 @@ $('delBtn').onclick = async () => { const r = await projAction('delete', {mode: 
 $('settingsBtn').onclick = () => {
   $('setMode').value = S.settings.approval_mode; $('setPar').value = String(S.max_parallel || 2); $('setIterPause').checked = !!S.settings.iteration_pause;
   $('setPipeAuto').checked = S.settings.pipeline_auto !== false; $('setTray').checked = !!S.settings.close_to_tray;
+  $('setFlash').checked = S.settings.flash_taskbar !== false;   // REQ-28
   $('setName').value = S.settings.user_name || '';
   $('setSpell').checked = !!S.settings.spell_check;   // L38
   $('setScoreOnline').checked = S.settings.scorecard_online !== false;   // L49
@@ -388,7 +389,7 @@ $('setCancel').onclick = () => { $('setDlg').close(); renderSide(); };
 $('setSave').onclick = async e => {
   e.preventDefault();
   const body = {approval_mode: $('setMode').value, max_parallel: parseInt($('setPar').value), iteration_pause: $('setIterPause').checked,
-    pipeline_auto: $('setPipeAuto').checked, close_to_tray: $('setTray').checked, user_name: $('setName').value.trim(),
+    pipeline_auto: $('setPipeAuto').checked, close_to_tray: $('setTray').checked, flash_taskbar: $('setFlash').checked, user_name: $('setName').value.trim(),
     scorecard_online: $('setScoreOnline').checked,
     spell_check: $('setSpell').checked, spell_languages: [...$('setSpellLangs').querySelectorAll('input:checked')].map(x => x.value)};
   try { await api('/api/settings', body); $('setDlg').close(); await loadState(); renderSide(); checkSpelling(); } catch (err) { alertBox(err.message); }

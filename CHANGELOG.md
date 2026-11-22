@@ -3,6 +3,9 @@
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
 ## Unreleased
+- **Taskbar colours across all projects.** A dot on the AI Team Lite taskbar icon (and tray icon) shows orange when a
+  project waits for you, green while the team works, grey when nothing runs; the tooltip says it in words. The
+  button flashes while something waits and you are elsewhere (Settings > General, "Flash the taskbar until I answer").
 - **Improvement ideas after each iteration.** After an iteration is saved, Fred shows up to 3 ideas in a table
   (the idea, why it helps, effort). You answer Yes or No on each row, with an optional reason. Answers are kept
   after a restart and listed in reports/IDEAS.md; ideas you already decided are not suggested again.

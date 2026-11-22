@@ -61,13 +61,17 @@ Tests are written first and must fail, then the code, then the whole suite and a
 |  | [x] Server: save and load one draft per project (.aiteam/draft.json via safefile) | app/routes_work.py, app/server.py, app/projects.py | |
 |  | [x] Screen: the message box keeps its own draft per project and restores it on switching | app/ui/js/composer.js, app/ui/js/start.js, app/ui/js/core.js | |
 |  | [x] Document it | CHANGELOG.md, STATUS.md, README.md | |
-| 20 | **Improvement ideas after each iteration** - A Yes/No table of up to 3 ideas after every iteration, with every decision saved and no idea shown twice | REQ-30 | building |
-|  | [ ] Decision log and report: .aiteam/ideas.jsonl, reports/IDEAS.md, no repeat of decided ideas | app/ideas.py, app/ledger.py | |
-|  | [ ] Team tool propose_ideas and the policy entry | app/tools_planning.py, app/policy.py, app/tools.py | |
-|  | [ ] Ideas card in the chat with Yes/No per row and an optional reason; Yes creates a change request, No is logged | app/session_approvals.py, app/routes_work.py, app/ui/js/chat.js, app/ui/app.css | |
-|  | [ ] Trigger after commit_iteration and Fred's instructions (Scout search, skip near the plan limit) | app/iterations.py, app/prompts.py, app/tools_building.py | |
+| 20 | **Improvement ideas after each iteration** - A Yes/No table of up to 3 ideas after every iteration, with every decision saved and no idea shown twice | REQ-30 | done (97d5284) |
+|  | [x] Decision log and report: .aiteam/ideas.jsonl, reports/IDEAS.md, no repeat of decided ideas | app/ideas.py, app/ledger.py | |
+|  | [x] Team tool propose_ideas and the policy entry | app/tools_planning.py, app/policy.py, app/tools.py | |
+|  | [x] Ideas card in the chat with Yes/No per row and an optional reason; Yes creates a change request, No is logged | app/session_approvals.py, app/routes_work.py, app/ui/js/chat.js, app/ui/app.css | |
+|  | [x] Trigger after commit_iteration and Fred's instructions (Scout search, skip near the plan limit) | app/iterations.py, app/prompts.py, app/tools_building.py | |
+|  | [x] Document it | CHANGELOG.md, STATUS.md, README.md | |
+| 21 | **Taskbar colours** - The taskbar icon shows an orange, green or grey dot for all projects, flashes until you answer, and the tray icon follows | REQ-28 | building |
+|  | [ ] Colour rules: all projects' states to orange, green or grey plus a tooltip (app/statusicon.py) | app/statusicon.py | |
+|  | [ ] Windows part: dot on the taskbar button, flashing until answered, tray follows, fallback to the normal icon | app/winhelpers.py, app/main.py, app/settings.py | |
+|  | [ ] Setting 'Flash the taskbar until I answer' in Settings > General | app/settings.py, app/routes_setup.py, app/server.py, app/ui/index.html, app/ui/js/screens.js | |
 |  | [ ] Document it | CHANGELOG.md, STATUS.md, README.md | |
-| 21 | **Taskbar colours** - The taskbar icon shows an orange, green or grey dot for all projects, flashes until you answer, and the tray icon follows | REQ-28 | planned |
 | 22 | **Build the sandbox (1.6.3, only after your yes)** - Engine and test runs start inside the AppContainer behind a setting, approval cards say when a command runs outside it | REQ-22 | planned |
 | 23 | **Parked ideas (not started)** - Keep the set-aside items on the list; nothing is built unless you ask | REQ-23, REQ-24, REQ-25, REQ-26, REQ-27 | planned |
 | 24 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | planned |

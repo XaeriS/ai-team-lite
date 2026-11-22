@@ -1,5 +1,0 @@
-$ .venv\Scripts\python -m pytest -q tests/test_l72_ideas.py tests/test_l71_drafts.py tests/test_traceability.py tests/test_l47_probe.py tests/test_server.py tests/test_core.py tests/test_iterations.py
-
-..........................................................s............. [ 96%]
-...                                                                      [100%]
-74 passed, 1 skipped in 28.22s

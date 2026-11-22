@@ -72,17 +72,30 @@ class Tray:
 
     def __init__(self, bridge: "Bridge"):
         self.bridge, self.icon, self.told = bridge, None, False
+        self.status = None  # REQ-28: (colour, tooltip) shown as a dot on the icon
+
+    def _image(self):
+        from PIL import Image
+        img = Image.open(paths.install_dir() / "app" / "ui" / "icon.png").convert("RGBA").resize((64, 64))
+        if self.status:
+            from app import statusicon
+            img.alpha_composite(statusicon.dot_image(self.status[0], 30), (34, 34))
+        return img
+
+    def set_status(self, colour: str, tooltip: str) -> None:
+        self.status = (colour, tooltip)
+        if self.icon is not None:
+            self.icon.icon, self.icon.title = self._image(), tooltip
 
     def ensure(self) -> bool:
         if self.icon is not None:
             return True
         try:
             import pystray
-            from PIL import Image
-            img = Image.open(paths.install_dir() / "app" / "ui" / "icon.png")
             menu = pystray.Menu(pystray.MenuItem("Open AI Team Lite", lambda *_: self.bridge.show(), default=True),
                                 pystray.MenuItem("Quit AI Team Lite", lambda *_: self.bridge.quit()))
-            self.icon = pystray.Icon("AI Team Lite", img, "AI Team Lite", menu)
+            self.icon = pystray.Icon("AI Team Lite", self._image(),
+                                     self.status[1] if self.status else "AI Team Lite", menu)
             self.icon.run_detached()
             return True
         except Exception:  # noqa: BLE001  (no tray available: fall back to a normal close)
@@ -106,6 +119,29 @@ class Tray:
             except Exception:  # noqa: BLE001
                 pass
             self.icon = None
+
+
+def _status_loop(app, bridge: "Bridge", title: str, stop: threading.Event) -> None:
+    """REQ-28: every 2 s, colour the taskbar button and tray icon from the states of all projects."""
+    try:
+        from app import projects, settings, statusicon, taskbar_win
+        plat = taskbar_win.WinTaskbar(lambda: taskbar_win.find_own_window(title), bridge.tray)
+        icon = statusicon.StatusIcon(
+            plat, lambda: [app.engine.project_state(p["slug"], p) for p in projects.list_projects(include_hidden=False)],
+            window_in_front=plat.window_in_front, flash_enabled=lambda: settings.load().get("flash_taskbar", True))
+    except Exception:  # noqa: BLE001
+        logging.exception("taskbar status icon could not start")
+        return
+    visible = False
+    while not stop.wait(2):
+        try:
+            now = plat.window_visible()
+            if now and not visible:
+                icon.reset()  # the taskbar button is new after hide/show: put the dot back
+            visible = now
+        except Exception:  # noqa: BLE001
+            pass
+        icon.update()
 
 
 def _message(text: str) -> None:
@@ -206,6 +242,7 @@ def main(argv: list[str] | None = None) -> int:
             logging.warning("pywebview unavailable (%s); falling back to browser", e)
             use_browser = True
 
+    status_stop = threading.Event()  # ends the taskbar colour loop (REQ-28)
     try:
         if use_browser:
             import webbrowser
@@ -233,6 +270,9 @@ def main(argv: list[str] | None = None) -> int:
                     except OSError:
                         return
             threading.Thread(target=instance_listener, name="instance", daemon=True).start()
+            if paths.IS_WINDOWS:
+                threading.Thread(target=_status_loop, args=(app, bridge, f"{paths.APP_NAME} {__version__}", status_stop),
+                                 name="status-icon", daemon=True).start()
 
             def on_closing():
                 """X button: hide to the tray when that option is on (item 67); otherwise warn before closing while
@@ -282,6 +322,7 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         pass
     finally:
+        status_stop.set()
         try:
             app.bridge and app.bridge.tray.stop()
         except Exception:  # noqa: BLE001

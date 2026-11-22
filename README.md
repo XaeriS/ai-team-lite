@@ -78,6 +78,7 @@ Want to carry on with something that already exists? **+ New project > Continue 
 
 ## Work keeps moving
 
+- **The taskbar icon tells you at a glance.** A small dot on the AI Team Lite icon (and on the tray icon): orange means a project is waiting for you, green means the team is working, grey means nothing is running. While something waits, the taskbar button flashes until you look; turn that off in Settings > General ("Flash the taskbar until I answer").
 - **Never stuck silently.** If nothing moves for 3 minutes, Fred says what is still running. After 5 minutes
   without any activity, AI Team Lite wakes Fred up by itself and tells him which worker stopped; if nothing moves
   5 minutes later, it restarts the step. If that does not help, it leaves the choice to you ("Wake Fred up" or

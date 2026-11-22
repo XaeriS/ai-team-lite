@@ -45,6 +45,7 @@ DEFAULTS = {
     "version_cleanup": True,         # add a whole-codebase "Clean-up" iteration to each plan
     "ollama_autostart": True,        # start Ollama when a local brain is needed
     "close_to_tray": False,          # the X button hides AI Team Lite to the tray instead of quitting (item 67)
+    "flash_taskbar": True,           # REQ-28: flash the taskbar button while a project waits for me
     "ollama_stop_on_exit": False,    # stop Ollama when AI Team Lite closes (only if AI Team Lite started it)
     "auto_resume": False,            # resume interrupted work automatically at start
     "user_name": "",
