@@ -307,3 +307,9 @@ button,nav,.pill,.state,.tabs,.stab,.who,.legend,.acts{user-select:none}
 /* L68: devil's advocate cards */
 .chcur{margin:4px 0 2px;padding:4px 8px;border-left:3px solid var(--line);background:var(--code);border-radius:4px}
 .chrec{margin-top:4px}
+/* REQ-30 (L72): ideas card; stacks on narrow widths */
+.ideas{width:100%;border-collapse:collapse;margin-top:6px}
+.ideas th,.ideas td{text-align:left;vertical-align:top;padding:6px 8px;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.idea-reason{width:100%;box-sizing:border-box;margin-bottom:4px}
+@media (max-width:700px){.ideas thead{display:none}.ideas,.ideas tbody,.ideas tr,.ideas td{display:block;width:100%;box-sizing:border-box}
+ .ideas td[data-l]::before{content:attr(data-l) ": ";color:var(--muted,#888);font-size:12px}}

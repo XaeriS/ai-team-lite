@@ -3,6 +3,9 @@
 Each version is on the [Releases page](https://github.com/XaeriS/ai-team-lite/releases) with its installer.
 
 ## Unreleased
+- **Improvement ideas after each iteration.** After an iteration is saved, Fred shows up to 3 ideas in a table
+  (the idea, why it helps, effort). You answer Yes or No on each row, with an optional reason. Answers are kept
+  after a restart and listed in reports/IDEAS.md; ideas you already decided are not suggested again.
 - **One unsent message per project.** What you type in the message box (and the files or screenshots you attach)
   stays with its project: switch to another project and its own box appears; come back and your text is there
   again, even after closing the app. Sending clears only that project's box.

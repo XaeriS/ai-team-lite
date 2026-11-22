@@ -45,6 +45,7 @@ tests it in small steps, and starts it for you to try. All you need is a Windows
    approve the architecture.
 4. Fred proposes a plan split into iterations. Nothing is built until you approve it.
 5. Each iteration: tests written first, then the code, then a review; it is saved (Git) only when the tests pass.
+   Then Fred suggests up to 3 improvement ideas; you answer Yes or No on each (kept in reports/IDEAS.md).
 6. When it is ready, "Launch the project" starts it for you to try. Diagrams show how it works.
 7. To keep or share it, Fred makes a real Windows installer (Start menu, the app's icon, an optional desktop
    shortcut, an uninstaller) and, with GitHub, adds automatic tests and publishes the installer there.

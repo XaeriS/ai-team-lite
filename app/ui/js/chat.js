@@ -135,6 +135,7 @@ function renderEvent(ev) {
     case 'prior_art': node = priorArtCard(ev); break;
     case 'problem': node = el(`<div class="card"><h4>🎯 The problem we are solving</h4>${problemHtml(ev)}</div>`); break;
     case 'challenge': node = challengeCard(ev); break;
+    case 'ideas': node = ideasCard(ev); break;
     case 'questions': node = el(`<div class="card" style="border-color:var(--accent)"><h4>🧭 The questions that changed your project</h4>${questionsHtml(ev)}</div>`); break;
     case 'diagram': node = el(`<div class="itcard" style="border-left-color:var(--acc)"><b>🗺 New diagram: ${esc(ev.title)}</b>
       <div class="hint">${esc(ev.question || '')}</div><div class="acts" style="margin-top:6px"><button class="primary" data-open>Open</button>${ev.compare ? '<button data-cmp>What changed</button>' : ''}</div></div>`);
@@ -412,6 +413,27 @@ function challengeCard(ev) {
   }
   return n;
 }
+// REQ-30 (L72): improvement ideas after an iteration, a Yes or No on each row
+function ideasCard(ev) {
+  const rows = ev.ideas || [], left = rows.filter(r => !r.decision).length;
+  const body = rows.map(r => {
+    const link = r.source ? ` <a href="${esc(r.source)}" target="_blank" rel="noopener noreferrer">source</a>` : '';
+    const act = r.decision
+      ? `<b>${r.decision === 'yes' ? 'Yes, do it' : 'No, not now'}</b>${r.reason ? `<div class="hint">“${esc(r.reason)}”</div>` : ''}`
+      : `<input type="text" class="idea-reason" maxlength="500" placeholder="Why? (optional)" aria-label="Reason for: ${esc(r.title)}">
+         <div class="acts"><button type="button" class="primary" data-d="yes">Yes</button><button type="button" data-d="no">No</button></div>`;
+    return `<tr class="idea-row" data-i="${esc(r.id)}"><td data-l="Idea"><b>${esc(r.title)}</b>${link}</td><td data-l="Why it helps">${esc(r.why || '')}</td><td data-l="Effort">${esc(r.effort || '')}</td><td class="idea-act">${act}</td></tr>`;
+  }).join('');
+  const n = el(`<div class="card ideas-card ${left ? 'pending' : ''}"><h4>💡 Ideas to improve the project ${statusPill(left ? 'pending' : (ev.status || 'answered'))}</h4>
+    <div class="hint">Answer Yes for what you want, No for what you do not. Your answers are saved in reports/IDEAS.md.</div>
+    <table class="ideas"><thead><tr><th>Idea</th><th>Why it helps</th><th>Effort</th><th>Your answer</th></tr></thead><tbody>${body}</tbody></table></div>`);
+  n.querySelectorAll('tr.idea-row').forEach(tr => tr.querySelectorAll('[data-d]').forEach(b => b.onclick = async () => {
+    tr.querySelectorAll('button').forEach(x => x.disabled = true);
+    try { await api('/api/ideas/answer', {id: ev.id, idea: tr.dataset.i, decision: b.dataset.d, reason: tr.querySelector('.idea-reason').value.trim()}); }
+    catch (e) { tr.querySelectorAll('button').forEach(x => x.disabled = false); alertBox(e.message); }
+  }));
+  return n;
+}
 async function renderReq() {
   const p = $('pane'), slug = cur, pr = view.project.problem || {}, ch = view.project.challenge || {};
   const hasProblem = PROBLEM_FIELDS.some(([k]) => pr[k]) || pr.statement;
@@ -478,7 +500,12 @@ function applyUpdate(ev) {
   const target = items.find(x => x.id === ev.id); if (!target) return;
   Object.assign(target, ev.changes || {});
   const old = $('msgs').querySelector(`[data-id="${ev.id}"]`);
-  if (old) old.replaceWith(renderEvent(target));
+  if (!old) return;
+  const typed = new Map();   /* keep reasons typed in rows that are still unanswered */
+  old.querySelectorAll('tr.idea-row').forEach(tr => { const r = tr.querySelector('.idea-reason'); if (r && r.value) typed.set(tr.dataset.i, r.value); });
+  const fresh = renderEvent(target);
+  old.replaceWith(fresh);
+  fresh.querySelectorAll('tr.idea-row').forEach(tr => { const r = tr.querySelector('.idea-reason'); if (r && typed.has(tr.dataset.i)) r.value = typed.get(tr.dataset.i); });
 }
 /* collapse runs of activity lines into one expandable line */
 function groupActivities() {
@@ -524,7 +551,7 @@ function onEvent(ev) {
   if (busy) $('msgs').appendChild(typingEl());
   if (ev.type === 'screenshot' && tab === 'shots') renderSide();
   if (['setup_done', 'plan', 'iteration', 'handoff', 'architecture', 'release_wait'].includes(ev.type)) { loadState(); refreshDocs(); markSide(); }
-  scrollDown(['approval', 'secret', 'folder', 'plan', 'choice', 'limit', 'signin', 'wentback', 'architecture', 'handoff', 'change', 'council', 'prior_art', 'challenge', 'stuck'].includes(ev.type));
+  scrollDown(['approval', 'secret', 'folder', 'plan', 'choice', 'limit', 'signin', 'wentback', 'architecture', 'handoff', 'change', 'council', 'prior_art', 'challenge', 'ideas', 'stuck'].includes(ev.type));
 }
 async function refreshView() { if (!cur) return; try { view = await api('/api/projects/' + cur); renderHeader(); renderSide(); } catch (e) {} }
 async function refreshDocs() { await refreshView(); }

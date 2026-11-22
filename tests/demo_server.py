@@ -124,6 +124,16 @@ async def script(i, prompt, c):
             yield x
         yield say("Those were the demo cards.")
         return
+    if os.environ.get("DEMO_IDEAS") and "ideas" in prompt.lower():  # REQ-30: the ideas card
+        _, _, m, _ = await use("mcp__aiteam__propose_ideas", {"ideas": [
+            {"title": "Export the list to Excel", "why": "You can share it with people who do not use the app.", "effort": "small"},
+            {"title": "Daily email summary", "why": "You see changes without opening the app.", "effort": "medium",
+             "source": "https://example.com/summary"},
+            {"title": "Dark mode", "why": "Easier on the eyes in the evening.", "effort": "small"}]})
+        for x in m:
+            yield x
+        yield say("Thanks, I noted your answers.")
+        return
     if prompt.startswith("[App] You are Fred again. The user APPROVED"):
         prompt = "make a plan"
     elif prompt.startswith("[App]"):

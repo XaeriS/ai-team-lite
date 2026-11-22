@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import time
 from typing import TYPE_CHECKING
+import uuid
 
 from claude_agent_sdk import tool
 
-from . import brains, challenge, council, diagrams, iterations, projects, settings, tracking, usage
+from . import brains, challenge, council, diagrams, ideas as ideas_mod, iterations, projects, settings, tracking, usage
 
 if TYPE_CHECKING:
     from .session import Session
@@ -281,4 +282,40 @@ def make(session: "Session") -> dict:
                         f"with request_plan_approval.{arch}")
         return text(f"{cr['id']} was rejected by the user" + (f": {cr.get('note')}" if cr.get("note") else "") + ". Do not do it.")
 
-    return {"handoff_to_architect": handoff_to_architect, "request_architecture_approval": request_architecture_approval, "return_to_fred": return_to_fred, "request_plan_approval": request_plan_approval, "record_problem": record_problem, "record_questions": record_questions, "record_challenge_review": record_challenge_review, "record_prior_art": record_prior_art, "ask_council": ask_council, "record_change_request": record_change_request}
+    @tool("propose_ideas", "Fred: after an iteration was committed, show at most 3 improvement ideas to the user, who "
+          "answers Yes or No on each. ideas = [{title, why (one plain sentence), effort: small|medium|large, "
+          "source_link (optional)}]. Ideas already decided, or already in the requirements or plan, are dropped.",
+          {"ideas": list})
+    async def propose_ideas(args):
+        folder = projects.project_dir(slug)
+        given = [i for i in args.get("ideas") or [] if isinstance(i, dict) and str(i.get("title", "")).strip()]
+        if not given:
+            return text("There was no idea to show, so no card was shown. Carry on.")
+        known = []
+        for name in ("REQUIREMENTS.md", "PLAN.md"):
+            try:
+                known.append((folder / name).read_text(encoding="utf-8"))
+            except OSError:
+                pass
+        fresh = ideas_mod.filter_new(folder, given, known)
+        if not fresh:
+            return text("All of these ideas were already decided or are already in the requirements or plan. Do not "
+                        "propose them again; no card was shown.")
+        rows = [{"id": uuid.uuid4().hex[:8], "title": " ".join(str(i["title"]).split())[:200],
+                 "why": " ".join(str(i.get("why", "")).split())[:500], "effort": str(i.get("effort", ""))[:40],
+                 "source": str(i.get("source_link") or "")[:300] if str(i.get("source_link") or "").startswith(("http://", "https://")) else ""}
+                for i in fresh]
+        answer = await session.ask_user("ideas", {"ideas": rows})
+        if interrupted(answer):
+            return interrupted(answer)
+        if answer.get("cancelled"):
+            return text("The user closed the ideas card without deciding. Do not ask again now.")
+        yes = [r for r in rows if any(d.get("idea") == r["id"] and d.get("decision") == "yes"
+                                      for d in answer.get("decisions") or [])]
+        if not yes:
+            return text("The user said No to every idea (logged in reports/IDEAS.md). Carry on.")
+        return text("The user said Yes to: " + "; ".join(f"{r['title']} ({r['why']})" for r in yes) + ". For each one, call "
+                    "record_change_request (title, description, effort) so the user can approve it and the plan is revised. "
+                    "The others were logged as No.")
+
+    return {"propose_ideas": propose_ideas, "handoff_to_architect": handoff_to_architect,"request_architecture_approval": request_architecture_approval, "return_to_fred": return_to_fred, "request_plan_approval": request_plan_approval, "record_problem": record_problem, "record_questions": record_questions, "record_challenge_review": record_challenge_review, "record_prior_art": record_prior_art, "ask_council": ask_council, "record_change_request": record_change_request}

@@ -13,7 +13,7 @@ CARD_TOOLS = {f"mcp__aiteam__{n}" for n in ("request_plan_approval", "ask_folder
                                             "record_challenge_review", "record_diagram",
                                             "return_to_fred", "record_prior_art", "ask_council",
                                             "record_change_request", "run_security_test", "record_questions", "connect_phone",
-                                            "record_lesson")}
+                                            "record_lesson", "propose_ideas")}
 WORKER_LABELS = {"developer": "Developer", "tester": "Tester", "reviewer": "Reviewer", "scout": "Scout",
                  "challenger": "Challenger", "diagrammer": "Diagrammer"}
 ROLES = ["Fred", "Mat", "Developer", "Tester", "Reviewer"]

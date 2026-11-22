@@ -57,11 +57,16 @@ Tests are written first and must fail, then the code, then the whole suite and a
 |  | [x] Read the existing tests and map each to the requirement it really proves | tests/requirements_map.json | |
 |  | [x] Run the mapped existing tests and record each result against its requirement | reports/test-logs | |
 |  | [x] List the unproven requirements in STATUS.md | STATUS.md | |
-| 19 | **One message draft per project** - Each project keeps its own unsent text and attachments, saved with the project | REQ-29 | building |
-|  | [ ] Server: save and load one draft per project (.aiteam/draft.json via safefile) | app/routes_work.py, app/server.py, app/projects.py | |
-|  | [ ] Screen: the message box keeps its own draft per project and restores it on switching | app/ui/js/composer.js, app/ui/js/start.js, app/ui/js/core.js | |
+| 19 | **One message draft per project** - Each project keeps its own unsent text and attachments, saved with the project | REQ-29 | done (c18b964) |
+|  | [x] Server: save and load one draft per project (.aiteam/draft.json via safefile) | app/routes_work.py, app/server.py, app/projects.py | |
+|  | [x] Screen: the message box keeps its own draft per project and restores it on switching | app/ui/js/composer.js, app/ui/js/start.js, app/ui/js/core.js | |
+|  | [x] Document it | CHANGELOG.md, STATUS.md, README.md | |
+| 20 | **Improvement ideas after each iteration** - A Yes/No table of up to 3 ideas after every iteration, with every decision saved and no idea shown twice | REQ-30 | building |
+|  | [ ] Decision log and report: .aiteam/ideas.jsonl, reports/IDEAS.md, no repeat of decided ideas | app/ideas.py, app/ledger.py | |
+|  | [ ] Team tool propose_ideas and the policy entry | app/tools_planning.py, app/policy.py, app/tools.py | |
+|  | [ ] Ideas card in the chat with Yes/No per row and an optional reason; Yes creates a change request, No is logged | app/session_approvals.py, app/routes_work.py, app/ui/js/chat.js, app/ui/app.css | |
+|  | [ ] Trigger after commit_iteration and Fred's instructions (Scout search, skip near the plan limit) | app/iterations.py, app/prompts.py, app/tools_building.py | |
 |  | [ ] Document it | CHANGELOG.md, STATUS.md, README.md | |
-| 20 | **Improvement ideas after each iteration** - A Yes/No table of up to 3 ideas after every iteration, with every decision saved and no idea shown twice | REQ-30 | planned |
 | 21 | **Taskbar colours** - The taskbar icon shows an orange, green or grey dot for all projects, flashes until you answer, and the tray icon follows | REQ-28 | planned |
 | 22 | **Build the sandbox (1.6.3, only after your yes)** - Engine and test runs start inside the AppContainer behind a setting, approval cards say when a command runs outside it | REQ-22 | planned |
 | 23 | **Parked ideas (not started)** - Keep the set-aside items on the list; nothing is built unless you ask | REQ-23, REQ-24, REQ-25, REQ-26, REQ-27 | planned |

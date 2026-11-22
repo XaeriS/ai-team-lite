@@ -30,7 +30,7 @@ ALWAYS_ALLOW = {
     "mcp__aiteam__ask_council", "mcp__aiteam__record_change_request",
     "mcp__aiteam__run_security_test",
     "mcp__aiteam__record_diagram", "mcp__aiteam__record_problem", "mcp__aiteam__record_challenge_review",
-    "mcp__aiteam__record_questions", "mcp__aiteam__connect_phone",
+    "mcp__aiteam__record_questions", "mcp__aiteam__connect_phone", "mcp__aiteam__propose_ideas",
     "mcp__aiteam__run_tests", "mcp__aiteam__record_lesson", "mcp__aiteam__quality_check",   # run_tests checks itself that the command only runs the project's tests
     "mcp__aiteam__record_finding", "mcp__aiteam__close_finding", "mcp__aiteam__clean_leftovers",   # L61: bookkeeping
 }

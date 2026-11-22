@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 import threading
 
-from . import auth, brains, journal, projects, safefile, secrets_store, tooling, usage, winhelpers
+from . import auth, brains, ideas, journal, projects, safefile, secrets_store, tooling, usage, winhelpers
 from .server_common import ADOPTED_KICKOFF, EXISTING_KICKOFF, MAX_UPLOAD, NO_ROUTE, _ollama_get_and_add, _scan_text
 
 
@@ -206,6 +206,36 @@ def put_draft(slug: str, body: dict) -> dict:
     return {"ok": True}
 
 
+_ideas_lock = threading.Lock()
+
+
+def _answer_idea(self, app, body: dict):
+    """REQ-30: one Yes/No row of an ideas card. The card stays open until every row has an answer."""
+    item_id, idea_id = str(body.get("id", "")), str(body.get("idea", ""))
+    decision, reason = body.get("decision"), str(body.get("reason") or "")[:500]
+    if decision not in ideas.DECISIONS:
+        return self._error(400, "The decision must be yes or no.")
+    with _ideas_lock:
+        entry = app.engine.pending.get(item_id)
+        if not entry or entry[2] != "ideas":
+            return self._error(409, "This request is no longer waiting for an answer.")
+        slug = entry[1]
+        card = next((e for e in app.hub.history(slug) if e.get("id") == item_id and e.get("type") == "ideas"), None)
+        rows = (card or {}).get("ideas") or []
+        row = next((r for r in rows if r.get("id") == idea_id), None)
+        if row is None:
+            return self._error(400, "Unknown idea.")
+        if row.get("decision"):
+            return self._error(409, "This idea was already answered.")
+        ideas.add_decision(projects.project_dir(slug), row, decision, reason)
+        rows = [{**r, "decision": decision, "reason": reason} if r.get("id") == idea_id else r for r in rows]
+        app.hub.update(slug, item_id, ideas=rows)
+        if all(r.get("decision") for r in rows):
+            app.engine.respond(item_id, {"decisions": [{"idea": r["id"], "decision": r["decision"], "reason": r.get("reason", "")}
+                                                       for r in rows]})
+    return self._json({"ok": True})
+
+
 def post_answers(self, app, path: str, body: dict):
     """Answers to cards and the council's brains."""
     if path == "/api/respond":
@@ -214,6 +244,8 @@ def post_answers(self, app, path: str, body: dict):
         if not app.engine.respond(item_id, payload):
             return self._error(409, "This request is no longer waiting for an answer.")
         return self._json({"ok": True})
+    if path == "/api/ideas/answer":
+        return _answer_idea(self, app, body)
     if path.startswith("/api/brains/"):
         action = path.rsplit("/", 1)[1]
         provider = str(body.get("provider", ""))

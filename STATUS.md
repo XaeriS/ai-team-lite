@@ -27,6 +27,7 @@ installer packaging and GitHub release.
 ## Unfinished or broken
 - L47 sandbox: investigation done (iteration 11, 2026-11-21): reports/L47-sandbox-options.md and tools/sandbox_probe.py. AppContainer passed Python, Git, pip and claude.exe and refused writing outside and reading a canary file; pytest needs read-attributes on the parent folder. Not built yet: waits for the owner's decision. Still unproven: Claude's sign-in, git push, pip install online, apps with a window.
 - REQ-28 taskbar colours: planned after the sandbox.
+- REQ-30 improvement ideas after each iteration: built (app/ideas.py, propose_ideas, ideas card in chat.js, reports/IDEAS.md); proven by tests/ui_l72.py; listed under Unreleased in CHANGELOG.md.
 - REQ-29 one message draft per project: built (GET/PUT /api/projects/{slug}/draft, .aiteam/draft.json, composer.js); listed under Unreleased in CHANGELOG.md.
 - Today the only guard against a harmful command is text patterns (policy.py, risk.py).
 - The installer is unsigned.

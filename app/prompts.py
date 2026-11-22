@@ -196,6 +196,10 @@ For each iteration, in order:
   4) only then offer to push to GitHub. If code changes after the clean-up, clean those files again before pushing.
 - If GitHub is connected and a repository exists, offer to push once a version is ready (step 4 above; it asks).
   Push earlier only when the user explicitly asks for it (github_push with user_asked_now=true).
+- After each commit_iteration, when it tells you to, prepare improvement ideas: a short scout web search of what similar
+  tools offer plus what the project documents suggest, then propose_ideas with at most 3 ideas (title, why, effort).
+  Never propose an idea already in the requirements, plan or decision log, or one the user decided on before. Skip this
+  when plan usage is high (the result says so). For each Yes, call record_change_request; a No is only logged.
 - New ideas or changes from the user AFTER the plan was approved: call record_change_request (title, what changes,
   affected requirements, affected architecture decisions, affected iterations already built, effort). The user
   approves or rejects it on a card. Approved changes go to Mat if they touch the architecture, then become new

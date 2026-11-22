@@ -3,7 +3,7 @@
 > Maintained automatically by AI Team Lite after each iteration. Read this first to find the right file;
 > open only the files you need.
 
-**Tests:** 29 file(s) in `reports`, `tests`
+**Tests:** 30 file(s) in `reports`, `tests`
 
 | File | What it is for |
 |------|----------------|
@@ -27,6 +27,7 @@
 | `app/features.py` | Requested features and feedback (items 50, 51). |
 | `app/freshtests.py` | L64: after an iteration passes its full test run and is saved, the test results show that run, not the history. |
 | `app/github.py` |  |
+| `app/ideas.py` | REQ-30: improvement ideas after each iteration, and what the user decided about each. |
 | `app/iterations.py` | Iteration-based delivery: the plan is split into iterations (one feature each). Nothing is built before |
 | `app/journal.py` | Run journal and recovery (item 33). |
 | `app/languages.py` | How the team builds: Python with the bundled interpreter (AI Team Lite builds in Python only). |
@@ -130,6 +131,7 @@
 | `tests/test_l68_l69.py` | L69: the plan comes before the diagram, and the user decides whether the diagrammer starts. |
 | `tests/test_l70.py` | L70: the whole-codebase clean-up comes after every code change of a version, just before the GitHub push. |
 | `tests/test_l71_drafts.py` |  |
+| `tests/test_l72_ideas.py` | REQ-30 (L72, CR-3): improvement ideas after each iteration. Written BEFORE the code (app/ideas.py, |
 | `tests/test_lite.py` | AI Team Lite: a separate app from AI Team (own data, keys, sign-in, install, instance) with the expert features removed. |
 | `tests/test_scorecard.py` | the key itself never appears in what is saved or shown |
 | `tests/test_server.py` | projects cannot be created before setup is finished |
@@ -150,6 +152,7 @@
 | `tests/ui_l58.py` | Browser test of L58: an odd folder name no longer empties the window; if loading ever fails, the window says so. |
 | `tests/ui_l59.py` | Browser test of L59: a long chat opens with its latest part; earlier messages come back on request. |
 | `tests/ui_l71.py` | Browser test of REQ-29 (L71): each project keeps its own unsent message and attachments, saved with the project. |
+| `tests/ui_l72.py` | Browser test of REQ-30 (L72): the improvement-ideas card, decisions shown, kept after reload, saved in reports/IDEAS.md. |
 | `tests/ui_lite.py` | Browser test of AI Team Lite's screens: one simple layout (no Advanced switch), no expert tabs or controls, |
 | `tests/ui_scorecard.py` | a project not checked yet |
 | `tests/ui_v04.py` | --- brains in Settings |

@@ -10,12 +10,23 @@ from typing import TYPE_CHECKING
 
 from claude_agent_sdk import tool
 
-from . import iterations, paths, policy, projectmap, projects, scorecard, testrun, tracking, upkeep, winhelpers
+from . import iterations, paths, policy, projectmap, projects, scorecard, testrun, tracking, upkeep, usage, winhelpers
 
 if TYPE_CHECKING:
     from .session import Session
 
 from .tools_common import add_test_result, diagram_hint, interrupted, text
+
+
+def _ideas_step(it: dict) -> str:
+    """REQ-30: after a freshly committed iteration Fred prepares improvement ideas (not when plan usage is high)."""
+    if it.get("existing") or it.get("already_done"):
+        return ""
+    if usage.warning_note():
+        return " Improvement ideas wait for the next iteration (plan usage is high): say so in one line."
+    return (" Now prepare improvement ideas: ask the scout for a short web search of what similar tools offer (a few "
+            "searches at most), add what the project documents suggest, then call propose_ideas with at most 3 ideas not "
+            "already in the requirements, plan or decision log.")
 
 
 def make(session: "Session") -> dict:
@@ -122,7 +133,8 @@ def make(session: "Session") -> dict:
                     if r["id"] in (it.get("requirements") or []) and not r.get("proven")]
         proof = (f" NOT YET PROVEN BY A TEST: {', '.join(unproven)}. Have the Tester add (or link) a passing test for each, "
                  "recorded with record_test_result(requirement=...), before the version is finished." if unproven else "")
-        return text(f"Tests passed. Iteration {n} committed to Git ({result['commit']}). {follow}{proof}" + diagram_hint("iteration"))
+        return text(f"Tests passed. Iteration {n} committed to Git ({result['commit']}). {follow}{proof}"
+                    + diagram_hint("iteration") + _ideas_step(it))
 
     @tool("take_screenshot", "Take a screenshot that is shown to the user in the chat. kind='web': target is a URL "
           "(server must already be running). kind='window': target is a command that starts the app; it is "
