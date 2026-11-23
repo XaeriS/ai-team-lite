@@ -45,8 +45,9 @@ def _files(folder: Path) -> list[Path]:
     exe = paths.git_exe()
     if exe and (folder / ".git").exists():
         try:
-            r = subprocess.run([exe, "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=str(folder),
-                               capture_output=True, timeout=60, creationflags=testrun.NO_WINDOW)
+            r = subprocess.run([exe, *paths.GIT_SAFE, "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=str(folder),
+                               capture_output=True, timeout=60, creationflags=testrun.NO_WINDOW,
+                               env=paths.git_env())
             if r.returncode == 0:
                 names = [n for n in r.stdout.decode("utf-8", "replace").split("\0") if n]
                 out = [folder / n for n in names if not (testrun.SKIP_DIRS & set(Path(n).parts))]

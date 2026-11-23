@@ -88,13 +88,25 @@ def profile_name(project: Path, engine: bool = False) -> str:
     return PROFILE_PREFIX + ("E." if engine else "") + _hash(project)
 
 
-def temp_dir(project: Path) -> Path:
+def root_dir(project: Path) -> Path:
+    """The project's own folder under sandbox-temp: no box may write here, only in the folders inside it."""
     return paths.data_dir() / "sandbox-temp" / _hash(project)
 
 
+def temp_dir(project: Path) -> Path:
+    """Writable temp folder of the test / Launch container."""
+    return root_dir(project) / "t"
+
+
+def engine_temp_dir(project: Path) -> Path:
+    """Writable temp folder of Claude's engine container (M-4: not shared with the test programs)."""
+    return root_dir(project) / "e"
+
+
 def site_dir(project: Path) -> Path:
-    """Holds the sitecustomize.py that Python programs in the box load (PYTHONPATH points here)."""
-    return temp_dir(project) / "py-site"
+    """Holds the sitecustomize.py that Python programs in the box load (PYTHONPATH points here). Boxes may read it,
+    none may write it (M-4)."""
+    return root_dir(project) / "py-site"
 
 
 # Python 3.12.4+ gives a folder made with mode 0o700 (tempfile.mkdtemp, pytest's tmp_path and cache) a private list
@@ -190,6 +202,7 @@ def access_list(project_dir: Path) -> list[tuple[Path, str]]:
     proj = Path(project_dir).resolve()
     out = [(proj, "RW"), (proj.parent, "RA")]
     out += [(p, "RX") for p in _program_folders(proj)]
+    out.append((site_dir(proj), "RX"))
     out.append((temp_dir(proj), "RW"))
     return out
 
@@ -198,7 +211,9 @@ def engine_access_list(project_dir: Path, config: bool = True) -> list[tuple[Pat
     """access_list plus what Claude's engine needs: its own settings and sign-in folder (only for the engine's own
     container, and only once it is known the engine can start in the box: config=False before that)."""
     from . import auth
-    return access_list(project_dir) + ([(auth.claude_config_dir().resolve(), "RW")] if config else [])
+    base = [e for e in access_list(project_dir) if e[0] != temp_dir(Path(project_dir).resolve())]
+    base.append((engine_temp_dir(Path(project_dir).resolve()), "RW"))
+    return base + ([(auth.claude_config_dir().resolve(), "RW")] if config else [])
 
 
 # ------------------------------------------------------------------ rights on folders
@@ -244,8 +259,8 @@ def prepare(project_dir: Path, engine: bool = False, config: bool = True) -> str
         if not _cleanup_registered:
             atexit.register(cleanup_all)
             _cleanup_registered = True
-        temp_dir(project).mkdir(parents=True, exist_ok=True)
-        (temp_dir(project) / "project.txt").write_text(str(project), encoding="utf-8")   # for cleanup after a crash
+        root_dir(project).mkdir(parents=True, exist_ok=True)
+        (root_dir(project) / "project.txt").write_text(str(project), encoding="utf-8")   # for cleanup after a crash
         _write_site(project)
         for path, mode in (engine_access_list(project, config) if engine else access_list(project)):
             if (str(path), mode) in done:
@@ -284,7 +299,7 @@ def cleanup(project_dir: Path) -> None:
         _engine.pop(key, None)
         _shell_checked.pop(key, None)
         entries = {e: _prepared.pop((key, e), None) for e in (False, True)}
-        if not any(entries.values()) and not temp_dir(project).exists():
+        if not any(entries.values()) and not root_dir(project).exists():
             return
         for engine, entry in entries.items():
             try:
@@ -295,7 +310,7 @@ def cleanup(project_dir: Path) -> None:
                                            (engine_access_list(project) if engine else access_list(project))}
             _remove_rights(sid, done)
             w.delete_profile(profile_name(project, engine))
-        shutil.rmtree(temp_dir(project), ignore_errors=True)
+        shutil.rmtree(root_dir(project), ignore_errors=True)
         _flag(project).unlink(missing_ok=True)
 
 
@@ -452,7 +467,7 @@ def engine_command(cmd: list, cwd) -> list:
     py = Path(sys.executable)
     if py.name.lower() == "pythonw.exe" and py.with_name("python.exe").exists():
         py = py.with_name("python.exe")
-    return [str(py), str(LAUNCHER), sid, str(temp_dir(project)), str(_flag(project)), "--", *[str(c) for c in cmd]]
+    return [str(py), str(LAUNCHER), sid, str(engine_temp_dir(project)), str(_flag(project)), "--", *[str(c) for c in cmd]]
 
 
 # ------------------------------------------------------------------ the approval card

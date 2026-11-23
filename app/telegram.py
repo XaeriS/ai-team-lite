@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import secrets as _secrets
 import threading
 import time
@@ -53,6 +54,31 @@ def _short(text: Any, limit: int) -> str:
     return s if len(s) <= limit else s[: limit - 1] + "…"
 
 
+_ASSIGNED = re.compile(r"""(?i)(\w*(?:token|secret|password|passwd|key)\w*\s*[=:]\s*)("[^"]*"|'[^']*'|\S+)""")
+_OTHER = re.compile(r"""(?ix)(?<=://)[^/\s:@]+:[^/\s@]+@          # ://user:pw@
+    |(?<=\s-u\s)\S+                                              # -u user:pass
+    |(?<=Basic\s)[A-Za-z0-9+/=_-]+ | (?<=Bearer\s)\S+
+    |sk-[\w-]{20,} | AKIA[0-9A-Z]{16} | xox[a-z]-\S+""")
+
+
+def _masked(text: str) -> str:
+    """M-5: what is shown on the phone never carries a key or password that sits inside a command."""
+    from .updates import SECRET_RE
+    text = SECRET_RE.sub("***", text)
+    return _OTHER.sub("***", _ASSIGNED.sub(lambda m: m.group(1) + "***", text))
+
+
+def _what_is_done(payload: dict) -> str:
+    """M-5: the command, or the file that is changed (never the content written into it), short and masked."""
+    details = str(payload.get("details") or "")
+    tool = payload.get("tool")
+    if tool in ("Bash", "PowerShell"):
+        return _short(_masked(details), 200)
+    if tool in ("Write", "Edit", "MultiEdit"):
+        return _short(_masked(details.split(chr(10), 1)[0]), 200)
+    return ""
+
+
 # ---------------------------------------------------------------------------- what a card looks like on the phone
 RISK_WORD = {"low": "🟢 low risk", "medium": "🟠 medium risk", "high": "🔴 high risk"}
 
@@ -68,6 +94,9 @@ def card_message(kind: str, payload: dict, project: str, high_risk_on_phone: boo
             lines.append(_short(payload["what"], 300))
         elif payload.get("explanation"):
             lines.append(_short(payload["explanation"], 300))
+        done = _what_is_done(payload)
+        if done:
+            lines.append(done)
         if payload.get("risk"):
             lines.append(RISK_WORD.get(payload["risk"], payload["risk"]) +
                          (f": {_short(payload.get('risk_reason'), 200)}" if payload.get("risk_reason") else ""))

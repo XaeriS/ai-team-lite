@@ -44,6 +44,16 @@ def git_exe() -> str | None:
     return shutil.which("git")
 
 
+# M-2: the project folder (and its .git) can be written by project code, so the app's own git calls run no hooks,
+# no file-system monitor program and no system-wide git config.
+GIT_SAFE = ["-c", "core.hooksPath=NUL", "-c", "core.fsmonitor=false", "-c", "core.sshCommand=ssh",
+            "-c", "credential.helper=", "-c", "core.askpass=", "-c", "http.proxy=", "-c", "protocol.ext.allow=never"]
+
+
+def git_env() -> dict:
+    return {**os.environ, "GIT_CONFIG_NOSYSTEM": "1"}
+
+
 def tool_path() -> str:
     """PATH for agents: bundled Git and Python first, then the normal PATH."""
     extra: list[Path] = []

@@ -115,8 +115,9 @@ def _changed_files(folder: Path, since: float | None) -> list[str]:
     exe = paths.git_exe()
     if exe and (folder / ".git").exists():
         try:
-            r = subprocess.run([exe, "status", "--porcelain", "--untracked-files=all"], cwd=str(folder),
-                               capture_output=True, text=True, timeout=30, creationflags=NO_WINDOW)
+            r = subprocess.run([exe, *paths.GIT_SAFE, "status", "--porcelain", "--untracked-files=all"], cwd=str(folder),
+                               capture_output=True, text=True, timeout=30, creationflags=NO_WINDOW,
+                               env=paths.git_env())
             files = [line[3:].strip().strip('"').split(" -> ")[-1] for line in r.stdout.splitlines() if len(line) > 3]
             return [f for f in files if f.endswith(".py")]
         except (OSError, subprocess.SubprocessError):

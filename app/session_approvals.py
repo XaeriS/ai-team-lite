@@ -11,7 +11,7 @@ import uuid
 
 from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
 
-from . import engine_const as const, iterations, models, paths, policy, projects, risk, sandbox, scorecard, settings, shellcheck, timeline
+from . import engine_const as const, github, iterations, models, paths, policy, projects, risk, sandbox, scorecard, settings, shellcheck, timeline
 from .engine_text import approval_card, interrupted_text
 
 
@@ -101,6 +101,10 @@ class ApprovalsMixin:
         card["who"] = who
         card["reason"] = reason
         card.update(risk.explain(tool_name, tool_input or {}, self.folder, lambda p: projects.inside(self.slug, p), roots))
+        if tool_name == "mcp__aiteam__github_push":   # M-2: say where the files really go
+            dest = github.origin_url(self.folder) or project.get("github_clone") or project.get("github_repo") or ""
+            if dest:
+                card["what"] = f"{card.get('what', '')} Destination: {dest}".strip()
         if tool_name == "mcp__aiteam__github_push":   # L49: red points of the scorecard are shown, not blocking
             warn = scorecard.push_warning(self.slug)
             if warn:

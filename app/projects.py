@@ -148,11 +148,12 @@ def create_from_folder(folder: str, name: str = "") -> dict:
                "cost_usd": 0.0, "plan_approved": False, "architecture_approved": False, "github_repo": "",
                "existing_folder": True, "source": str(path)}
     if old:  # an AI Team Lite project from before (another PC, or moved): continue exactly where it was
-        keep = ("phase", "plan_approved", "plan_approved_at", "architecture_approved", "github_repo",
+        keep = ("phase", "github_repo",
                 "cost_usd", "created", "iterations", "released", "priority", "after_default")
         project.update({k: old[k] for k in keep if k in old})
         project["adopted"] = True
     project["scan"] = scan_folder(path)
+    _state_file(slug).unlink(missing_ok=True)
     save(project)
     gi = path / ".gitignore"
     if gi.exists() and ".aiteam" not in gi.read_text(encoding="utf-8", errors="ignore"):
@@ -225,6 +226,7 @@ def delete(slug: str, mode: str) -> str:
             raise ValueError("Refusing to delete this folder.")
         if folder.exists():
             _rmtree(folder)
+        _state_file(slug).unlink(missing_ok=True)
         if slug in reg:
             reg.pop(slug)
             _save_external(reg)
@@ -242,18 +244,67 @@ def history_file(slug: str) -> Path:
     return project_dir(slug) / META / "events.jsonl"
 
 
+# M-1: these are kept in the app's own data folder, never believed from a file inside the project folder
+GUARDED = ("plan_approved", "plan_approved_at", "architecture_approved", "launch")
+MIGRATED = GUARDED[:3]   # not "launch": an old project asks to save its Launch command again
+
+
+def _state_file(slug: str) -> Path:
+    d = paths.data_dir() / "project-state"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{slug}.json"
+
+
+def _read_state(slug: str) -> dict:
+    s = safefile.read_json(_state_file(slug))
+    return s if isinstance(s, dict) else {}
+
+
+def migrate_state() -> list[str]:
+    """One time, when the app starts after the upgrade: projects already in the app's own list (projects folder and
+    registered outside folders) that have no record yet keep the approval their old file holds.
+    Never run when a folder is adopted or loaded, so a copied folder still starts unapproved."""
+    marker = _state_file("x").parent / ".migrated"
+    if marker.exists():
+        return []
+    done = []
+    for p in list_projects():
+        slug = p["slug"]
+        if _state_file(slug).exists():
+            continue
+        old = safefile.read_json(meta_file(slug))
+        if not isinstance(old, dict):
+            continue
+        state = {k: old[k] for k in MIGRATED if k in old}
+        if state:
+            safefile.write_json(_state_file(slug), state)
+            done.append(slug)
+    marker.write_text("1", encoding="utf-8")
+    return done
+
+
 def load(slug: str) -> dict | None:
     if slug == SETUP_SLUG:
         default = {"slug": SETUP_SLUG, "name": "Setup with Fred", "phase": "setup", "kind": "setup"}
-        return {**default, **(safefile.read_json(meta_file(slug)) or {})}
-    return safefile.read_json(meta_file(slug))   # L34: never open while a save swaps the file
+        p = {**default, **(safefile.read_json(meta_file(slug)) or {})}
+    else:
+        p = safefile.read_json(meta_file(slug))   # L34: never open while a save swaps the file
+    if not isinstance(p, dict):
+        return p
+    for k in GUARDED:
+        p.pop(k, None)
+    p.update({"plan_approved": False, "architecture_approved": False})
+    p.update({k: v for k, v in _read_state(slug).items() if k in GUARDED})
+    return p
 
 
 def save(project: dict) -> None:
     """L34: writers take turns and Windows' brief "Access is denied" is retried; if the file still cannot be saved,
     the work carries on (the error is logged) instead of stopping the team's turn."""
     try:
-        safefile.write_json(meta_file(project["slug"]), project)
+        state = {k: project[k] for k in GUARDED if k in project}
+        safefile.write_json(_state_file(project["slug"]), state)
+        safefile.write_json(meta_file(project["slug"]), {k: v for k, v in project.items() if k not in GUARDED})
     except OSError as e:
         log.warning("could not save %s: %s", project.get("slug"), e)
 
@@ -464,7 +515,8 @@ def _git(args: list[str], cwd: Path) -> subprocess.CompletedProcess | None:
     if not exe:
         return None
     flags = 0x08000000 if paths.IS_WINDOWS else 0  # no console window
-    return subprocess.run([exe, *args], cwd=cwd, capture_output=True, text=True, timeout=60, creationflags=flags)
+    return subprocess.run([exe, *paths.GIT_SAFE, *args], cwd=cwd, capture_output=True, text=True, timeout=60,
+                          creationflags=flags, env=paths.git_env())
 
 
 def create(name: str, has_ui: bool | None = None) -> dict:
@@ -481,6 +533,7 @@ def create(name: str, has_ui: bool | None = None) -> dict:
                "architecture_approved": False, "github_repo": ""}
     if has_ui is not None:
         project["has_ui"] = bool(has_ui)
+    _state_file(slug).unlink(missing_ok=True)   # a left-over record under this name must not approve the new project
     save(project)
     try:
         _git(["init", "-b", "main"], folder)

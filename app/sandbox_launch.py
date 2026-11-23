@@ -19,7 +19,7 @@ def main(argv: list[str]) -> int:
     sid, temp, flag, cmd = argv[0], argv[1], argv[2], argv[4:]
     try:
         import sandbox_win as w     # this script's own folder (app/) is first on sys.path
-        site = os.path.join(temp, "py-site")     # sandbox.site_dir: lets Python in the box use folders it makes
+        site = os.path.join(os.path.dirname(temp), "py-site")     # sandbox.site_dir: lets Python in the box use folders it makes
         env = dict(os.environ, TEMP=temp, TMP=temp, PIP_CACHE_DIR=os.path.join(temp, "pip-cache"),
                    PYTHONPATH=os.pathsep.join(x for x in (site, os.environ.get("PYTHONPATH", "")) if x))
         job = w.kill_on_close_job()

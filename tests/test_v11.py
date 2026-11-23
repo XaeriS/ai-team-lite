@@ -121,7 +121,7 @@ def test_adopted_project_continues(isolated, tmp_path):
     moved = tmp_path / "moved-project"
     shutil.copytree(src, moved)
     q = projects.create_from_folder(str(moved), "Moved")
-    assert q["adopted"] and q["phase"] == "execute" and q["plan_approved"] and q["iterations"][0]["status"] == "done"
+    assert q["adopted"] and q["phase"] == "execute" and not q["plan_approved"] and q["iterations"][0]["status"] == "done"
 
 
 def test_already_done_iterations(isolated):

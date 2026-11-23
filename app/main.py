@@ -206,6 +206,10 @@ def main(argv: list[str] | None = None) -> int:
     app = App()
     try:
         from app import projects
+        try:
+            projects.migrate_state()  # keep the approvals of projects from before the app-side state
+        except Exception:  # noqa: BLE001
+            logging.exception("state migration failed")
         fixed = projects.repair()  # heal projects damaged by the 0.11.0 "reopen a folder" bug (item 65)
         if fixed:
             logging.info("repaired projects: %s", fixed)

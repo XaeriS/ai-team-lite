@@ -3,7 +3,7 @@
 > Maintained automatically by AI Team Lite after each iteration. Read this first to find the right file;
 > open only the files you need.
 
-**Tests:** 39 file(s) in `reports`, `tests`
+**Tests:** 42 file(s) in `reports`, `tests`
 
 | File | What it is for |
 |------|----------------|
@@ -26,7 +26,7 @@
 | `app/events.py` | Event hub: everything the chat shows is an event. Events are pushed live to the window (SSE) and the |
 | `app/features.py` | Requested features and feedback (items 50, 51). |
 | `app/freshtests.py` | L64: after an iteration passes its full test run and is saved, the test results show that run, not the history. |
-| `app/github.py` |  |
+| `app/github.py` | fetch address, push address(es) and every address of the remote: all must be the recorded repository |
 | `app/ideas.py` | REQ-30: improvement ideas after each iteration, and what the user decided about each. |
 | `app/iterations.py` | Iteration-based delivery: the plan is split into iterations (one feature each). Nothing is built before |
 | `app/journal.py` | Run journal and recovery (item 33). |
@@ -146,9 +146,12 @@
 | `tests/test_sandbox_setting.py` | REQ-22: the setting that turns the sandbox on or off. Written BEFORE the code. |
 | `tests/test_scorecard.py` | the key itself never appears in what is saved or shown |
 | `tests/test_sec_diagram.py` | H-5: a diagram page (written by the AI) must not run with the app's own power: no access to the app token or |
+| `tests/test_sec_git.py` | M-2: the app's git calls must not run programs hidden in the project's .git, and a push must go only to the |
+| `tests/test_sec_phone_temp.py` | M-5: a phone approval card shows what is being approved. M-4: Claude's engine and the test / Launch programs |
 | `tests/test_sec_read.py` | H-4: reading never asks, but it must not reach the app's secrets or the Claude sign-in; the web screenshot |
 | `tests/test_sec_sandbox_notice.py` | H-3: when the engine runs outside the sandbox, the app exposes a permanent, plain-language notice (not only a |
 | `tests/test_sec_screenshot.py` | H-1: take_screenshot(kind="window") starts a program. It must not go through a shell (so 'calc & del x' cannot |
+| `tests/test_sec_state.py` | M-1: "the plan is approved" and the saved Launch command must not be believed just because a file inside the |
 | `tests/test_sec_tests_cmd.py` | H-2: run_tests / commit_iteration run only a plain test runner (python -m pytest, pytest, npm test ...), and |
 | `tests/test_server.py` | projects cannot be created before setup is finished |
 | `tests/test_traceability.py` | Traceability: every requirement (REQ-1..REQ-21) is mapped to tests, or listed as unproven with a reason. |

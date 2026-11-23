@@ -268,8 +268,8 @@ def _git(folder: Path, *args: str) -> subprocess.CompletedProcess:
     if not exe:
         raise RuntimeError("Git is not available.")
     name = settings.load().get("user_name") or "AI Team Lite"
-    return subprocess.run([exe, "-c", f"user.name={name} (AI Team Lite)", "-c", "user.email=ai-team@localhost", *args],
-                          cwd=str(folder), capture_output=True, text=True, timeout=120,
+    return subprocess.run([exe, *paths.GIT_SAFE, "-c", f"user.name={name} (AI Team Lite)", "-c", "user.email=ai-team@localhost", *args],
+                          cwd=str(folder), capture_output=True, text=True, timeout=120, env=paths.git_env(),
                           creationflags=0x08000000 if paths.IS_WINDOWS else 0)
 
 

@@ -57,8 +57,22 @@ def create_repo(name: str, private: bool = True, description: str = "") -> dict:
 
 
 def repo_full_name(url: str) -> str:
+    """'owner/repo' for an https or ssh address on exactly github.com (no password, no port), else ''."""
     import re
-    m = re.search(r"github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/?$", (url or "").strip())
+    u = (url or "").strip()
+    m = re.fullmatch(r"git@github\.com:(.+)", u, re.I)       # the short ssh form
+    if m:
+        path = m.group(1)
+    else:
+        try:
+            s = urllib.parse.urlsplit(u)
+            ok = (s.scheme.lower(), s.netloc.lower()) in (("https", "github.com"), ("ssh", "git@github.com"))
+        except ValueError:
+            return ""
+        if not ok or s.query or s.fragment:
+            return ""
+        path = s.path.lstrip("/")
+    m = re.fullmatch(r"([\w.-]+)/([\w.-]+?)(?:\.git)?/?", path)
     return f"{m.group(1)}/{m.group(2)}" if m else ""
 
 
@@ -84,14 +98,42 @@ def _git(args: list[str], cwd: Path, extra_config: list[str] | None = None) -> s
     exe = paths.git_exe()
     if not exe:
         raise GitHubError("Git is not available.")
-    cfg = []
+    cfg = list(paths.GIT_SAFE)
     for c in extra_config or []:
         cfg += ["-c", c]
-    r = subprocess.run([exe, *cfg, *args], cwd=cwd, capture_output=True, text=True, timeout=180,
+    r = subprocess.run([exe, *cfg, *args], cwd=cwd, capture_output=True, text=True, timeout=180, env=paths.git_env(),
                        creationflags=0x08000000 if paths.IS_WINDOWS else 0)
     if r.returncode != 0:
         raise GitHubError((r.stderr or r.stdout).strip()[-600:])
     return r.stdout.strip()
+
+
+def _same_repo(a: str, b: str) -> bool:
+    return repo_full_name(a).lower() == repo_full_name(b).lower() != ""
+
+
+def _check_origin(folder: Path, clone_url: str) -> None:
+    """M-2: files and the token go only to the recorded repository, never to an address found in the folder's .git."""
+    remotes = _git(["remote"], folder).split()
+    if "origin" not in remotes:
+        _git(["remote", "add", "origin", clone_url], folder)
+        return
+    # fetch address, push address(es) and every address of the remote: all must be the recorded repository
+    seen = [_git(["remote", "get-url", "origin"], folder)]
+    for extra in (["--push", "--all"], ["--all"]):
+        seen += _git(["remote", "get-url", *extra, "origin"], folder).splitlines()
+    now = next((u for u in seen if not _same_repo(u, clone_url)), "")
+    if now:
+        raise GitHubError(f"This folder's Git points to {now}, not to the saved repository {clone_url}. "
+                          "Nothing was sent. Fix or remove the remote called origin first.")
+
+
+def origin_url(folder: Path) -> str:
+    """Where this folder's Git would really send files ('' when there is no origin yet)."""
+    try:
+        return _git(["remote", "get-url", "origin"], folder) if (folder / ".git").exists() else ""
+    except GitHubError:
+        return ""
 
 
 def push(folder: Path, message: str, clone_url: str) -> str:
@@ -100,9 +142,7 @@ def push(folder: Path, message: str, clone_url: str) -> str:
     ident = [f"user.name={info['name']}", f"user.email={uid}+{login}@users.noreply.github.com"]
     if not (folder / ".git").exists():
         _git(["init", "-b", "main"], folder)
-    remotes = _git(["remote"], folder).split()
-    if "origin" not in remotes:
-        _git(["remote", "add", "origin", clone_url], folder)
+    _check_origin(folder, clone_url)
     _git(["add", "-A"], folder)
     if _git(["status", "--porcelain"], folder):
         _git(["commit", "-m", message or "Update"], folder, ident)
@@ -130,8 +170,7 @@ def publish(folder: Path, message: str, clone_url: str, tag: str = "") -> str:
     auth = [f"http.extraHeader=Authorization: Basic {basic}"]
     if not (folder / ".git").exists():
         _git(["init", "-b", "main"], folder)
-    if "origin" not in _git(["remote"], folder).split():
-        _git(["remote", "add", "origin", clone_url], folder)
+    _check_origin(folder, clone_url)
     try:  # build on the latest published version, if there is one
         _git(["fetch", "--depth", "1", "origin", "main"], folder, auth)
         _git(["reset", "--soft", "FETCH_HEAD"], folder)
