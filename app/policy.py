@@ -102,16 +102,7 @@ def _abs_paths_outside(command: str, allowed_roots: list[str]) -> list[str]:
     return out
 
 
-# Read-only commands that may run without asking (e.g. to understand an existing folder). One command only:
-# no chaining, pipes, redirection or sub-commands.
-READONLY = re.compile(
-    r"""(?ix)^\s*(
-      git\s+(status|log|show|diff|shortlog|ls-files|describe|rev-parse|blame)\b(?!.*--output)(?!.*\s-o\b)
-    | git\s+branch(\s+(-a|-r|-v|-vv|--list|--all))*\s*$
-    | git\s+remote\s+-v\s*$
-    | (dir|ls|tree|pwd|Get-ChildItem|gci|Get-Location|type|cat|Get-Content|gc|head|tail|wc|Measure-Object|
-       Select-String|sls|Get-Item|Test-Path|Resolve-Path)\b
-    )""")
+# One command only: no chaining, pipes, redirection or sub-commands.
 CHAINING = re.compile(r"[;&|<>`]|\$\(|\$\{|\n")
 
 
@@ -136,10 +127,6 @@ def is_plain_app_start(command: str) -> bool:
     """A single clearly-the-project's-own start command (run.bat, python main.py, npm start)."""
     c = command or ""
     return bool(c.strip()) and not TEST_META.search(c) and bool(SAFE_START.match(c)) and not is_risky(c)
-
-
-def is_readonly(command: str) -> bool:
-    return bool(command.strip()) and not CHAINING.search(command) and bool(READONLY.match(command))
 
 
 READ_TOOLS = {"Read", "Glob", "Grep", "LS", "NotebookRead"}

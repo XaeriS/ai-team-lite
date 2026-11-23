@@ -58,3 +58,5 @@ Uncommitted: .gitignore adds `.aiteam/`; PROJECT_MAP.md is new.
 - Security fixes, high (iteration 25): F-1 window screenshots, F-2 test commands, F-5 diagram frame fixed; F-4 (private files, web addresses) fixed for Read/Glob/Grep/WebFetch/screenshots but the shell route and the API key in the engine environment remain open; F-3 shows a "Not protected" warning but the engine still starts unboxed when the box cannot start. F-6 to F-10 (medium) still to do. See reports/SECURITY_REVIEW.md.
 
 - Security fixes, medium (iteration 26): F-6 approval state kept outside the project folder (old projects keep plan/architecture approval once; Launch command must be saved again), F-7 origin and push-URL checks plus hardened git, F-9 phone cards show a masked command, F-10 separate temp folders for the engine and the test/Launch boxes. The new box layout is checked by tests only, not yet in a real Windows container: try "Launch the project" and a test run once. F-8 (word-list shell policy) and F-3/F-4 remainders stay open.
+
+- Clean-up (iteration 27): removed unused is_readonly in policy.py; no behaviour change; 548 tests pass.

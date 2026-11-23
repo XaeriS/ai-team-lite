@@ -71,8 +71,9 @@ Stricter rules may block a command the team legitimately uses; if so the approva
 |  | [x] F-2: run_tests/commit_iteration command allowlist, refused before plan approval | app/policy.py, app/tools_building.py, app/iterations.py | |
 |  | [x] F-4: Read/Grep/WebFetch refuse secrets, sign-in folder, file:/// and --flags | app/policy.py, app/auth.py, app/tools_building.py | |
 |  | [x] F-3: show clearly when the sandbox is not protecting the engine | app/sandbox.py, app/sandbox_launch.py | |
-| 26 | **Security fixes, medium (F-6 to F-10)** - Close the five medium findings with tests | REQ-1, REQ-22 | building |
-|  | [ ] F-6: keep plan_approved and Launch command out of the project-writable file | app/projects.py, app/policy.py | |
-|  | [ ] F-7: git push card shows destination; refuse unexpected origin / planted git config | app/github.py | |
-|  | [ ] F-9/F-10: phone approval cards show the command or file; separate temp folders for engine and test containers | app/telegram.py, app/sandbox.py | |
-| 27 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | planned |
+| 26 | **Security fixes, medium (F-6 to F-10)** - Close the five medium findings with tests | REQ-1, REQ-22 | done (fec8292) |
+|  | [x] F-6: keep plan_approved and Launch command out of the project-writable file | app/projects.py, app/policy.py | |
+|  | [x] F-7: git push card shows destination; refuse unexpected origin / planted git config | app/github.py | |
+|  | [x] F-9/F-10: phone approval cards show the command or file; separate temp folders for engine and test containers | app/telegram.py, app/sandbox.py | |
+| 27 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | building |
+|  | [ ] Whole-codebase clean-up, no behaviour change | app/ | |

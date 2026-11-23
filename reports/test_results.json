@@ -5,7 +5,7 @@
   "requirement": "REQ-1",
   "details": "Existing unit tests, run 2026-11-21 in the project .venv.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -14,7 +14,7 @@
   "requirement": "REQ-2",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -23,7 +23,7 @@
   "requirement": "REQ-3",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -32,7 +32,7 @@
   "requirement": "REQ-5",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -41,7 +41,7 @@
   "requirement": "REQ-6",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -50,7 +50,7 @@
   "requirement": "REQ-7",
   "details": "Passed, but only the \"saved only when tests pass\" part is tested. Nothing checks that tests are written first and must fail.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -59,7 +59,7 @@
   "requirement": "REQ-8",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -68,7 +68,7 @@
   "requirement": "REQ-9",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -77,7 +77,7 @@
   "requirement": "REQ-10",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -86,7 +86,7 @@
   "requirement": "REQ-12",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -95,7 +95,7 @@
   "requirement": "REQ-13",
   "details": "Passed. One test in test_v100 (name in settings) fails on the same encoding error but is not about speech.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -104,7 +104,7 @@
   "requirement": "REQ-15",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -113,7 +113,7 @@
   "requirement": "REQ-16",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -122,7 +122,7 @@
   "requirement": "REQ-17",
   "details": "Passed. Four Archify tests skipped because Node is not installed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -131,7 +131,7 @@
   "requirement": "REQ-18",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -140,7 +140,7 @@
   "requirement": "REQ-20",
   "details": "Passed for the long-chat part. The half and quarter screen layout is covered only by the browser test ui_v140, which was not run.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -149,7 +149,7 @@
   "requirement": "REQ-21",
   "details": "Existing unit tests, passed.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -158,7 +158,7 @@
   "requirement": "REQ-4",
   "details": "REQ-4 (prior-art check) has no test at all. It is listed under \"Requirements not proven by a test\" in STATUS.md.",
   "status": "skipped",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 18
  },
  {
@@ -168,7 +168,7 @@
   "details": "All 9 browser checks passed. Screenshots in reports/screenshots-l71.",
   "screenshot": "reports/screenshots-l71",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 19
  },
  {
@@ -177,7 +177,7 @@
   "requirement": "REQ-29",
   "details": "9 passed (server side).",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 19
  },
  {
@@ -187,7 +187,7 @@
   "details": "All checks passed, no JS errors.",
   "screenshot": "reports/screenshots-l71",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 19
  },
  {
@@ -197,7 +197,7 @@
   "details": "10 checks passed (3 rows, columns, Yes/No, reason box, decisions shown, after reload, IDEAS.md, no JS errors)",
   "screenshot": "reports/screenshots-l72/req30_after_reload.png",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 20
  },
  {
@@ -207,7 +207,7 @@
   "details": "One-off check (script deleted): table stacks, no overflow",
   "screenshot": "reports/screenshots-l72/req30_narrow.png",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 20
  },
  {
@@ -217,7 +217,7 @@
   "details": "All three print their ALL ... PASSED line",
   "screenshot": "reports/screenshots-l72/req30_two_rows_decided.png",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 20
  },
  {
@@ -226,7 +226,7 @@
   "requirement": "REQ-28",
   "details": "Orange wins, green/grey rules, flash only when orange, enabled and window not in front, platform called only on change, errors logged once per kind, no-op off Windows. Unit tests with a fake Windows.",
   "status": "passed",
-  "confirmed_in": 26
+  "confirmed_in": 27
  },
  {
   "time": 1795346849.3721743,
@@ -234,7 +234,7 @@
   "requirement": "REQ-28",
   "details": "On by default, can be switched off, stays off after reload.",
   "status": "passed",
-  "confirmed_in": 26
+  "confirmed_in": 27
  },
  {
   "time": 1795370397.977182,
@@ -242,7 +242,7 @@
   "requirement": "REQ-22",
   "details": "Part of 31 sandbox tests passed (3 files, 9s). Full suite: 411 passed, 5 skipped.",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 22
  },
  {
@@ -252,7 +252,7 @@
   "details": "Passed (31 sandbox tests total). Screenshot of Settings > General checkbox attached.",
   "screenshot": "reports/screenshots/20261122-105947-settings-general-showing-the-protect-my.png",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 22
  },
  {
@@ -261,7 +261,7 @@
   "requirement": "REQ-22",
   "details": "Passed (31 sandbox tests total, 0 skipped in these files).",
   "status": "passed",
-  "confirmed_in": 26,
+  "confirmed_in": 27,
   "iteration": 22
  }
 ]
