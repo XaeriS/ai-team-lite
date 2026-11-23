@@ -3,7 +3,7 @@
 > Maintained automatically by AI Team Lite after each iteration. Read this first to find the right file;
 > open only the files you need.
 
-**Tests:** 34 file(s) in `reports`, `tests`
+**Tests:** 39 file(s) in `reports`, `tests`
 
 | File | What it is for |
 |------|----------------|
@@ -82,7 +82,7 @@
 | `app/timeline.py` | ---------------------------------------------------------------------------- recording |
 | `app/tooling.py` | Programs the team may need on the PC: Ollama (local brains for the council) and Archify (diagrams). |
 | `app/tools.py` | Tools that Fred and the workers can call besides the built-in ones (files, shell, web). |
-| `app/tools_building.py` |  |
+| `app/tools_building.py` | Tools for building and proving it: iterations, tasks, tests, commits, screenshots, launching, diagrams, reviews, clean-up, lessons. |
 | `app/tools_common.py` | Small helpers and texts shared by the team's tools: answers, test results, diagrams, decisions (L46). |
 | `app/tools_delivery.py` | Tools for delivering a finished project (L52b-d): a real Windows installer, automatic tests on GitHub, and a |
 | `app/tools_planning.py` |  |
@@ -105,13 +105,15 @@
 | `app/upkeep.py` | ---------------------------------------------------------------------------- L41: documents follow the code |
 | `app/usage.py` | a real figure from Claude's usage command is fresher than a status report without a percentage, but the |
 | `app/voice.py` | Hands-free talking: AI Team Lite listens through the microphone, turns speech into text on this PC |
-| `app/winhelpers.py` | Windows helpers: voice typing, screenshots, launching programs. Each has a fallback for other systems |
+| `app/winhelpers.py` | ---------------------------------------------------------------------------- voice typing |
 | `ARCHITECTURE.md` | how it is built (approved decisions) |
 | `CHANGELOG.md` | What changed |
 | `PLAN.md` | the plan and its iterations |
 | `README.md` | how to use the app |
+| `reports/FINDINGS.md` | Review findings |
 | `reports/L47-probe-results.json` | data / settings file |
 | `reports/L47-sandbox-options.md` | L47: keeping the team's commands in a box (REQ-22) |
+| `reports/SECURITY_REVIEW.md` | Security review of the whole codebase |
 | `reports/test_results.json` | data / settings file |
 | `requirements-dev.txt` |  |
 | `REQUIREMENTS.md` | the agreed requirements (REQ-n) |
@@ -143,6 +145,11 @@
 | `tests/test_sandbox_engine.py` |  |
 | `tests/test_sandbox_setting.py` | REQ-22: the setting that turns the sandbox on or off. Written BEFORE the code. |
 | `tests/test_scorecard.py` | the key itself never appears in what is saved or shown |
+| `tests/test_sec_diagram.py` | H-5: a diagram page (written by the AI) must not run with the app's own power: no access to the app token or |
+| `tests/test_sec_read.py` | H-4: reading never asks, but it must not reach the app's secrets or the Claude sign-in; the web screenshot |
+| `tests/test_sec_sandbox_notice.py` | H-3: when the engine runs outside the sandbox, the app exposes a permanent, plain-language notice (not only a |
+| `tests/test_sec_screenshot.py` | H-1: take_screenshot(kind="window") starts a program. It must not go through a shell (so 'calc & del x' cannot |
+| `tests/test_sec_tests_cmd.py` | H-2: run_tests / commit_iteration run only a plain test runner (python -m pytest, pytest, npm test ...), and |
 | `tests/test_server.py` | projects cannot be created before setup is finished |
 | `tests/test_traceability.py` | Traceability: every requirement (REQ-1..REQ-21) is mapped to tests, or listed as unproven with a reason. |
 | `tests/test_v04.py` | ------------------------------------------------------------------------------- a stand-in brain (OpenAI-compatible) |

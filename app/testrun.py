@@ -27,9 +27,7 @@ def run(command: str, cwd: Path, timeout: int = 300) -> tuple[bool, str]:
     env = {**os.environ, "PATH": paths.tool_path(), "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"}
     hidden_desktop = settings.load().get("tests_hidden_desktop", True)
     if sandbox.enabled() and sandbox.available():
-        boxed = _run_boxed(command, cwd, env, timeout, hidden_desktop)
-        if boxed is not None:
-            return boxed
+        return _run_boxed(command, cwd, env, timeout, hidden_desktop)
     if hidden_desktop:
         # L32: out of sight, on a desktop the user never sees; the normal way if Windows does not allow it
         try:
@@ -47,15 +45,16 @@ def run(command: str, cwd: Path, timeout: int = 300) -> tuple[bool, str]:
         return False, f"Tests timed out after {timeout} s."
 
 
-def _run_boxed(command: str, cwd: Path, env: dict, timeout: int, hidden_desktop: bool) -> tuple[bool, str] | None:
+def _run_boxed(command: str, cwd: Path, env: dict, timeout: int, hidden_desktop: bool) -> tuple[bool, str]:
     """REQ-22: the test command inside the project's container (on the hidden desktop when that is on).
-    None when the container cannot be set up: the caller then runs it the old way (the user is never blocked)."""
+    When the container cannot be set up the run is refused (never run unboxed while the sandbox is on)."""
     try:
         proc = sandbox.start_process(sandbox.shell_line(command), cwd, cwd, env=env, merge=True,
                                      desktop=winhelpers.TEST_DESKTOP if hidden_desktop else None)
     except OSError as e:
         sandbox.note_unprotected(cwd, str(e))
-        return None
+        return False, ("The tests were not run: the safe box (sandbox) could not be started, and the sandbox is on. "
+                       "Fix the sandbox or turn it off in the settings.")
     try:
         out, err = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:

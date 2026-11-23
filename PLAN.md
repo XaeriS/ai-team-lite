@@ -65,6 +65,11 @@ Stricter rules may block a command the team legitimately uses; if so the approva
 |  | [x] Version 1.6.3: VERSION, CHANGELOG, README note | VERSION, CHANGELOG.md, README.md | |
 | 23 | **Before AI Team Lite (iterations 1-22)** - Everything built up to the sandbox, committed | REQ-1, REQ-22 | done |
 | 24 | **Parked ideas (kept parked)** - REQ-23 to REQ-27 stay on the list; nothing built, by your decision | REQ-23, REQ-24, REQ-25, REQ-26, REQ-27 | done |
-| 25 | **Security fixes, high (F-1 to F-5)** - Close the five high findings with a failing-first test each | REQ-1, REQ-22 | planned |
+| 25 | **Security fixes, high (F-1 to F-5)** - Close the five high findings with a failing-first test each | REQ-1, REQ-22 | building |
+|  | [ ] F-5: sandbox the diagram frame, no token access | app/server.py, app/ui/js/side.js, app/ui/index.html | |
+|  | [ ] F-1: screenshot window command checked/approved, no shell=True | app/policy.py, app/tools_building.py, app/winhelpers.py | |
+|  | [ ] F-2: run_tests/commit_iteration command allowlist, refused before plan approval | app/policy.py, app/tools_building.py, app/iterations.py | |
+|  | [ ] F-4: Read/Grep/WebFetch refuse secrets, sign-in folder, file:/// and --flags | app/policy.py, app/auth.py, app/tools_building.py | |
+|  | [ ] F-3: show clearly when the sandbox is not protecting the engine | app/sandbox.py, app/sandbox_launch.py | |
 | 26 | **Security fixes, medium (F-6 to F-10)** - Close the five medium findings with tests | REQ-1, REQ-22 | planned |
 | 27 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | planned |

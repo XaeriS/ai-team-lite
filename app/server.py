@@ -12,7 +12,7 @@ import time
 from urllib.parse import parse_qs, unquote, urlparse
 
 from . import (__version__, auth, brains, challenge, checkpoints, engine as engine_mod, features, iterations, journal,
-               paths, projects, routes_projects, routes_setup, routes_work, scorecard, secrets_store, settings,
+               paths, projects, routes_projects, routes_setup, routes_work, sandbox, scorecard, secrets_store, settings,
                skills as skills_mod, spelling, telegram, tooling, tools, tracking, updates, usage, voice)
 from .engine import Engine
 from .events import EventHub
@@ -26,6 +26,8 @@ class App:
         self.hub = hub or EventHub(projects.history_file)
         self.engine = engine or Engine(self.hub)
         self.token = secrets.token_urlsafe(24)
+        self.tickets: dict[str, tuple] = {}   # F-5: single-use keys for ONE diagram view: key -> (expiry, slug, id, which)
+        self.tickets_lock = threading.Lock()
         self.bridge = None  # set by main.py when running in the desktop window
         self.listener = None
         self.voice_downloading = False
@@ -131,6 +133,7 @@ class App:
         p = {**p, "folder": str(projects.project_dir(slug)), "state": self.engine.project_state(slug, p)}
         p["launch"] = engine_mod.launch_info(slug, p)
         p["estimate"] = iterations.cost_estimate(slug)
+        p["sandbox_warning"] = sandbox.sandbox_status(projects.project_dir(slug))["warning"]   # H-3
         return {"project": p, "history": history, "history_from": start, "busy": self.engine.is_busy(slug) or p["state"] == "working",
                 "team": self.engine.session(slug).team_snapshot(), "progress": iterations.progress(slug),
                 "docs": {"requirements": projects.read_doc(slug, "REQUIREMENTS.md"),
@@ -201,6 +204,24 @@ def make_handler(app: App):
             tok = self.headers.get("X-Token") or self._query().get("token", "")
             return secrets.compare_digest(tok, app.token)
 
+        def _take_ticket(self, key: str, slug: str, did: str, which: str) -> bool:
+            with app.tickets_lock:
+                t = app.tickets.pop(key, None) if key else None
+            return (t is not None and t[0] > time.time() and t[1:] == (slug, did, which)
+                    and self.headers.get("Host", "").split(":")[0] in ("127.0.0.1", "localhost"))
+
+        def _diagram(self, m):
+            """AI-written page: sandboxed without same-origin and with no network, so it cannot reach the app (F-5)."""
+            from . import diagrams
+            which = "compare" if self._query().get("which") == "compare" else "html"
+            try:
+                f = diagrams.path_of(m.group(1), m.group(2), which)
+            except (KeyError, ValueError):
+                return self._error(404, "Diagram not found.")
+            csp = ("sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; "
+                   "style-src 'unsafe-inline'; img-src data:; font-src data:")
+            return self._send(200, f.read_bytes(), "text/html; charset=utf-8", {"Content-Security-Policy": csp})
+
         def _body(self) -> dict:
             n = int(self.headers.get("Content-Length") or 0)
             if n > MAX_UPLOAD * 2:
@@ -223,9 +244,23 @@ def make_handler(app: App):
                     ctype = UI_TYPES.get(f.suffix.lower()) or mimetypes.guess_type(f.name)[0] or "application/octet-stream"
                     return self._send(200, f.read_bytes(), ctype)
                 return self._error(404, "not found")
+            dm = re.fullmatch(r"/diagram/([a-z0-9-]+)/([a-f0-9]{6,32})", path)
+            if dm and self._take_ticket(self._query().get("t", ""), dm.group(1), dm.group(2),
+                                        "compare" if self._query().get("which") == "compare" else "html"):
+                return self._diagram(dm)
             if not self._authorized():
                 return self._error(403, "forbidden")
             try:
+                if path == "/api/diagram-ticket":   # F-5: the page gets a one-time key instead of the app token
+                    q = self._query()
+                    key = secrets.token_urlsafe(16)
+                    now = time.time()
+                    which = "compare" if q.get("which") == "compare" else "html"
+                    with app.tickets_lock:
+                        for k in [k for k, v in app.tickets.items() if v[0] <= now]:
+                            del app.tickets[k]
+                        app.tickets[key] = (now + 30, q.get("slug", ""), q.get("id", ""), which)
+                    return self._json({"url": f"/diagram/{q.get('slug', '')}/{q.get('id', '')}?which={which}&t={key}"})
                 if path == "/api/state":
                     return self._json(app.state())
                 m = re.fullmatch(r"/api/projects/([a-z0-9-]+)", path)
@@ -247,13 +282,7 @@ def make_handler(app: App):
                     return self._file(m.group(1), unquote(m.group(2)))
                 m = re.fullmatch(r"/diagram/([a-z0-9-]+)/([a-f0-9]{6,32})", path)
                 if m:  # an Archify diagram (self-contained HTML in the project's .archify folder)
-                    from . import diagrams
-                    which = "compare" if self._query().get("which") == "compare" else "html"
-                    try:
-                        f = diagrams.path_of(m.group(1), m.group(2), which)
-                    except (KeyError, ValueError):
-                        return self._error(404, "Diagram not found.")
-                    return self._send(200, f.read_bytes(), "text/html; charset=utf-8")
+                    return self._diagram(m)
                 m = re.fullmatch(r"/api/projects/([a-z0-9-]+)/diagrams", path)
                 if m:
                     from . import diagrams

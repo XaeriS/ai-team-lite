@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import ctypes
 import os
+import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -198,6 +200,9 @@ def find_headless_browser() -> str | None:
 
 
 def screenshot_url(url: str, out: Path, width: int = 1280, height: int = 800, wait_ms: int = 1500) -> Path:
+    url = (url or "").strip()
+    if not re.match(r"(?i)https?://[^/\s]", url) or any(ord(c) < 32 or ord(c) == 127 for c in url):
+        raise ValueError("Only a web page address (http or https) can be photographed.")   # H-4
     browser = find_headless_browser()
     if not browser:
         raise RuntimeError("No Edge or Chrome browser found for web screenshots.")
@@ -314,7 +319,16 @@ def screenshot_command(command: str, cwd: Path, out: Path, wait_seconds: float =
         raise NoWindow("Window screenshots are only available on Windows.")
     ctypes.windll.user32.SetProcessDPIAware()
     before = {h for h, _ in _visible_windows()}
-    proc = subprocess.Popen(command, cwd=str(cwd), shell=True, creationflags=NEW_CONSOLE)
+    if re.search(r"[;&|<>`\r\n]|\$\(|%", command):
+        raise ValueError("The command must start one program. Do not join commands with &, | or ;.")
+    args = shlex.split(command, posix=False)   # H-1: no shell, so nothing can be chained
+    args = [a[1:-1] if len(a) > 1 and a[0] == a[-1] and a[0] in "\"'" else a for a in args]
+    if not args:
+        raise ValueError("The command is empty.")
+    local = Path(cwd) / args[0]
+    if local.exists():
+        args[0] = str(local)   # a file of the project (run.bat): the program is looked up in the project folder
+    proc = subprocess.Popen(args, cwd=str(cwd), shell=False, creationflags=NEW_CONSOLE)
     try:
         time.sleep(max(1.0, min(wait_seconds, 30)))
         hwnd = find_app_window(proc.pid, before)

@@ -86,7 +86,9 @@ def make(session: "Session") -> dict:
     async def run_tests(args):
         folder = projects.project_dir(slug)
         cmd = str(args.get("test_command") or "").strip()
-        if not cmd or policy.is_risky(cmd) or policy._abs_paths_outside(cmd, [str(folder), str(paths.bundled_python().parent)]):
+        if not (projects.load(slug) or {}).get("plan_approved"):
+            return text("The plan is not approved yet: no tests are run before that.", True)
+        if not policy.is_test_command(cmd) or policy._abs_paths_outside(cmd, [str(folder), str(paths.bundled_python().parent)]):
             return text("test_command is missing or not allowed (it must only run the project's tests).", True)
         note = "all tests"
         if str(args.get("scope") or "affected").lower() != "all":

@@ -95,18 +95,20 @@ function renderTeam() {
     <div style="flex:1"><b>${esc(r.name)}</b> <span class="hint">${esc(r.stalled ? 'working, but no activity for 5 minutes' : (ST[r.status] || ST.idle).label)}</span>
     <div>${esc(r.task || (r.status === 'idle' ? 'Waiting for work' : ''))}</div>${r.last ? `<div class="hint">Last: ${esc(r.last)} · ${ago(r.last_time)}</div>` : ''}
     ${teamSel === r.name && (r.recent || []).length ? `<ul class="hint" style="margin:4px 0;padding-left:18px">${r.recent.map(a => `<li>${esc(a.text)} · ${ago(a.time)}</li>`).join('')}</ul>` : ''}</div></div>`).join('');
-  p.innerHTML = `${svg}<div class="legend" style="margin:6px 0 4px"><span><i style="background:#868e96"></i>idle</span><span><i style="background:#2f9e44"></i>working</span><span><i style="background:#f59f00"></i>has a question</span></div>
+  const prot = view.project.sandbox_warning ? `<div class="what sc-warn" role="note"><b>⚠ Not protected:</b> ${esc(view.project.sandbox_warning)}</div>` : '';
+  p.innerHTML = `${prot}${svg}<div class="legend" style="margin:6px 0 4px"><span><i style="background:#868e96"></i>idle</span><span><i style="background:#2f9e44"></i>working</span><span><i style="background:#f59f00"></i>has a question</span></div>
     <div class="hint">Live; re-checked every 5 minutes (last check ${new Date(teamChecked).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}). Click a member to see its recent activity.</div><div class="tlist">${list}</div>`;
   p.querySelectorAll('[data-n]').forEach(e => e.onclick = () => { teamSel = teamSel === e.dataset.n ? null : e.dataset.n; renderTeam(); });
 }
 setInterval(async () => { if (cur && cur !== 'setup') { try { view.team = (await api(`/api/projects/${cur}/team`)).team; teamChecked = Date.now(); if (tab === 'team') renderTeam(); } catch (e) {} } }, 5 * 60 * 1000);
 
 /* ------------------------------------------------------------------ code changes between iterations (item 45) */
-function openDiagram(slug, id, which, title) {
+async function openDiagram(slug, id, which, title) {
   $('graphTitle').textContent = (which === 'compare' ? 'What changed: ' : '') + (title || 'Diagram');
   $('graphHint').textContent = which === 'compare' ? 'Parts added, removed, moved or connected differently since the previous version.'
     : 'Click a part to see what it connects to; use Flow to watch the path. Export saves a picture.';
-  $('graphFrame').src = `/diagram/${slug}/${id}?which=${which}&token=${encodeURIComponent(TOKEN)}`;
+  try { $('graphFrame').src = (await api(`/api/diagram-ticket?slug=${encodeURIComponent(slug)}&id=${encodeURIComponent(id)}&which=${which}`)).url; }
+  catch (e) { alertBox('Could not open the diagram.'); return; }
   $('graphDlg').showModal();
 }
 async function renderDiagrams() {

@@ -13,7 +13,11 @@ Rules (in order):
 """
 from __future__ import annotations
 
+import os
+import posixpath
 import re
+from pathlib import Path
+from urllib.parse import unquote
 
 from . import shellcheck
 
@@ -82,6 +86,13 @@ def _abs_paths_outside(command: str, allowed_roots: list[str]) -> list[str]:
     rest = QUOTED_PATH.sub(" ", command)
     found += [m.group(1) for m in ABS_PATH.finditer(rest)]
     out = []
+    base = roots[0] if roots else ""
+    for tok in re.split(r"""[\s"'=]+""", rest):   # relative parts that climb out of the project folder ('..\x')
+        t = tok.replace("\\", "/")
+        if base and not re.match(r"(?i)^([a-z]:)?/", t) and "://" not in t and ".." in t.split("/"):
+            full = posixpath.normpath(posixpath.join(base, t))
+            if not any(full == r or full.startswith(r + "/") for r in roots):
+                out.append(tok)
     for raw in found:
         p = raw.replace("\\", "/").lower()
         if re.match(r"^/[a-z]/", p):  # git-bash style /c/Users -> c:/users
@@ -104,13 +115,106 @@ READONLY = re.compile(
 CHAINING = re.compile(r"[;&|<>`]|\$\(|\$\{|\n")
 
 
+_PY = r"""(?:"[^"\n]*[\\/]|'[^'\n]*[\\/]|(?:[\w.\-:]+[\\/])*)?(?:python3?|py)(?:\.exe)?["']?"""
+TEST_RUNNER = re.compile(
+    r"(?i)^\s*(?:" + _PY + r"\s+(?:-3(?:\.\d+)?\s+)?-m\s+(?:pytest|unittest)"
+    r"|(?:(?:[\w.\-]+[\\/])*)pytest(?:\.exe)?"
+    r"|(?:npm|yarn|pnpm)\s+(?:run\s+)?test)(?:\s+[^\s].*)?\s*$")
+TEST_META = re.compile(r"""[;&|<>`\r\n]|\$\(|\$\{|%|(?:^|[\s"'=\\/])\.\.(?:[\\/\s"']|$)""")   # also '..' (leaving the project)
+
+
+def is_test_command(command: str) -> bool:
+    """Only a plain test-runner call (python -m pytest/unittest, pytest, npm/yarn/pnpm test): one command, no chaining."""
+    c = command or ""
+    return bool(c.strip()) and not TEST_META.search(c) and bool(TEST_RUNNER.match(c)) and not is_risky(c)
+
+
+SAFE_START = re.compile(r"""(?ix)^\s*(?:\.?[\\/])?(?:run\.bat|run\.cmd|main\.py|app\.py|(?:\.venv[\\/]Scripts[\\/])?(?:python|pythonw|py)(?:\.exe)?\s+[\w./\\-]+\.py|npm\s+(?:run\s+)?start)(?:\s+[\w./\\=:-]+)*\s*$""")
+
+
+def is_plain_app_start(command: str) -> bool:
+    """A single clearly-the-project's-own start command (run.bat, python main.py, npm start)."""
+    c = command or ""
+    return bool(c.strip()) and not TEST_META.search(c) and bool(SAFE_START.match(c)) and not is_risky(c)
+
+
 def is_readonly(command: str) -> bool:
     return bool(command.strip()) and not CHAINING.search(command) and bool(READONLY.match(command))
+
+
+READ_TOOLS = {"Read", "Glob", "Grep", "LS", "NotebookRead"}
+
+
+def _norm(p) -> str:
+    """One spelling of a path: '..', '.', '//' and links resolved, so they cannot hide a private place."""
+    raw = os.path.expandvars(str(p))
+    try:
+        raw = str(Path(raw).resolve())
+    except (OSError, ValueError, RuntimeError):
+        raw = os.path.normpath(raw)
+    return raw.replace("\\", "/").rstrip("/").lower()
+
+
+def _private_paths() -> list[str]:
+    """H-4: what reading must never reach on its own: the saved-keys file (plain-text fallback) and Claude's sign-in."""
+    from . import auth, secrets_store
+    out = [auth.claude_config_dir(), Path.home() / ".ai-team-lite" / "secrets.json"]
+    f = secrets_store._fallback_file()
+    if f:
+        out.append(f)
+    return [_norm(p) for p in out]
+
+
+def reads_private(tool: str, tool_input: dict) -> bool:
+    if tool not in READ_TOOLS:
+        return False
+    private = _private_paths()
+    for k in ("file_path", "path", "notebook_path"):
+        v = tool_input.get(k)
+        if v:
+            n = _norm(v)
+            if _hits(n, private):
+                return True   # the file, a folder below it, or a folder that contains it
+    pat = str(tool_input.get("pattern") or "")
+    if pat and re.match(r"(?i)^([a-z]:)?[\\/]", pat):   # an absolute search pattern: the part before any wildcard
+        head = re.split(r"[*?\[{]", pat, 1)[0]
+        if head and _hits(_norm(head), private):
+            return True
+    if tool == "Grep" and pat:
+        flat = pat.replace("\\\\", "/").replace("\\", "/").lower()
+        if any(r in flat for r in private):
+            return True
+    return False
+
+
+def _hits(n: str, private: list[str]) -> bool:
+    return any(n == r or n.startswith(r + "/") or r.startswith(n + "/") for r in private)
+
+
+def fetch_leaks_key(tool: str, tool_input: dict) -> bool:
+    """H-4: a web address that contains one of the saved keys would send it to a stranger."""
+    if tool == "WebFetch":
+        url = str(tool_input.get("url") or "")
+    elif tool == "mcp__aiteam__take_screenshot" and str(tool_input.get("kind") or "") == "web":
+        url = str(tool_input.get("target") or "")
+    else:
+        return False
+    from . import secrets_store
+    seen = url + " " + unquote(url)
+    for name in ("anthropic_api_key", "github_token"):
+        key = secrets_store.get_secret(name)
+        if key and len(key) >= 8 and (key in seen or key[:12] in seen):
+            return True
+    return False
 
 
 def decide(tool: str, tool_input: dict, *, kind: str, mode: str, plan_approved: bool,
            inside_project, allowed_roots: list[str]) -> tuple[str, str]:
     """Return ("allow" | "ask", reason). `inside_project(path)` tells if a path is in the project."""
+    if reads_private(tool, tool_input):
+        return "ask", "this reads the app's saved keys or the Claude sign-in"
+    if fetch_leaks_key(tool, tool_input):
+        return "ask", "the web address contains a saved key"
     if tool in ALWAYS_ALLOW:
         return "allow", "safe"
     if tool in ALWAYS_ASK:
@@ -130,6 +234,11 @@ def decide(tool: str, tool_input: dict, *, kind: str, mode: str, plan_approved: 
         return ("allow", "covered by the approved plan") if plan_approved else ("ask", "no approved plan yet")
     if tool in ("Agent", "Task") and str(tool_input.get("subagent_type") or "").lower() in EARLY_WORKERS:
         return "allow", "read-only helper"
+    if tool == "mcp__aiteam__take_screenshot" and str(tool_input.get("kind") or "") != "web":
+        tgt = str(tool_input.get("target") or "")   # H-1: starts a program: only the project's own plain start command
+        if plan_approved and is_plain_app_start(tgt) and not _abs_paths_outside(tgt, allowed_roots):
+            return "allow", "starting the project's own app"
+        return "ask", "starts a program that is not clearly the project's app"
     if tool in AFTER_PLAN:
         return ("allow", "covered by the approved plan") if plan_approved else ("ask", "no approved plan yet")
     if tool in SHELL_TOOLS:

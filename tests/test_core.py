@@ -187,6 +187,10 @@ def test_project_flow_plan_then_build(isolated):
     folder = projects.project_dir(p["slug"])
     html = folder / "page.html"
     html.write_text("<h1 style='font-size:60px'>Hello from the test</h1>")
+    import functools, http.server, threading   # H-4: web screenshots take web addresses only, no file:// URLs
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(folder)))
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    page_url = f"http://127.0.0.1:{srv.server_address[1]}/page.html"
 
     async def script(i, prompt, c):
         steps = [
@@ -197,7 +201,7 @@ def test_project_flow_plan_then_build(isolated):
             ("Write", {"file_path": str(folder / "main.py"), "content": "print(1)"}),       # after plan: allowed
             ("PowerShell", {"command": ".venv\\Scripts\\python -m pytest"}),                 # allowed
             ("PowerShell", {"command": "winget install x", "description": "risky"}),         # asks
-            ("mcp__aiteam__take_screenshot", {"kind": "web", "target": html.as_uri(), "caption": "Home page"}),
+            ("mcp__aiteam__take_screenshot", {"kind": "web", "target": page_url, "caption": "Home page"}),
             ("mcp__aiteam__launch_for_user", {"command": "echo hi", "url": "", "explanation": "Try it"}),
         ]
         for tool, inp in steps:

@@ -130,7 +130,7 @@ def record_red(slug: str, n: int, test_command: str) -> dict:
         raise ValueError(f"Iteration {n} is not being built (start it first).")
     folder = projects.project_dir(slug)
     cmd = test_command.strip()
-    if not cmd or policy.is_risky(cmd) or policy._abs_paths_outside(cmd, [str(folder), str(paths.bundled_python().parent)]):
+    if not policy.is_test_command(cmd) or policy._abs_paths_outside(cmd, [str(folder), str(paths.bundled_python().parent)]):
         raise ValueError("test_command is missing or not allowed (it must only run the project's tests).")
     ok, output = run_tests(cmd, folder, label=f"iteration-{n}-tests-first")
     it["red"] = {"time": time.time(), "failed": not ok, "command": cmd, "output": output}
@@ -282,7 +282,9 @@ def commit(slug: str, n: int, summary: str, test_command: str, light_cleanup: st
         raise ValueError(f"Iteration {n} is not being built (start it with start_iteration first).")
     folder = projects.project_dir(slug)
     cmd = test_command.strip()
-    if not cmd or policy.is_risky(cmd) or policy._abs_paths_outside(cmd, [str(folder), str(paths.bundled_python().parent)]):
+    if not (projects.load(slug) or {}).get("plan_approved"):
+        raise ValueError("The plan is not approved yet: nothing is run or committed before that.")
+    if not policy.is_test_command(cmd) or policy._abs_paths_outside(cmd, [str(folder), str(paths.bundled_python().parent)]):
         raise ValueError("test_command is missing or not allowed (it must only run the project's tests).")
     ok, output = run_tests(cmd, folder, label=f"iteration-{n}-before-commit")
     it["last_test"] = {"ok": ok, "time": time.time()}

@@ -461,6 +461,18 @@ def _outside(why: str) -> str:
     return f"{why[:1].upper()}{why[1:]}, so this runs outside the protection and can reach your files like you can."
 
 
+def sandbox_status(project_dir: Path) -> dict:
+    """H-3: is Fred's engine boxed for this project? {"protected": bool, "warning": one plain sentence or ""}."""
+    why = _engine.get(_key(Path(project_dir)))
+    if why is None:      # the engine has not started yet: only the settings can tell
+        why = "" if enabled() and available() else (
+            "file protection is switched off in Settings" if not enabled()
+            else "Windows could not set up file protection on this PC")
+    if not why:
+        return {"protected": True, "warning": ""}
+    return {"protected": False, "warning": f"{_outside(why)} Be careful what you ask the team to do."}
+
+
 def card_note(tool_name: str, project_dir: Path | None = None) -> str:
     """One line for the approval card: "" when the command is protected or the tool runs no command."""
     if tool_name in OUTSIDE_TOOLS:

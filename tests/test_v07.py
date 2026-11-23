@@ -114,7 +114,9 @@ def test_cost_estimate_from_iterations(isolated):
 ITS = [{"name": "A"}, {"name": "B"}, {"name": "C"}]
 
 
-def test_release_gates(isolated):
+def test_release_gates(isolated, monkeypatch):
+    # H-2: python -c is no longer an accepted test command; the gate logic is what is tested here
+    monkeypatch.setattr(iterations, "run_tests", lambda cmd, cwd, timeout=300, label="tests": (True, "ok"))
     settings.save({"user_name": "Fred"})
     p = projects.create("Gates")
     slug = p["slug"]
@@ -126,7 +128,7 @@ def test_release_gates(isolated):
     iterations.start(slug, 1)
     folder = projects.project_dir(slug)
     (folder / "run.bat").write_text("python main.py\n")
-    r = iterations.commit(slug, 1, "done", 'python -c "print(1)"')
+    r = iterations.commit(slug, 1, "done", "python -m pytest -q")
     assert r["ok"]
     assert projects.load(slug)["waiting_release"] == 2
     assert projects.load(slug)["launch"] == {"command": "run.bat", "url": ""}

@@ -54,3 +54,5 @@ Uncommitted: .gitignore adds `.aiteam/`; PROJECT_MAP.md is new.
 - REQ-4: No test checks the Scout's web search, the prior-art card or reports/PRIOR_ART.md.
 
 - Parked, not built (decision 2026-11-22: keep parked): REQ-23 parallel build in Git worktrees, REQ-24 IT handover pack and installer signing, REQ-25 portfolio view, REQ-26 reusable templates, REQ-27 second reviewer or approver. Nothing in the app depends on them.
+
+- Security fixes, high (iteration 25): F-1 window screenshots, F-2 test commands, F-5 diagram frame fixed; F-4 (private files, web addresses) fixed for Read/Glob/Grep/WebFetch/screenshots but the shell route and the API key in the engine environment remain open; F-3 shows a "Not protected" warning but the engine still starts unboxed when the box cannot start. F-6 to F-10 (medium) still to do. See reports/SECURITY_REVIEW.md.
