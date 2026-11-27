@@ -3,6 +3,7 @@ name: Release
 # Publishes a new version: when VERSION changes on main (or on demand), run the tests, build the Windows installer,
 # tag the version (v<VERSION>) and create the GitHub release with the installer and the notes from CHANGELOG.md.
 # Nothing happens if that version is already released.
+# (Re-run for 1.6.3 after the first run stopped on two tests that only work on Windows.)
 
 on:
   push:
