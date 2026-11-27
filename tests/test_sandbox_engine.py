@@ -27,6 +27,7 @@ def test_other_programs_are_not_wrapped(proj):
     assert sandbox.engine_command(["claude.exe", "-v"], None) == ["claude.exe", "-v"]   # no project folder
 
 
+@windows_only
 def test_engine_is_wrapped_by_the_launcher_when_the_box_works(proj, monkeypatch):
     settings.save({"sandbox_enabled": True})
     monkeypatch.setattr(sandbox, "prepare", lambda p, engine=False, config=True: "S-1-15-2-1-2-3")

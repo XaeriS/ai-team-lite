@@ -114,7 +114,8 @@ def test_app_that_does_not_start_is_not_packaged(isolated):
     assert len(calls) == 1                                                # no setup made for a broken app
 
 
-def test_what_is_missing_first(isolated):
+def test_what_is_missing_first(isolated, monkeypatch):
+    monkeypatch.setattr(packaging, "find_iscc", lambda: None)            # pretend Inno Setup is not installed
     slug, folder = _project("Missing")
     missing = packaging.needs(slug)
     assert any(".venv" in m for m in missing) and any("Inno Setup" in m and "winget" in m for m in missing)

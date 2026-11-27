@@ -75,5 +75,5 @@ Stricter rules may block a command the team legitimately uses; if so the approva
 |  | [x] F-6: keep plan_approved and Launch command out of the project-writable file | app/projects.py, app/policy.py | |
 |  | [x] F-7: git push card shows destination; refuse unexpected origin / planted git config | app/github.py | |
 |  | [x] F-9/F-10: phone approval cards show the command or file; separate temp folders for engine and test containers | app/telegram.py, app/sandbox.py | |
-| 27 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | building |
-|  | [ ] Whole-codebase clean-up, no behaviour change | app/ | |
+| 27 | **Clean-up before the version** - remove dead code and duplication, refactor where needed, re-run every test | - | done (f25127a) |
+|  | [x] Whole-codebase clean-up, no behaviour change | app/ | |

@@ -1,10 +1,13 @@
 """H-1: take_screenshot(kind="window") starts a program. It must not go through a shell (so 'calc & del x' cannot
 chain a second command) and a command that is not clearly the project's own app must need the user's approval."""
 import subprocess
+import sys
 
 import pytest
 
 from app import policy, winhelpers
+
+windows_only = pytest.mark.skipif(sys.platform != "win32", reason="window screenshots exist only on Windows")
 
 
 class _Stop(Exception):
@@ -62,6 +65,7 @@ def test_tests_command_with_a_path_leaving_the_project_is_not_a_test_command():
     assert policy.is_test_command(r".venv\Scripts\python -m pytest -q tests/test_a.py")
 
 
+@windows_only
 def test_window_screenshot_message_is_plain(isolated, monkeypatch):
     monkeypatch.setattr(winhelpers, "_visible_windows", lambda: [])
     with pytest.raises(ValueError) as e:
